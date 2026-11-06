@@ -40,7 +40,10 @@ async function _serverFetch(method, path, body, timeoutMs = 3000) {
     body: body != null ? JSON.stringify(body) : undefined,
     signal: AbortSignal.timeout(timeoutMs),
   });
-  if (!res.ok) throw new Error(`API error ${res.status}`);
+  if (!res.ok) {
+    const e = await res.json().catch(() => ({}));
+    throw Object.assign(new Error(`API error ${res.status}`), { code: e?.code });
+  }
   return res.json();
 }
 

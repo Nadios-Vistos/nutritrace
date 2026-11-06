@@ -55,7 +55,7 @@ NutriTrace runs as a single Docker container on your own hardware, with a PWA fo
 - **Diary + meal logging.** Configurable meal slots, per-meal ⋮ menu, Split Recipe, IF tracker widget. [Full guide](https://traceapps.github.io/docs/nutritrace/diary/).
 - **Foods, meals, recipes.** Personal database, source filter chips, OFF + USDA quality signals (v1.0.3), Scan Label AI OCR. [Full guide](https://traceapps.github.io/docs/nutritrace/foods/).
 - **Goals + Adaptive TDEE.** Fixed/Dynamic/Adaptive modes, 7,700 kcal/kg regression math. [Full guide](https://traceapps.github.io/docs/nutritrace/goals/).
-- **Wellness integrations (4).** Fitbit (via Google Health), Withings, Garmin, Health Connect, plus Trace-computed Sleep/Readiness/Resilience scores. [Full guide](https://traceapps.github.io/docs/nutritrace/wellness/).
+- **Wellness integrations (4).** Fitbit (via Google Health), Withings, Garmin (with your own Personal API Key, or the Health API partner setup), Health Connect, plus Trace-computed Sleep/Readiness/Resilience scores. [Full guide](https://traceapps.github.io/docs/nutritrace/wellness/).
 - **Activity + Intermittent Fasting.** Manual workouts + IF widget with presets and streaks. [Full guide](https://traceapps.github.io/docs/nutritrace/activity-if/).
 - **Open Food Facts.** Cloud + local Parquet mirror for air-gap. [Full guide](https://traceapps.github.io/docs/nutritrace/off/).
 - **USDA + Mealie.** Free API key USDA lookups + Mealie recipe import. [Full guide](https://traceapps.github.io/docs/nutritrace/usda-mealie/).

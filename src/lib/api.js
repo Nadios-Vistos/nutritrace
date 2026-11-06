@@ -910,7 +910,10 @@ const _NtApiHttp = {
       cache: 'no-store',
       body: isUpload ? body : body != null ? JSON.stringify(body) : undefined,
     });
-    if (!res.ok) { const e = await res.json().catch(() => ({})); throw new Error(e.error || `API error ${res.status}`); }
+    if (!res.ok) {
+      const e = await res.json().catch(() => ({}));
+      throw Object.assign(new Error(e?.error || `API error ${res.status}`), { code: e?.code });
+    }
     return res.json();
   },
 
