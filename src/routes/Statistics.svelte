@@ -154,7 +154,9 @@
   // so a new metric introduced later still surfaces without config.
   $: METRICS = (() => {
     const hidden = new Set($statsHiddenMetrics || []);
-    const visible = _rawMetrics.filter(m => !hidden.has(_metricKey(m)));
+    const visible = _rawMetrics.filter(m => !hidden.has(_metricKey(m))).map(m => ({
+      ...m, label: $_((m.id ? 'nutrient_names.' : 'metric_names.') + _metricKey(m), { default: m.label }),
+    }));
     const order = $statsMetricOrder || [];
     if (!order.length) return visible;
     const byKey = new Map(visible.map(m => [_metricKey(m), m]));
@@ -186,13 +188,13 @@
   }
 
   const RANGES = [
-    { value: '7',   label: '1W'  },
-    { value: '14',  label: '2W'  },
-    { value: '30',  label: '1M'  },
-    { value: '90',  label: '3M'  },
-    { value: '180', label: '6M'  },
-    { value: '365', label: '1Y'  },
-    { value: 'all', label: 'All' },
+    { value: '7',   labelKey: 'statistics_page.range.compact_7'  },
+    { value: '14',  labelKey: 'statistics_page.range.compact_14'  },
+    { value: '30',  labelKey: 'statistics_page.range.compact_30'  },
+    { value: '90',  labelKey: 'statistics_page.range.compact_90'  },
+    { value: '180', labelKey: 'statistics_page.range.compact_180'  },
+    { value: '365', labelKey: 'statistics_page.range.compact_365'  },
+    { value: 'all', labelKey: 'statistics_page.range.compact_all' },
   ];
 
   async function loadData() {
@@ -743,10 +745,10 @@
       buckets[bucket].push({ ...m, _key: key });
     }
     const groups = [];
-    if (buckets.nutrient.length) groups.push({ label: 'Nutrition', metrics: buckets.nutrient });
-    if (buckets.body.length)     groups.push({ label: 'Body',      metrics: buckets.body });
-    if (buckets.water.length)    groups.push({ label: 'Water',     metrics: buckets.water });
-    if (buckets.wellness.length) groups.push({ label: 'Wellness',  metrics: buckets.wellness });
+    if (buckets.nutrient.length) groups.push({ label: $_('statistics_page.groups.nutrition'), metrics: buckets.nutrient });
+    if (buckets.body.length)     groups.push({ label: $_('statistics_page.groups.body'),      metrics: buckets.body });
+    if (buckets.water.length)    groups.push({ label: $_('diary_deep.water'),     metrics: buckets.water });
+    if (buckets.wellness.length) groups.push({ label: $_('nav.wellness'),  metrics: buckets.wellness });
     return groups;
   })();
 
@@ -967,7 +969,7 @@
   <!-- Desktop left rail: grouped metric picker. Hidden on mobile; the
        horizontal metric-scroll below still owns metric selection there. -->
   <aside class="stats-left-rail">
-    <div class="stats-rail-heading">Metrics</div>
+    <div class="stats-rail-heading">{$_('statistics_page.metrics')}</div>
     <input class="stats-rail-search" type="search" placeholder="Filter metrics…" bind:value={_railQuery} />
     {#each groupedMetrics as g}
       {@const _filtered = g.metrics.filter(m => !_railQuery || foldText(m.label).includes(foldText(_railQuery)))}
@@ -998,14 +1000,14 @@
       <div class="range-pills" use:dragScroll>
         {#each RANGES as r}
           <button class="range-btn" class:active={range === r.value} on:click={() => range = r.value}>
-            {r.label}
+            {$_(r.labelKey)}
           </button>
         {/each}
         <button class="range-btn" class:active={range === 'custom'} on:click={() => range = 'custom'}>
-          Custom
+          {$_('statistics_page.range.custom')}
         </button>
       </div>
-      <button class="chart-type-btn" title="Toggle chart type"
+      <button class="chart-type-btn" title={$_('statistics_page.toggle_chart')}
         on:click={() => statsChartType.set($statsChartType === 'bar' ? 'line' : 'bar')}>
         <span class="material-symbols-rounded" style="font-size:18px">
           {$statsChartType === 'bar' ? 'show_chart' : 'bar_chart'}
@@ -1081,7 +1083,7 @@
         <!-- CSV export lives on the chart itself so mobile and large-screen
              both get it. Was previously desktop-rail-only. -->
         <button class="chart-csv" type="button" on:click={_exportCsv}
-          title="Export CSV" aria-label="Export CSV">
+          title={$_('statistics_page.export_csv')} aria-label={$_('statistics_page.export_csv')}>
           <span class="material-symbols-rounded">download</span>
         </button>
       {/if}
@@ -1196,7 +1198,7 @@
   </div>
   <!-- Desktop right rail: KPI stack + overlay toggles. Hidden on mobile. -->
   <aside class="stats-right-rail">
-    <div class="stats-rail-heading">Summary</div>
+    <div class="stats-rail-heading">{$_('statistics_page.summary_heading')}</div>
     {#if summary}
       <div class="stats-rail-kpi">
         <span class="stats-rail-kpi-lbl">{$_('statistics_page.summary.average')}</span>
@@ -1256,21 +1258,21 @@
       <p class="stats-rail-empty text-3 text-sm">{$_('statistics_page.empty.no_data')}</p>
     {/if}
 
-    <div class="stats-rail-heading" style="margin-top:16px">Overlays</div>
+    <div class="stats-rail-heading" style="margin-top:16px">{$_('statistics_page.overlays')}</div>
     <label class="stats-rail-check">
       <input type="checkbox" checked={$statsAvgLine}
         on:change={(e) => statsAvgLine.set(e.currentTarget.checked)} />
-      <span>Average</span>
+      <span>{$_('statistics_page.summary.average')}</span>
     </label>
     <label class="stats-rail-check">
       <input type="checkbox" checked={$statsGoalLine}
         on:change={(e) => statsGoalLine.set(e.currentTarget.checked)} />
-      <span>Goal</span>
+      <span>{$_('statistics_page.goal')}</span>
     </label>
     <label class="stats-rail-check">
       <input type="checkbox" checked={$statsTrendLine}
         on:change={(e) => statsTrendLine.set(e.currentTarget.checked)} />
-      <span>Trend</span>
+      <span>{$_('statistics_page.trend')}</span>
     </label>
     <!-- TODO: compare mode (#5) — needs loader refactor to accept a
          metric argument (loadSeries(metricId) → { labels, values }).
@@ -1291,7 +1293,7 @@
       <div class="cal-title">{showCalFor === 'start' ? 'From' : 'To'} date</div>
       <!-- Month / year nav -->
       <div class="dp-nav">
-        <button class="btn-icon dp-nav-btn" on:click={calPrevMonth} aria-label="Previous month" title="Previous month">
+        <button class="btn-icon dp-nav-btn" on:click={calPrevMonth} aria-label={$_('statistics_page.previous_month')} title={$_('statistics_page.previous_month')}>
           <span class="material-symbols-rounded">chevron_left</span>
         </button>
         <div class="dp-month-year">
@@ -1302,7 +1304,7 @@
             {calYear}<span class="material-symbols-rounded" style="font-size:14px;vertical-align:middle;margin-left:2px">{showYearPicker ? 'expand_less' : 'expand_more'}</span>
           </button>
         </div>
-        <button class="btn-icon dp-nav-btn" on:click={calNextMonth} aria-label="Next month" title="Next month">
+        <button class="btn-icon dp-nav-btn" on:click={calNextMonth} aria-label={$_('statistics_page.next_month')} title={$_('statistics_page.next_month')}>
           <span class="material-symbols-rounded">chevron_right</span>
         </button>
       </div>

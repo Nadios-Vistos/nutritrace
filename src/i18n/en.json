@@ -31,8 +31,16 @@
   },
   "family_avatar": {
     "edit": "Change avatar",
-    "kind": { "rabbit": "Rabbit", "manga_man": "Manga man", "manga_woman": "Manga woman" },
-    "expression": { "smile": "{name}, smiling", "curious": "{name}, looking curious", "calm": "{name}, looking calm" },
+    "kind": {
+      "rabbit": "Rabbit",
+      "manga_man": "Manga man",
+      "manga_woman": "Manga woman"
+    },
+    "expression": {
+      "smile": "{name}, smiling",
+      "curious": "{name}, looking curious",
+      "calm": "{name}, looking calm"
+    },
     "customize": "Customize features",
     "from_photo": "Create from a photo",
     "privacy": "Choose a portrait of one person. Analysing it sends the photo to your configured AI provider. NutriTrace saves only the avatar settings.",
@@ -42,13 +50,30 @@
     "ai_required": "Configure an AI model that supports images to use a portrait. You can still customize the avatar manually.",
     "analysis_error": "Could not suggest an avatar. Try a clear portrait with one face and check that your model accepts images.",
     "glasses": "Glasses",
-    "field": { "style": "Hairstyle", "skin": "Skin tone", "hair": "Hair colour", "eyes": "Eye colour" },
+    "field": {
+      "style": "Hairstyle",
+      "skin": "Skin tone",
+      "hair": "Hair colour",
+      "eyes": "Eye colour"
+    },
     "option": {
-      "short": "Short", "long": "Long", "curly": "Curly", "shaved": "Shaved",
-      "light": "Light", "tan": "Tan", "brown": "Brown", "deep": "Deep",
-      "black": "Black", "blond": "Blond", "red": "Red", "silver": "Silver",
-      "blue": "Blue", "green": "Green", "dark": "Very dark"
-    }
+      "short": "Short",
+      "long": "Long",
+      "curly": "Curly",
+      "shaved": "Shaved",
+      "light": "Light",
+      "tan": "Tan",
+      "brown": "Brown",
+      "deep": "Deep",
+      "black": "Black",
+      "blond": "Blond",
+      "red": "Red",
+      "silver": "Silver",
+      "blue": "Blue",
+      "green": "Green",
+      "dark": "Very dark"
+    },
+    "analysing": "Analysing portrait…"
   },
   "family_diary": {
     "enable": "Simple mode",
@@ -130,7 +155,19 @@
       "network_error_upload": "Network error during upload",
       "voice_unsupported": "Voice input not supported in this browser",
       "cant_start_mic": "Couldn't start microphone"
-    }
+    },
+    "edit": "Edit",
+    "copy": "Copy",
+    "unit": "Unit",
+    "date": "Date",
+    "dismiss": "Dismiss",
+    "dismiss_named": "Dismiss {name}",
+    "energy": "Energy",
+    "select": "Select",
+    "select_all": "Select all",
+    "select_none": "Select none",
+    "favorite": "Favorite",
+    "duplicate": "Duplicate"
   },
   "sync": {
     "synced": "Synced",
@@ -198,7 +235,12 @@
       "distance": "Distance",
       "temperature": "Temperature",
       "time_12h": "12-hour (AM/PM)",
-      "time_24h": "24-hour"
+      "time_24h": "24-hour",
+      "units": "Units",
+      "date_us": "MM/DD/YYYY",
+      "date_eu": "DD/MM/YYYY",
+      "date_iso": "YYYY-MM-DD",
+      "date_natural": "D MMM YYYY"
     },
     "diary": {
       "section": "Diary",
@@ -892,7 +934,9 @@
       "usda_branded": "Branded",
       "usda_branded_hint": "(brand-submitted)",
       "usda_experimental": "Experimental",
-      "usda_experimental_hint": "(research)"
+      "usda_experimental_hint": "(research)",
+      "off_active": "Open Food Facts quality filter active",
+      "usda_active": "USDA data type filter active"
     },
     "search_placeholder": "Search foods or scan barcode...",
     "scan_barcode": "Scan Barcode",
@@ -954,7 +998,23 @@
       "meal_partly_added": "Some ingredients could not be added: {names}",
       "meal_none_added": "Could not add this meal. Check your connection and try again.",
       "meal_stale_ingredients": "Added to diary. These ingredients are no longer in your foods: {names}. Edit the meal to fix them."
-    }
+    },
+    "sources_heading": "Sources",
+    "categories_heading": "Categories",
+    "yesterday_meals": "Yesterday’s Meals",
+    "yesterday_meal": "Yesterday: {meal}",
+    "yesterday_added": "Added: {meal}",
+    "show_meal_items": "Show items in {meal}",
+    "show_items": "Show items",
+    "add_meal_today": "Add {meal} to today",
+    "add_today": "Add to today",
+    "tabs": {
+      "meals": "Meals",
+      "recipes": "Recipes"
+    },
+    "filters_empty": "No filters available for this tab.",
+    "save_to_catalog": "Save to My Catalog",
+    "save_to_foods": "Save to My Foods"
   },
   "trace": {
     "food_card": {
@@ -1064,6 +1124,20 @@
       "value_label_day": "{day} ({unit})",
       "remove_goal": "Remove Goal",
       "water_sheet_label": "Goal ({unit})"
+    },
+    "macros": {
+      "title": "Macronutrients",
+      "balanced": "Balanced",
+      "keto": "Keto",
+      "high_protein": "High-Protein",
+      "custom": "Custom",
+      "current": "Currently:",
+      "match_hint": "Ratio matches this preset (±2% tolerance)"
+    },
+    "tabs": {
+      "mine": "Your Goals",
+      "all": "All Fields",
+      "templates": "Templates"
     }
   },
   "goals": {
@@ -1094,7 +1168,12 @@
     "anim_shimmer": "Shimmer",
     "anim_drift": "Drift",
     "anim_pulse": "Pulse",
-    "anim_aurora": "Aurora"
+    "anim_aurora": "Aurora",
+    "group_data": "Data and Tracking",
+    "group_app": "App",
+    "clear_search": "Clear search",
+    "no_matches": "No sections match “{query}”",
+    "get_set_up": "Get Set Up"
   },
   "settings_diary": {
     "show_brand": "Show Brand Names",
@@ -1152,7 +1231,28 @@
     "schedule_goal": "Schedule Goal",
     "show_progress_bar": "Show Daily Goals Progress Bar",
     "show_progress_bar_desc": "Progress strip at the bottom of the diary showing how much of your daily goals you've hit",
-    "meal_names": "Meal Names"
+    "meal_names": "Meal Names",
+    "groups": {
+      "food": "Food Row Display",
+      "food_desc": "Fields shown beneath each food entry in the diary.",
+      "meal": "Meal Card Layout",
+      "meal_desc": "Header, footer, and interaction on each meal card.",
+      "units": "Nutrition Units",
+      "units_desc": "Off by default. Turn on for custom serving units or to weigh Open Food Facts liquids in grams.",
+      "widgets": "Rail Widgets",
+      "widgets_desc": "Widgets in the right column on wide screens (≥1280px).",
+      "quick": "Quick Calories",
+      "quick_desc": "One-tap calorie entries without a food.",
+      "activity": "Activity Section",
+      "activity_desc": "Manual workout logging under meals.",
+      "activity_policy": "When Wearable and Manual Entries Both Exist",
+      "activity_manual": "If no wearable data exists for a day, manual entries always count.",
+      "fasting": "Fasting",
+      "fasting_desc": "Intermittent fasting with an optional recurring schedule.",
+      "fasting_schedule": "Automatically start a fast once per scheduled day. You can still start one manually.",
+      "meal_order": "Drag to change the order of meals in the diary.",
+      "remove_meal": "Remove meal"
+    }
   },
   "settings_water": {
     "display_unit": "Display Unit",
@@ -1273,7 +1373,8 @@
   "nutrition_facts": {
     "title": "Nutrition Facts",
     "serving_size": "Serving Size",
-    "amount_per": "Amount Per Serving"
+    "amount_per": "Amount Per Serving",
+    "includes": "Includes {amount} {name}"
   },
   "fasting_insights": {
     "title": "Fasting",
@@ -1381,7 +1482,27 @@
     "cancel": "Cancel",
     "meal_name": "Meal Name",
     "body_stats": "Body Stats",
-    "nutrition_summary": "Nutrition Summary"
+    "nutrition_summary": "Nutrition Summary",
+    "meal_fallback": "Meal",
+    "overview": "Overview",
+    "has_notes": "Has notes",
+    "meal_actions": "Meal actions",
+    "meal_actions_for": "Actions for {meal}",
+    "move_to_meal": "Move to Meal",
+    "move_items": "Move Items to…",
+    "replace": "Replace",
+    "select_multiple": "Select Multiple",
+    "split_recipe": "Split Recipe",
+    "save_as_meal": "Save as Meal…",
+    "clear_meal": "Clear All Items",
+    "item_count": "{count, plural, one {# item} other {# items}}",
+    "meal_empty": "empty",
+    "save_meal_title": "Save meal to your catalog",
+    "save_meal_example": "e.g. Usual breakfast",
+    "save_meal_count": "{count, plural, one {# item will be saved} other {# items will be saved}}",
+    "meal_totals": "{meal} totals",
+    "energy_left": "{unit} left",
+    "energy_left_kj": "kJ left"
   },
   "wizard_deep": {
     "off_user_ph": "Username (optional)",
@@ -1438,7 +1559,17 @@
     "library": "Library",
     "camera": "Camera",
     "manual_ph": "Or type barcode manually…",
-    "lookup": "Look Up"
+    "lookup": "Look Up",
+    "status": {
+      "requesting": "Requesting camera…",
+      "starting": "Starting camera…",
+      "align": "Align Barcode",
+      "error": "Camera error. Try another scanner engine.",
+      "loading": "Loading scanner…",
+      "load_failed": "Failed to load scanner libraries.",
+      "no_camera": "No camera found.",
+      "denied": "Camera access denied."
+    }
   },
   "food_editor": {
     "off_prepared": {
@@ -2375,7 +2506,15 @@
       "last_month": "Last Month",
       "ytd": "YTD",
       "from": "From",
-      "to": "To"
+      "to": "To",
+      "compact_7": "1W",
+      "compact_14": "2W",
+      "compact_30": "1M",
+      "compact_90": "3M",
+      "compact_180": "6M",
+      "compact_365": "1Y",
+      "compact_all": "All",
+      "custom": "Custom"
     },
     "summary": {
       "average": "Average",
@@ -2390,7 +2529,20 @@
       "hint_wellness": "Connect a fitness tracker in Settings → Wellness",
       "hint_other": "No entries found — try a different date range"
     },
-    "history_heading": "History"
+    "history_heading": "History",
+    "groups": {
+      "nutrition": "Nutrition",
+      "body": "Body"
+    },
+    "toggle_chart": "Toggle chart type",
+    "export_csv": "Export CSV",
+    "metrics": "Metrics",
+    "summary_heading": "Summary",
+    "overlays": "Overlays",
+    "goal": "Goal",
+    "trend": "Trend",
+    "previous_month": "Previous month",
+    "next_month": "Next month"
   },
   "accept_invite": {
     "title": "Create Account",
@@ -2411,5 +2563,65 @@
       "username_required": "Username is required",
       "failed": "Failed to create account"
     }
+  },
+  "navigation": {
+    "main": "Main navigation",
+    "update": "Update available"
+  },
+  "nutrient_names": {
+    "calories": "Calories",
+    "kilojoules": "Kilojoules",
+    "fat": "Fat",
+    "saturated-fat": "Saturated Fat",
+    "trans-fat": "Trans Fat",
+    "polyunsaturated-fat": "Polyunsaturated Fat",
+    "monounsaturated-fat": "Monounsaturated Fat",
+    "cholesterol": "Cholesterol",
+    "sodium": "Sodium",
+    "salt": "Salt",
+    "carbohydrates": "Carbs",
+    "fiber": "Fiber",
+    "sugars": "Sugars",
+    "added-sugars": "Added Sugars",
+    "proteins": "Protein",
+    "vitamin-d": "Vitamin D",
+    "calcium": "Calcium",
+    "iron": "Iron",
+    "potassium": "Potassium",
+    "vitamin-a": "Vitamin A",
+    "vitamin-c": "Vitamin C",
+    "vitamin-e": "Vitamin E",
+    "vitamin-k": "Vitamin K",
+    "b1": "Vitamin B1",
+    "b2": "Vitamin B2",
+    "b3": "Vitamin B3",
+    "b6": "Vitamin B6",
+    "b9": "Folate (B9)",
+    "b12": "Vitamin B12",
+    "magnesium": "Magnesium",
+    "zinc": "Zinc",
+    "phosphorus": "Phosphorus",
+    "caffeine": "Caffeine",
+    "alcohol": "Alcohol"
+  },
+  "metric_names": {
+    "weight": "Weight",
+    "neck": "Neck",
+    "waist": "Waist",
+    "hips": "Hips",
+    "chest": "Chest",
+    "thighs": "Thighs",
+    "biceps": "Biceps",
+    "calves": "Calves",
+    "body_fat": "Body Fat",
+    "body_water": "Body Water",
+    "wl_steps": "Steps",
+    "wl_active": "Active Min.",
+    "wl_sleep": "Sleep",
+    "wl_rhr": "Resting HR",
+    "wl_hrv": "HRV",
+    "wl_spo2": "SpO₂",
+    "wl_muscle": "Muscle Mass",
+    "water": "Water"
   }
 }

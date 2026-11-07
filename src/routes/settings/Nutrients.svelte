@@ -118,7 +118,7 @@
           : ''}>
         <!-- svelte-ignore a11y-no-static-element-interactions -->
         <span class="drag-handle material-symbols-rounded" on:pointerdown={e => onNutDragDown(e, i)}>drag_indicator</span>
-        <span class="setting-label">{n.label} <span class="text-3 text-sm">({n.unit})</span></span>
+        <span class="setting-label">{$_(`nutrient_names.${n.id}`, { default: n.label })} <span class="text-3 text-sm">({n.unit})</span></span>
         <Toggle checked={isNutrientVisible(n.id)} on:change={() => toggleNutrientVisible(n.id)} />
       </div>
     {/each}

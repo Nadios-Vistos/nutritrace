@@ -111,7 +111,7 @@
           {#if photo}
             <img class="portrait" src={photo} alt={$_('family_avatar.selected_photo')} />
             <button class="btn btn-secondary" type="button" on:click={analyse} disabled={busy}>
-              {$_(analysing ? 'meal_photo.analysing' : 'family_avatar.analyse')}
+              {$_(analysing ? 'family_avatar.analysing' : 'family_avatar.analyse')}
             </button>
           {/if}
           {#if suggested}<p role="status">{$_('family_avatar.review')}</p>{/if}

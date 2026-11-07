@@ -32,7 +32,7 @@
   import { itemSourceRef } from '../lib/item-source.js';
   import { offCountryTagToFlag, offCountryTagToName } from '../lib/off-country-flag.js';
   import { foodsShowThumbnails, foodsShowCategories, foodsShowLabels, foodsShowNotes, foodsSort, mealsSort, recipesSort, foodCategories, foodsShowYesterdayMeals, foodsYesterdayCollapsed, foodsSavedCollapsed, mealNames, usdaEnabled, usdaApiKey, offEnabled, offSearchCountry, offSearchLanguage, foodsDefaultSource, diaryDefaultField, catName as _catName, catDisplay as _catDisplay, pageBanners, bannerStyle, energyUnit } from '../stores/settings.js';
-  import { mealIcon } from '../lib/mealIcon.js';
+  import { mealIcon, mealLabel } from '../lib/mealIcon.js';
   import { focusDefaultField } from '../lib/default-field.js';
   import { pageScrollTop, restorePageScroll } from '../lib/scroll-anchor.js';
 
@@ -49,10 +49,10 @@
   $: pickMeal  = params.meal;
   $: pickDate  = params.date;
 
-  const TABS = [
-    { label: 'Foods',   value: 'foodList' },
-    { label: 'Meals',   value: 'meals' },
-    { label: 'Recipes', value: 'recipes' },
+  $: TABS = [
+    { label: $_('nav.foods'),   value: 'foodList' },
+    { label: $_('foods.tabs.meals'),   value: 'meals' },
+    { label: $_('foods.tabs.recipes'), value: 'recipes' },
   ];
   let activeTab = 0;
   // Reset source + category filter when switching tabs (not when searchSource itself changes)
@@ -1118,7 +1118,7 @@
     await addDiaryItem(item, chosenMeal);
     editorState.lastMealAdded = chosenMeal;
     const names = mealNames.get() || ['Breakfast', 'Lunch', 'Dinner', 'Snacks'];
-    showSuccess($_('foods.detail.added_to', { values: { meal: names[chosenMeal] || 'meal' } }));
+    showSuccess($_('foods.detail.added_to', { values: { meal: mealLabel(names[chosenMeal], $_) || $_('diary_deep.meal_fallback') } }));
   }
 
   function openMealEditor(item, isRecipe) {
@@ -1704,7 +1704,7 @@
     }
     yesterdayMeals = Object.entries(groups).map(([mIdx, items]) => ({
       mealIdx: Number(mIdx),
-      mealName: names[Number(mIdx)] || ('Meal ' + (Number(mIdx)+1)),
+      mealName: names[Number(mIdx)] || $_('settings_main_deep.meal_placeholder', { values: { n: Number(mIdx) + 1 } }),
       items,
       totalKcal: Math.round(items.reduce((s,i) => {
         const factor = (i.quantity || 1);
@@ -1766,7 +1766,7 @@
       const imgUrl = liveImgFor(item);
       await addDiaryItem({ ...item, imgUrl }, targetMeal, pickDate);
     }
-    import('../stores/toast.js').then(m => m.showSuccess('Added ' + group.mealName));
+    import('../stores/toast.js').then(m => m.showSuccess($_('foods.yesterday_added', { values: { meal: mealLabel(group.mealName, $_) } })));
     editorState.lastMealAdded = targetMeal;
     history.back();
   }
@@ -1950,14 +1950,14 @@
                   on:touchend={_cancelChipLongPress}
                   on:touchcancel={_cancelChipLongPress}>
             {src.label}
-            {#if offTiersFiltered}<span class="tier-active-dot" title="OFF tier filter active"></span>{/if}
+            {#if offTiersFiltered}<span class="tier-active-dot" title={$_('foods.tier.off_active')}></span>{/if}
           </button>
           <button class="source-chip-caret"
                   class:active={activeChips.off}
                   class:open={offDropdownOpen}
                   bind:this={offCaretEl}
                   on:click={openOffDropdown}
-                  aria-label="Filter OFF results by quality tier"
+                  aria-label={$_('foods.tier.off_data_quality')}
                   aria-expanded={offDropdownOpen}>
             <span class="material-symbols-rounded">expand_more</span>
           </button>
@@ -1973,14 +1973,14 @@
                   on:touchend={_cancelChipLongPress}
                   on:touchcancel={_cancelChipLongPress}>
             {src.label}
-            {#if usdaTiersFiltered}<span class="tier-active-dot" title="USDA tier filter active"></span>{/if}
+            {#if usdaTiersFiltered}<span class="tier-active-dot" title={$_('foods.tier.usda_active')}></span>{/if}
           </button>
           <button class="source-chip-caret"
                   class:active={activeChips.usda}
                   class:open={usdaDropdownOpen}
                   bind:this={usdaCaretEl}
                   on:click={openUsdaDropdown}
-                  aria-label="Filter USDA results by data type"
+                  aria-label={$_('foods.tier.usda_data_type')}
                   aria-expanded={usdaDropdownOpen}>
             <span class="material-symbols-rounded">expand_more</span>
           </button>
@@ -2022,13 +2022,13 @@
       <button class="btn-icon"
         disabled={_visibleManageableIds.length === 0 || _allVisibleSelected || bulkDeleting}
         on:click={selectAllVisible}
-        aria-label="Select all visible" title="Select all">
+        aria-label={$_('common.select_all')} title={$_('common.select_all')}>
         <span class="material-symbols-rounded">select_all</span>
       </button>
       <button class="btn-icon"
         disabled={manageSelected.size === 0 || bulkDeleting}
         on:click={selectNoneVisible}
-        aria-label="Select none" title="Select none">
+        aria-label={$_('common.select_none')} title={$_('common.select_none')}>
         <span class="material-symbols-rounded">deselect</span>
       </button>
       <button class="btn-icon" style="color:var(--danger)"
@@ -2124,13 +2124,13 @@
              more than one source to pick from. Meals/Recipes with
              just Local (no shared users) hide the section entirely
              — no dead heading with a single chip beneath. -->
-        <p class="foods-filter-heading">Sources</p>
+        <p class="foods-filter-heading">{$_('foods.sources_heading')}</p>
         <div class="foods-rail-chips foods-rail-sources">
           {@render sourceChips()}
         </div>
       {/if}
       {#if activeTab === 0 && searchSource === 'local' && $foodsShowCategories && $foodCategories && $foodCategories.length > 0}
-        <p class="foods-filter-heading">Categories</p>
+        <p class="foods-filter-heading">{$_('foods.categories_heading')}</p>
         <div class="foods-rail-chips foods-rail-cats">
           {@render catChips()}
         </div>
@@ -2138,7 +2138,7 @@
       {#if availableSources.length <= 1 && !(activeTab === 0 && searchSource === 'local' && $foodsShowCategories && $foodCategories && $foodCategories.length > 0)}
         <!-- Rail would be empty otherwise — leave a low-key hint so
              the column doesn't render as a mysteriously-empty box. -->
-        <p class="foods-filter-empty">No filters available for this tab.</p>
+        <p class="foods-filter-empty">{$_('foods.filters_empty')}</p>
       {/if}
     </aside>
     {/if}
@@ -2150,7 +2150,7 @@
     <button class="meal-section-header" type="button"
       on:click={() => foodsYesterdayCollapsed.set(!$foodsYesterdayCollapsed)}
       aria-expanded={!$foodsYesterdayCollapsed}>
-      <span class="meal-section-label">Yesterday's Meals</span>
+      <span class="meal-section-label">{$_('foods.yesterday_meals')}</span>
       <span class="material-symbols-rounded meal-section-chevron"
         class:meal-section-chevron-collapsed={$foodsYesterdayCollapsed}>expand_more</span>
     </button>
@@ -2165,16 +2165,16 @@
               <span class="material-symbols-rounded" style="color:var(--accent);font-size:20px">{mealIcon(group.mealName)}</span>
             </div>
             <div class="food-info">
-              <span class="food-name">{group.mealName}</span>
+              <span class="food-name">{mealLabel(group.mealName, $_)}</span>
               <span class="food-kcal text-sm">{group.items.length} items · {_grpEnergy.value.toLocaleString()} {_grpEnergy.unit}</span>
             </div>
           </button>
           <button class="btn-icon" on:click|stopPropagation={() => yesterdayInfoGroup = group}
-            aria-label="Show items in {group.mealName}" title="Show items">
+            aria-label={$_('foods.show_meal_items', { values: { meal: mealLabel(group.mealName, $_) } })} title={$_('foods.show_items')}>
             <span class="material-symbols-rounded">info</span>
           </button>
           <button class="btn-icon accent" on:click|stopPropagation={() => addYesterdayMeal(group)}
-            aria-label="Add {group.mealName} to today" title="Add to today">
+            aria-label={$_('foods.add_meal_today', { values: { meal: mealLabel(group.mealName, $_) } })} title={$_('foods.add_today')}>
             <span class="material-symbols-rounded">add_circle</span>
           </button>
         </div>
@@ -2256,7 +2256,7 @@
                 {/if}
                 <div class="food-info">
                   <span class="food-name">
-                    {#if source === 'local' && item.favorite}<span class="material-symbols-rounded fav-mark" title="Favorite">favorite</span>{/if}
+                    {#if source === 'local' && item.favorite}<span class="material-symbols-rounded fav-mark" title={$_('common.favorite')}>favorite</span>{/if}
                     {item.name}
                     <!-- OFF origin-country flag — shown on any OFF item
                          with origin data, regardless of whether the user
@@ -2451,13 +2451,13 @@
                 class:food-pane-active={food.id != null && _paneFood?.id === food.id}
                 in:fade={{ duration: 160 }}>
               {#if pickMode}
-                <button class="food-select-btn" on:click={() => toggleSelect(food)} aria-label="Select">
+                <button class="food-select-btn" on:click={() => toggleSelect(food)} aria-label={$_('common.select')}>
                   <span class="food-check material-symbols-rounded" class:food-check-on={_sel}>
                     {_sel ? 'check_circle' : 'radio_button_unchecked'}
                   </span>
                 </button>
               {:else if manageMode}
-                <button class="food-select-btn" on:click={() => toggleManageSelect(food)} aria-label="Select">
+                <button class="food-select-btn" on:click={() => toggleManageSelect(food)} aria-label={$_('common.select')}>
                   <span class="food-check material-symbols-rounded" class:food-check-on={_mSel}>
                     {_mSel ? 'check_circle' : 'radio_button_unchecked'}
                   </span>
@@ -2478,7 +2478,7 @@
                 {/if}
                 <div class="food-info">
                   <span class="food-name">
-                    {#if food.favorite}<span class="material-symbols-rounded fav-mark" title="Favorite">favorite</span>{/if}
+                    {#if food.favorite}<span class="material-symbols-rounded fav-mark" title={$_('common.favorite')}>favorite</span>{/if}
                     {food.name}
                   </span>
                   {#if activeTab === 0}
@@ -2497,7 +2497,7 @@
               </button>
               {#if (activeTab === 1 || activeTab === 2) && (food.items || []).length > 0 && !manageMode}
                 <button class="btn-icon meal-info-btn" on:click|stopPropagation={() => openMealInfo(food)}
-                  aria-label="Show items in {food.name}" title="Show items">
+                  aria-label={$_('foods.show_meal_items', { values: { meal: food.name } })} title={$_('foods.show_items')}>
                   <span class="material-symbols-rounded">info</span>
                 </button>
               {/if}
@@ -2556,7 +2556,7 @@
               {@const _foodEnergy = Nutrition.displayEnergy(food.nutrition?.calories || food.calories || 0, $energyUnit)}
               <li class="food-item card" class:food-selected={_sel}>
                 {#if pickMode}
-                  <button class="food-select-btn" on:click={() => toggleSelect(food)} aria-label="Select">
+                  <button class="food-select-btn" on:click={() => toggleSelect(food)} aria-label={$_('common.select')}>
                     <span class="food-check material-symbols-rounded" class:food-check-on={_sel}>
                       {_sel ? 'check_circle' : 'radio_button_unchecked'}
                     </span>
@@ -2782,7 +2782,7 @@
             <input class="input" type="text" inputmode="decimal" use:decimalInput bind:value={item.portion} data-field="portion" style="font-size:16px;width:100%" />
           </div>
           <div style="width:100px">
-            <label class="form-label" style="font-size:11px;color:var(--text-3);display:block;margin-bottom:5px">Unit</label>
+            <label class="form-label" style="font-size:11px;color:var(--text-3);display:block;margin-bottom:5px">{$_('common.unit')}</label>
             <UnitPicker bind:value={item.unit} />
           </div>
           <div style="width:72px">
@@ -2872,7 +2872,7 @@
           style="font-size:16px;width:100%" />
       </div>
       <div style="width:100px">
-        <label class="form-label" style="font-size:11px;color:var(--text-3);display:block;margin-bottom:6px">Unit</label>
+        <label class="form-label" style="font-size:11px;color:var(--text-3);display:block;margin-bottom:6px">{$_('common.unit')}</label>
         <UnitPicker bind:value={promptUnit} />
       </div>
     </div>
@@ -2928,7 +2928,7 @@
 
 <!-- Yesterday's meal info sheet — list of items in that meal group -->
 <Sheet open={yesterdayInfoGroup != null}
-  title={yesterdayInfoGroup ? `Yesterday: ${yesterdayInfoGroup.mealName}` : ''}
+  title={yesterdayInfoGroup ? $_('foods.yesterday_meal', { values: { meal: mealLabel(yesterdayInfoGroup.mealName, $_) } }) : ''}
   on:close={() => yesterdayInfoGroup = null}>
   {#if yesterdayInfoGroup}
     {@const _yTotEnergy = Nutrition.displayEnergy(yesterdayInfoGroup.totalKcal, $energyUnit)}
@@ -3040,14 +3040,14 @@
   bind:open={showItemActions}
   title={selectedItem ? selectedItem.name : ''}
   actions={selectedItem?._shared_by != null ? [
-    { label: 'Save to My Catalog', icon: 'bookmark_add', value: 'copy' },
+    { label: $_('foods.save_to_catalog'), icon: 'bookmark_add', value: 'copy' },
   ] : !selectedItem?.id ? [
-    { label: 'Save to My Foods', icon: 'bookmark_add', value: 'copy' },
+    { label: $_('foods.save_to_foods'), icon: 'bookmark_add', value: 'copy' },
   ] : [
-    { label: 'Edit',   icon: 'edit',        value: 'edit' },
-    ...(activeTab !== 0 ? [{ label: 'Clone', icon: 'content_copy', value: 'clone' }] : []),
-    { label: 'Select Multiple', icon: 'checklist', value: 'select' },
-    { label: 'Delete', icon: 'delete',      value: 'delete', danger: true },
+    { label: $_('common.edit'),   icon: 'edit',        value: 'edit' },
+    ...(activeTab !== 0 ? [{ label: $_('common.duplicate'), icon: 'content_copy', value: 'clone' }] : []),
+    { label: $_('diary_deep.select_multiple'), icon: 'checklist', value: 'select' },
+    { label: $_('common.delete'), icon: 'delete',      value: 'delete', danger: true },
   ]}
   on:select={handleItemAction}
 />

@@ -22,7 +22,7 @@
   import AddActivitySheet from '../components/diary/AddActivitySheet.svelte';
   import QuickCaloriesSheet from '../components/diary/QuickCaloriesSheet.svelte';
   import FastingWidget from '../components/diary/FastingWidget.svelte';
-  import { mealIcon } from '../lib/mealIcon.js';
+  import { mealIcon, mealLabel } from '../lib/mealIcon.js';
   import Sheet        from '../components/ui/Sheet.svelte';
   import Dialog       from '../components/ui/Dialog.svelte';
   import ActionSheet  from '../components/ui/ActionSheet.svelte';
@@ -364,14 +364,7 @@
     showSuccess($_('diary.toast.updated'));
   }
 
-  $: meals = $mealNames || ['Breakfast','Lunch','Dinner','Snacks'];
-  $: defaultFamilyMealLabels = new Map([
-    ['Breakfast', $_('family_diary.breakfast')],
-    ['Lunch', $_('family_diary.lunch')],
-    ['Dinner', $_('family_diary.dinner')],
-    ['Snacks', $_('family_diary.snacks')],
-  ]);
-  $: familyMealLabels = meals.map(meal => defaultFamilyMealLabels.get(meal) ?? meal);
+  $: meals = ($mealNames || ['Breakfast','Lunch','Dinner','Snacks']).map(meal => mealLabel(meal, $_));
   $: editCalc = (() => {
     if (!editItem) return {};
     const origPortion   = parseFloat(editItem.portion) || 100;
@@ -903,15 +896,16 @@
     if (!d) return '';
     const dt = new Date(d + 'T12:00:00');
     const today = localDateStr();
-    const yest  = localDateStr(new Date(Date.now() - 86400000));
-    if (d === today) return labels?.today ?? 'Today';
-    if (d === yest)  return labels?.yesterday ?? 'Yesterday';
+    const yesterday = new Date();
+    yesterday.setDate(yesterday.getDate() - 1);
+    if (d === today) return labels.today;
+    if (d === localDateStr(yesterday)) return labels.yesterday;
     return dt.toLocaleDateString(locale, { weekday:'short', month:'short', day:'numeric' });
   }
 
-  $: familyDateLabels = { today: $_('family_diary.today'), yesterday: $_('family_diary.yesterday') };
+  $: dateLabels = { today: $_('family_diary.today'), yesterday: $_('family_diary.yesterday') };
 
-  function formatDateSub(d, fmt) {
+  function formatDateSub(d, fmt, locale) {
     if (!d) return '';
     const dt = new Date(d + 'T12:00:00');
     fmt = fmt || 'ISO';
@@ -924,7 +918,7 @@
       const dy = String(dt.getDate()).padStart(2,'0');
       return dy + '/' + m + '/' + dt.getFullYear();
     } else if (fmt === 'natural') {
-      return dt.toLocaleDateString(undefined, { day:'numeric', month:'short', year:'numeric' });
+      return dt.toLocaleDateString(locale, { day:'numeric', month:'short', year:'numeric' });
     }
     return d; // ISO default
   }
@@ -1835,7 +1829,7 @@
        "put the hide button inside DaySummary's header" approach
        so DaySummary can go back to just %/g toggle + open_in_full. -->
   <header class="rail-title">
-    <span class="rail-title-text">Overview</span>
+    <span class="rail-title-text">{$_('diary_deep.overview')}</span>
     <div class="rail-title-actions">
       {#if _railMode === 'pinned'}
         <button
@@ -1979,15 +1973,15 @@
     </button>
     <button class="date-btn" on:click={openDatePicker} title={$_('diary.nav.jump_to_date')}>
       <span class="date-label">
-        {$familyDiaryMode ? formatDate($currentDate, familyDateLabels, $locale || undefined) : formatDate($currentDate)}
+        {formatDate($currentDate, dateLabels, $locale || undefined)}
         {#if $diaryShowNotes && (entry?.notes || '').trim()}
-          <span class="material-symbols-rounded date-note-indicator" title="Has notes">edit_note</span>
+          <span class="material-symbols-rounded date-note-indicator" title={$_('diary_deep.has_notes')}>edit_note</span>
         {/if}
         {#if $diaryShowCompletion && _dayIsComplete}
-          <span class="material-symbols-rounded date-complete-indicator" title="Day marked complete" aria-label="Day marked complete">task_alt</span>
+          <span class="material-symbols-rounded date-complete-indicator" title={$_('diary.day_complete.marked_toast')} aria-label={$_('diary.day_complete.marked_toast')}>task_alt</span>
         {/if}
       </span>
-      <span class="date-sub">{formatDateSub($currentDate, $dateFormat)}</span>
+      <span class="date-sub">{formatDateSub($currentDate, $dateFormat, $locale || undefined)}</span>
     </button>
     <button class="btn-icon accent" on:click={nextDay} aria-label={$_('diary.nav.next_day')} title={$_('diary.nav.next_day')}>
       <span class="material-symbols-rounded">chevron_right</span>
@@ -2041,7 +2035,7 @@
         const yd = new Date(); yd.setDate(yd.getDate() - 1);
         if ($currentDate === localDateStr(yd)) return $_('diary.day_complete.status.yesterday');
       } catch {}
-      return formatDate($currentDate);
+      return formatDate($currentDate, dateLabels, $locale || undefined);
     })()}
     <!-- Keep the conditional block anchored when its status elements are portaled. -->
     <div class="day-status-anchor">
@@ -2125,7 +2119,7 @@
       <FamilyDiary
         calories={$currentEntry?.date === $currentDate ? totals.calories : 0}
         budget={$familyCalorieBudget}
-        meals={familyMealLabels}
+        {meals}
         date={$currentDate}
         onSaveBudget={(budget) => familyCalorieBudget.set(budget)}
         onAdd={openAddFood}
@@ -2196,7 +2190,7 @@
               {_mealEnergy.value.toLocaleString()} {_mealEnergy.unit}
             </span>
           {/if}
-          <button class="btn-icon ml-auto meal-menu-btn" on:click={() => openMealActionSheet(mealIdx)} aria-label="Meal actions for {meal}" title="Meal actions">
+          <button class="btn-icon ml-auto meal-menu-btn" on:click={() => openMealActionSheet(mealIdx)} aria-label={$_('diary_deep.meal_actions_for', { values: { meal } })} title={$_('diary_deep.meal_actions')}>
             <span class="material-symbols-rounded">more_vert</span>
           </button>
           {#if $showQuickCalories}
@@ -2657,7 +2651,7 @@
           {#if _totalsMode === 'remaining'}
             {@const _remEnergy = Nutrition.displayEnergy(caloriesGoalAdjusted - Math.round($_calTween), $energyUnit)}
             <span class="dbb-num">{_remEnergy.value.toLocaleString()}</span>
-            <span class="dbb-unit">{#if $calorieGoalMode === 'dynamic' && _dynamicCaloriesOut != null}⚡ {:else if $calorieGoalMode === 'adaptive' && _adaptiveTdee != null}📈 {/if}{#if _effectiveActive > 0}<span class="material-symbols-rounded dbb-activity-cue" title="Adjusted for activity">directions_run</span> {/if}{_remEnergy.unit} left</span>
+            <span class="dbb-unit">{#if $calorieGoalMode === 'dynamic' && _dynamicCaloriesOut != null}⚡ {:else if $calorieGoalMode === 'adaptive' && _adaptiveTdee != null}📈 {/if}{#if _effectiveActive > 0}<span class="material-symbols-rounded dbb-activity-cue" title="Adjusted for activity">directions_run</span> {/if}{_remEnergy.unit === 'kJ' ? $_('diary_deep.energy_left_kj') : $_('diary_deep.energy_left', { values: { unit: _remEnergy.unit } })}</span>
           {:else}
             {@const _eatEnergy = Nutrition.displayEnergy($_calTween, $energyUnit)}
             <span class="dbb-num">{_eatEnergy.value.toLocaleString()}</span>
@@ -2848,10 +2842,10 @@
                 on:keydown={e => { if (e.key === 'Enter') _saveWaterEdit(i); if (e.key === 'Escape') _waterEditIndex = -1; }}
                 autofocus />
               <span class="text-3 text-sm">{_waterUnit}</span>
-              <button class="btn-icon" on:click={() => _saveWaterEdit(i)} title="Save">
+              <button class="btn-icon" on:click={() => _saveWaterEdit(i)} title={$_('common.save')}>
                 <span class="material-symbols-rounded" style="font-size:18px;color:var(--accent)">check</span>
               </button>
-              <button class="btn-icon" on:click={() => _waterEditIndex = -1} title="Cancel">
+              <button class="btn-icon" on:click={() => _waterEditIndex = -1} title={$_('common.cancel')}>
                 <span class="material-symbols-rounded" style="font-size:18px;color:var(--text-3)">close</span>
               </button>
             </div>
@@ -2950,7 +2944,7 @@
           <input class="input" type="text" inputmode="decimal" use:decimalInput bind:value={editPortion} data-field="portion" style="width:100%" />
         </div>
         <div style="width:100px">
-          <label class="form-label" style="font-size:11px;color:var(--text-3);display:block;margin-bottom:4px">Unit</label>
+          <label class="form-label" style="font-size:11px;color:var(--text-3);display:block;margin-bottom:4px">{$_('common.unit')}</label>
           <UnitPicker bind:value={editUnit} />
         </div>
       </div>
@@ -3022,13 +3016,13 @@
   bind:open={showItemAction}
   title={actionItem?.name || ''}
   actions={[
-    { label: 'Edit',            icon: 'edit',          value: 'edit'        },
-    { label: 'Replace',         icon: 'find_replace',  value: 'replace'     },
-    { label: 'Move to Meal',    icon: 'swap_horiz',    value: 'move'        },
-    { label: 'Copy',            icon: 'content_copy',  value: 'copy_to'     },
-    { label: 'Select Multiple', icon: 'checklist',     value: 'select'      },
-    ...(_actionItemIsRecipe ? [{ label: 'Split Recipe', icon: 'call_split', value: 'split' }] : []),
-    { label: 'Delete',          icon: 'delete',        value: 'delete', danger: true },
+    { label: $_('common.edit'),            icon: 'edit',          value: 'edit'        },
+    { label: $_('diary_deep.replace'),         icon: 'find_replace',  value: 'replace'     },
+    { label: $_('diary_deep.move_to_meal'),    icon: 'swap_horiz',    value: 'move'        },
+    { label: $_('common.copy'),            icon: 'content_copy',  value: 'copy_to'     },
+    { label: $_('diary_deep.select_multiple'), icon: 'checklist',     value: 'select'      },
+    ...(_actionItemIsRecipe ? [{ label: $_('diary_deep.split_recipe'), icon: 'call_split', value: 'split' }] : []),
+    { label: $_('common.delete'),          icon: 'delete',        value: 'delete', danger: true },
   ]}
   on:select={onItemAction}
 />
@@ -3036,7 +3030,7 @@
 <!-- Move to meal action sheet -->
 <ActionSheet
   bind:open={showMoveToMeal}
-  title="Move to Meal"
+  title={$_('diary_deep.move_to_meal')}
   actions={meals.map((m, i) => ({ label: m, icon: mealIcon(m), value: i }))}
   on:select={moveItemToMeal}
 />
@@ -3047,14 +3041,14 @@
   {@const _hasItems = _mealItems.length > 0}
   <ActionSheet
     bind:open={showMealAction}
-    title={meals[actionMealIdx] + (_hasItems ? ` · ${_mealItems.length} item${_mealItems.length === 1 ? '' : 's'}` : ' · empty')}
+    title={meals[actionMealIdx] + ' · ' + (_hasItems ? $_('diary_deep.item_count', { values: { count: _mealItems.length } }) : $_('diary_deep.meal_empty'))}
     actions={_hasItems ? [
-      { label: 'Move Items to…', icon: 'swap_horiz',   value: 'move'      },
-      { label: 'Copy',           icon: 'content_copy', value: 'copy_to'   },
-      { label: 'Save as Meal…',  icon: 'bookmark_add', value: 'save_meal' },
-      { label: 'Clear All Items', icon: 'delete_sweep', value: 'clear', danger: true },
+      { label: $_('diary_deep.move_items'), icon: 'swap_horiz',   value: 'move'      },
+      { label: $_('common.copy'),           icon: 'content_copy', value: 'copy_to'   },
+      { label: $_('diary_deep.save_as_meal'),  icon: 'bookmark_add', value: 'save_meal' },
+      { label: $_('diary_deep.clear_meal'), icon: 'delete_sweep', value: 'clear', danger: true },
     ] : [
-      { label: 'Add Food', icon: 'add', value: 'add' },
+      { label: $_('diary.add_food'), icon: 'add', value: 'add' },
     ]}
     on:select={(e) => {
       if (e.detail?.value === 'add') openAddFood(actionMealIdx);
@@ -3066,7 +3060,7 @@
 <!-- Meal target picker (for copy/move items to…) -->
 <ActionSheet
   bind:open={showMealTargetPicker}
-  title="Move to meal"
+  title={$_('diary_deep.move_to_meal')}
   actions={meals.map((m, i) => ({ label: m, icon: mealIcon(m), value: i }))}
   on:select={onMealTargetPick}
 />
@@ -3089,11 +3083,11 @@
       <div class="sheet-handle"></div>
       <p class="sheet-title">Copy "{copySourceName}" to…</p>
       <label class="copy-date-label">
-        <span>Date</span>
+        <span>{$_('common.date')}</span>
         <DateInput bind:value={copyDate} />
       </label>
       <label class="copy-date-label">
-        <span>Meal</span>
+        <span>{$_('diary_deep.meal_fallback')}</span>
         <select bind:value={copyMeal} class="select sel-sm" style="width:100%">
           {#each meals as m, i}
             <option value={i}>{m}</option>
@@ -3126,20 +3120,20 @@
     on:click={() => { if (!_sheetLock && !saveAsMealSaving) showSaveAsMeal = false; }} use:closeOnBack={() => { if (!saveAsMealSaving) showSaveAsMeal = false; }} on:keydown={() => {}}>
     <div class="bs-sheet copy-date-sheet" on:click|stopPropagation on:keydown={() => {}}>
       <div class="sheet-handle"></div>
-      <p class="sheet-title">Save {actionMealIdx != null ? meals[actionMealIdx] : 'meal'} to library</p>
+      <p class="sheet-title">{$_('diary_deep.save_meal_title')}</p>
       <label class="copy-date-label">
         <span>{$_('diary_deep.meal_name')}</span>
         <input type="text" bind:value={saveAsMealName} bind:this={saveAsMealNameInput}
-          class="copy-date-input" placeholder="e.g. Usual breakfast" />
+          class="copy-date-input" placeholder={$_('diary_deep.save_meal_example')} />
       </label>
       <p class="text-3 text-sm" style="margin:8px 0 0">
-        {#if actionMealIdx != null}{getMealItems(entry.items, actionMealIdx).length} item{getMealItems(entry.items, actionMealIdx).length === 1 ? '' : 's'} will be saved{/if}
+        {#if actionMealIdx != null}{$_('diary_deep.save_meal_count', { values: { count: getMealItems(entry.items, actionMealIdx).length } })}{/if}
       </p>
       <div class="copy-date-actions">
         <button class="btn btn-ghost" disabled={saveAsMealSaving}
           on:click={() => showSaveAsMeal = false}>{$_('diary_deep.cancel')}</button>
         <button class="btn btn-primary" disabled={saveAsMealSaving || !saveAsMealName.trim()}
-          on:click={doSaveAsMeal}>{saveAsMealSaving ? 'Saving…' : 'Save'}</button>
+          on:click={doSaveAsMeal}>{$_(saveAsMealSaving ? 'common.saving' : 'common.save')}</button>
       </div>
     </div>
   </div>
@@ -3164,7 +3158,7 @@
       <div class="sheet-handle"></div>
       <div class="sheet-header-row">
         <h3 class="sheet-title">{$_('diary_deep.body_stats')}</h3>
-        <button class="btn-icon sheet-close-btn" on:click={() => diaryShowBodyStats.set(false)} aria-label="Close" title="Close">
+        <button class="btn-icon sheet-close-btn" on:click={() => diaryShowBodyStats.set(false)} aria-label={$_('common.close')} title={$_('common.close')}>
           <span class="material-symbols-rounded">close</span>
         </button>
       </div>
@@ -3231,8 +3225,8 @@
       <div class="sheet-header-row">
         <h3 class="sheet-title">{$_('diary_deep.nutrition_summary')}</h3>
         <div style="display:flex;align-items:center;gap:8px">
-          <span class="text-3 text-sm">{formatDateSub($currentDate, $dateFormat)}</span>
-          <button class="btn-icon sheet-close-btn" on:click={() => diaryShowNutritionSummary.set(false)} aria-label="Close" title="Close">
+          <span class="text-3 text-sm">{formatDateSub($currentDate, $dateFormat, $locale || undefined)}</span>
+          <button class="btn-icon sheet-close-btn" on:click={() => diaryShowNutritionSummary.set(false)} aria-label={$_('common.close')} title={$_('common.close')}>
             <span class="material-symbols-rounded">close</span>
           </button>
         </div>
@@ -3292,7 +3286,7 @@
             <div class="ns-row ns-row-clickable" role="button" tabindex="0"
                  on:click={() => _nsToggle(n.id)}
                  on:keydown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); _nsToggle(n.id); } }}>
-              <span>{n.label}</span>
+              <span>{$_(`nutrient_names.${n.id}`, { default: n.label })}</span>
               <span class="ns-row-right">
                 <span class="font-medium">{(Math.round((totals[n.id]||0)*10)/10).toLocaleString()} {n.unit}</span>
                 <span class="material-symbols-rounded ns-chev" class:open={isOpen}>chevron_right</span>
@@ -3340,7 +3334,7 @@
 {/if}
 
 <!-- Per-meal nutrition totals sheet -->
-<Sheet open={mealTotalsIdx != null} title={mealTotalsIdx != null ? `${meals[mealTotalsIdx]} totals` : ''}
+<Sheet open={mealTotalsIdx != null} title={mealTotalsIdx != null ? $_('diary_deep.meal_totals', { values: { meal: meals[mealTotalsIdx] } }) : ''}
   on:close={() => mealTotalsIdx = null}>
   {@const _nsMealEnergy = Nutrition.displayEnergy(_mealTotals.calories || 0, $energyUnit)}
   <div class="ns-body">
@@ -3365,7 +3359,7 @@
     <div class="ns-rows">
       {#each NUTRIMENTS.filter(n => ($diaryShowAllNutrients ? true : n.default) && (_mealTotals[n.id] || 0) > 0) as n}
         <div class="ns-row">
-          <span>{n.label}</span>
+          <span>{$_(`nutrient_names.${n.id}`, { default: n.label })}</span>
           <span class="font-medium">{(Math.round((_mealTotals[n.id]||0)*10)/10).toLocaleString()} {n.unit}</span>
         </div>
       {/each}

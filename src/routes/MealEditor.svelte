@@ -1230,7 +1230,7 @@
         {#each _orderedNutriments.filter(n => (showAllNutrients ? true : _isVisibleByDefault(n)) && totals[n.id]) as n}
           {@const _kjMode = n.id === 'calories' && $energyUnit === 'kJ'}
           <div style="display:flex;justify-content:space-between;padding:4px 0">
-            <span class="text-sm">{_kjMode ? 'Energy' : n.label}</span>
+            <span class="text-sm">{_kjMode ? $_('common.energy') : $_(`nutrient_names.${n.id}`, { default: n.label })}</span>
             <span class="text-sm font-medium">{_kjMode ? Math.round(totals[n.id] * 4.184) : Math.round(totals[n.id]*10)/10} {_kjMode ? 'kJ' : n.unit}</span>
           </div>
         {/each}

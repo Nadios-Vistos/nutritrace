@@ -61,8 +61,16 @@
   },
   "family_avatar": {
     "edit": "Changer d’avatar",
-    "kind": { "rabbit": "Lapin", "manga_man": "Manga homme", "manga_woman": "Manga femme" },
-    "expression": { "smile": "{name}, sourire", "curious": "{name}, air curieux", "calm": "{name}, expression calme" },
+    "kind": {
+      "rabbit": "Lapin",
+      "manga_man": "Manga homme",
+      "manga_woman": "Manga femme"
+    },
+    "expression": {
+      "smile": "{name}, sourire",
+      "curious": "{name}, air curieux",
+      "calm": "{name}, expression calme"
+    },
     "customize": "Personnaliser les traits",
     "from_photo": "Créer à partir d’une photo",
     "privacy": "Utilise un portrait d’une seule personne. Si tu lances l’analyse, la photo sera envoyée au fournisseur d’IA configuré. NutriTrace enregistre uniquement les réglages de l’avatar.",
@@ -72,13 +80,30 @@
     "ai_required": "Configure une IA capable d’analyser des images pour utiliser un portrait. La personnalisation manuelle reste disponible.",
     "analysis_error": "Impossible de proposer un avatar. Essaie un portrait net avec un seul visage et vérifie que ton modèle accepte les images.",
     "glasses": "Lunettes",
-    "field": { "style": "Coiffure", "skin": "Teint", "hair": "Couleur des cheveux", "eyes": "Couleur des yeux" },
+    "field": {
+      "style": "Coiffure",
+      "skin": "Teint",
+      "hair": "Couleur des cheveux",
+      "eyes": "Couleur des yeux"
+    },
     "option": {
-      "short": "Courts", "long": "Longs", "curly": "Bouclés", "shaved": "Rasés",
-      "light": "Clair", "tan": "Doré", "brown": "Brun", "deep": "Foncé",
-      "black": "Noir", "blond": "Blond", "red": "Roux", "silver": "Argenté",
-      "blue": "Bleu", "green": "Vert", "dark": "Très foncé"
-    }
+      "short": "Courts",
+      "long": "Longs",
+      "curly": "Bouclés",
+      "shaved": "Rasés",
+      "light": "Clair",
+      "tan": "Doré",
+      "brown": "Brun",
+      "deep": "Foncé",
+      "black": "Noir",
+      "blond": "Blond",
+      "red": "Roux",
+      "silver": "Argenté",
+      "blue": "Bleu",
+      "green": "Vert",
+      "dark": "Très foncé"
+    },
+    "analysing": "Analyse du portrait…"
   },
   "nav": {
     "diary": "Journal",
@@ -135,7 +160,19 @@
       "network_error_upload": "Erreur réseau lors du téléversement",
       "voice_unsupported": "Saisie vocale non prise en charge dans ce navigateur",
       "cant_start_mic": "Impossible de démarrer le microphone"
-    }
+    },
+    "edit": "Modifier",
+    "copy": "Copier",
+    "unit": "Unité",
+    "date": "Date",
+    "dismiss": "Ignorer",
+    "dismiss_named": "Ignorer « {name} »",
+    "energy": "Énergie",
+    "select": "Sélectionner",
+    "select_all": "Tout sélectionner",
+    "select_none": "Tout désélectionner",
+    "favorite": "Favori",
+    "duplicate": "Dupliquer"
   },
   "sync": {
     "sync_now": "Synchroniser maintenant",
@@ -164,28 +201,51 @@
       "mobile_data": "Vous êtes connecté via les données mobiles. Ce serveur peut nécessiter votre Wi-Fi domestique ou votre VPN.",
       "check_connection": "Vérifiez votre Wi-Fi, votre VPN ou le serveur.",
       "saved_locally": "Vos modifications sont enregistrées localement et se synchroniseront automatiquement."
-    }
+    },
+    "synced": "Synchronisé",
+    "sync_offline": "Hors connexion",
+    "refused": "Le serveur a refusé l’envoi : {reason}. Les modifications restent sur cet appareil. Un nouvel envoi sera tenté.",
+    "sign_out_waiting_title": "Modifications en attente",
+    "sign_out_waiting": "{count, plural, one {# modification n’a pas encore été synchronisée. Si vous vous déconnectez maintenant, elle sera perdue. Pour la conserver, reconnectez l’appareil au réseau et réessayez.} other {# modifications n’ont pas encore été synchronisées. Si vous vous déconnectez maintenant, elles seront perdues. Pour les conserver, reconnectez l’appareil au réseau et réessayez.}}",
+    "sign_out_anyway": "Se déconnecter quand même",
+    "switch_account_waiting_title": "Modifications en attente sur un autre compte",
+    "switch_account_waiting": "{count, plural, one {# modification du compte précédent est encore sur cet appareil. Elle sera perdue si vous vous connectez avec un autre compte. Pour la conserver, reconnectez-vous d’abord au compte précédent.} other {# modifications du compte précédent sont encore sur cet appareil. Elles seront perdues si vous vous connectez avec un autre compte. Pour les conserver, reconnectez-vous d’abord au compte précédent.}}",
+    "switch_account_anyway": "Se connecter quand même",
+    "same_server_title": "Est-ce le même serveur ?",
+    "same_server": "L’adresse du serveur a changé. S’il s’agit du même serveur, les données de cet appareil seront conservées et synchronisées. Sinon, elles seront traitées comme les données d’un autre compte.",
+    "same_server_yes": "Même serveur",
+    "same_server_no": "Autre serveur",
+    "account_check_failed_title": "Impossible d’ouvrir vos données",
+    "account_check_failed": "L’appareil n’a pas pu vérifier à quel compte appartiennent les données locales. Réessayez ou déconnectez-vous.",
+    "pending_web_changes": "{count, plural, =0 {Hors connexion. Le journal reste utilisable et vos saisies sont enregistrées sur cet appareil.} one {Hors connexion. # modification en attente de synchronisation.} other {Hors connexion. # modifications en attente de synchronisation.}}",
+    "sync_failing": "Serveur injoignable",
+    "not_synced": "Pas encore synchronisé"
   },
   "settings": {
     "appearance": {
       "section": "Apparence",
       "theme": "Thème",
-      "accent_color": "Couleur d'accentuation",
+      "accent_color": "Couleur principale",
       "navigation_style": "Style de navigation"
     },
     "regional": {
-      "section": "Langue & Unités",
+      "section": "Langue et unités",
       "language": "Langue",
-      "date_format": "Format de date",
+      "date_format": "Format de la date",
       "time_format": "Format de l'heure",
       "energy": "Énergie",
       "weight": "Poids",
       "height": "Taille",
-      "circumference": "Tour",
+      "circumference": "Tour de taille",
       "distance": "Distance",
       "temperature": "Température",
       "time_12h": "12 heures (AM/PM)",
-      "time_24h": "24 heures"
+      "time_24h": "24 heures",
+      "units": "Unités",
+      "date_us": "MM/JJ/AAAA",
+      "date_eu": "JJ/MM/AAAA",
+      "date_iso": "AAAA-MM-JJ",
+      "date_natural": "J MMM AAAA"
     },
     "diary": {
       "section": "Journal",
@@ -361,6 +421,18 @@
     },
     "about": {
       "section": "À propos"
+    },
+    "updates": {
+      "section": "Mises à jour"
+    },
+    "api_tokens": {
+      "section": "Jetons d’accès API"
+    },
+    "webhooks": {
+      "section": "Webhooks"
+    },
+    "support": {
+      "section": "Assistance"
     }
   },
   "login": {
@@ -389,6 +461,20 @@
       "failed": "Échec de la récupération",
       "success": "Gestion des utilisateurs désactivée — vous êtes maintenant en mode mono-utilisateur",
       "done": "La gestion des utilisateurs a été désactivée.<br>Redirection…"
+    },
+    "biometric": {
+      "sign_in_button": "Connexion biométrique",
+      "prompt": "Se connecter à NutriTrace",
+      "no_saved": "Connectez-vous d’abord avec votre mot de passe.",
+      "expired": "La connexion enregistrée a expiré. Connectez-vous avec votre mot de passe.",
+      "failed": "La connexion biométrique a échoué. Utilisez votre mot de passe."
+    },
+    "cookie_warning": {
+      "http_title": "La connexion est impossible à cette adresse",
+      "http_body": "Cette page utilise HTTP, mais le serveur exige HTTPS pour le cookie de connexion. Le navigateur rejette donc le cookie et vous renvoie à la page de connexion. Ouvrez NutriTrace en HTTPS ou, sur un réseau domestique de confiance, configurez INSECURE_COOKIES=1 sur le serveur et redémarrez-le.",
+      "dropped_title": "Le navigateur n’a pas conservé votre session",
+      "dropped_body": "Le mot de passe est correct, mais le navigateur n’a pas conservé le cookie de connexion. Vérifiez que ce site peut utiliser des cookies. Si NutriTrace est derrière un proxy inverse, vérifiez que le proxy transmet les cookies.",
+      "fix_link": "Résoudre le problème"
     }
   },
   "forgot_password": {
@@ -552,7 +638,9 @@
       "nutrition_summary": "Résumé nutritionnel",
       "nutrition_summary_long": "Résumé nutritionnel — détail complet des nutriments d'aujourd'hui",
       "body_stats": "Mensurations",
-      "body_stats_long": "Mensurations — consignez votre poids, masse grasse et mesures"
+      "body_stats_long": "Mensurations — consignez votre poids, masse grasse et mesures",
+      "mark_day_complete": "Clôturer la journée",
+      "unmark_day_complete": "Rouvrir la journée"
     },
     "toast": {
       "body_stats_saved": "Mensurations enregistrées",
@@ -596,7 +684,69 @@
       "errors": {
         "name_required": "Nom requis",
         "kcal_required": "Calories requises"
+      },
+      "save_as_template": "Enregistrer comme modèle",
+      "save_as_template_hint": "(épinglé dans la liste des activités)",
+      "kcal_preview": "MET {met} × {weight_display} × {duration} min → {kcal} kcal",
+      "no_weight_hint": "Renseignez votre poids dans les mesures corporelles pour estimer la dépense à partir des MET.",
+      "suggest": {
+        "templates": "Modèles",
+        "past_entries": "Activités récentes",
+        "compendium": "Catalogue",
+        "template_badge": "Modèle"
+      },
+      "browse": {
+        "title": "Parcourir les activités",
+        "search_placeholder": "Rechercher une activité",
+        "all_categories": "Toutes les catégories",
+        "no_matches": "Aucun résultat pour « {q} »",
+        "aria": "Parcourir le catalogue d’activités",
+        "tooltip": "Parcourir les activités"
       }
+    },
+    "day_complete": {
+      "marked_toast": "Journée clôturée",
+      "auto_marked_toast": "Tous les repas sont renseignés. La journée a été clôturée automatiquement.",
+      "unmarked_toast": "Journée rouverte",
+      "error_toast": "Impossible de modifier le statut de la journée",
+      "meal_reminders_hint": "Activez les rappels de repas dans Paramètres → Notifications pour penser à les renseigner.",
+      "confirm_empty_title": "Clôturer la journée avec des repas vides ?",
+      "confirm_empty_msg": "Ces repas sont vides et n’ont pas été marqués comme sautés : {names}. Si vous clôturez la journée, ils seront considérés comme sautés.",
+      "confirm_empty_ok": "Clôturer quand même",
+      "confirm_empty_cancel": "Laisser la journée ouverte",
+      "status": {
+        "today": "Aujourd’hui",
+        "yesterday": "Hier",
+        "progress": "{done} repas renseignés sur {total}",
+        "mark_complete": "Clôturer la journée",
+        "closed_headline": "Journée clôturée",
+        "closed_at": "Clôturée à {time}",
+        "reopen": "Rouvrir"
+      }
+    },
+    "empty": {
+      "tap_to_add_food": "Appuyez pour ajouter un aliment"
+    },
+    "server_error": {
+      "unreachable": "Serveur injoignable.",
+      "retry": "Réessayer"
+    },
+    "water": {
+      "custom": "Autre quantité",
+      "add": "Ajouter",
+      "remove": "Retirer"
+    },
+    "edit_item": {
+      "save": "Enregistrer",
+      "remove_ingredient": "Retirer l’ingrédient",
+      "remove_qc_entry": "Supprimer cette saisie",
+      "remove_qc_aria": "Supprimer cette saisie rapide de calories"
+    },
+    "confirm": {
+      "remove_item": "Retirer « {name} » ?",
+      "remove_fallback": "cet élément",
+      "clear_all_meal": "Vider « {meal} » ?",
+      "clear_all_fallback": "ce repas"
     }
   },
   "foods": {
@@ -624,14 +774,23 @@
       "delete_aria": "Supprimer l'aliment",
       "delete_confirm_title": "Supprimer cet aliment ?",
       "delete_confirm_body": "\"{name}\" sera retiré de vos aliments. Les entrées existantes du journal qui font référence à cet aliment sont conservées.",
-      "deleted": "Aliment supprimé"
+      "deleted": "Aliment supprimé",
+      "off_prepared_only": "Open Food Facts fournit uniquement les valeurs du produit préparé. Ouvrez « Modifier » pour les consulter et décider de les utiliser.",
+      "off_implausible": "Les valeurs du produit préparé dans Open Food Facts semblent incohérentes. Ouvrez « Modifier » pour saisir celles de l’étiquette.",
+      "off_none": "Open Food Facts ne fournit aucune valeur nutritionnelle pour ce produit. Ouvrez « Modifier » pour saisir celles de l’étiquette."
     },
     "sources": {
       "local": "Local",
-      "from_others": "D'autres utilisateurs"
+      "from_others": "D'autres utilisateurs",
+      "all": "Toutes les sources",
+      "shared": "Partagés",
+      "mealie": "Mealie"
     },
     "offline": {
-      "search_hint": "Hors connexion, tu peux chercher dans tes aliments et dans Ciqual. Open Food Facts et les autres sources en ligne nécessitent une connexion."
+      "search_hint": "Hors connexion, tu peux chercher dans tes aliments et dans Ciqual. Open Food Facts et les autres sources en ligne nécessitent une connexion.",
+      "source": "connexion requise",
+      "barcode": "Vous êtes hors connexion. Ce code-barres a été recherché uniquement dans vos aliments.",
+      "import": "Cet import nécessite une connexion. Réessayez une fois en ligne."
     },
     "toast": {
       "deleted": "Supprimé",
@@ -640,13 +799,92 @@
       "meal_partly_added": "Certains ingrédients n’ont pas pu être ajoutés : {names}",
       "meal_none_added": "Le repas n’a pas pu être ajouté. Vérifie ta connexion et réessaie.",
       "meal_stale_ingredients": "Ajouté au journal. Ces ingrédients ne sont plus dans tes aliments : {names}. Modifie le repas pour les corriger."
-    }
+    },
+    "sources_heading": "Sources",
+    "categories_heading": "Catégories",
+    "yesterday_meals": "Repas d’hier",
+    "yesterday_meal": "Hier : {meal}",
+    "yesterday_added": "Repas ajouté : {meal}",
+    "show_meal_items": "Afficher les aliments de « {meal} »",
+    "show_items": "Afficher les aliments",
+    "add_meal_today": "Ajouter « {meal} » aujourd’hui",
+    "add_today": "Ajouter à aujourd’hui",
+    "tier": {
+      "off_active": "Filtre de qualité Open Food Facts actif",
+      "usda_active": "Filtre de type de données USDA actif",
+      "reset": "Réinitialiser",
+      "off_data_quality": "Qualité des données Open Food Facts",
+      "usda_data_type": "Type de données USDA",
+      "off_high": "Élevée",
+      "off_high_hint": "(≥ 70 %)",
+      "off_medium": "Moyenne",
+      "off_medium_hint": "(40 à 69 %)",
+      "off_low": "Faible",
+      "off_low_hint": "(< 40 %)",
+      "off_unknown": "Inconnue",
+      "off_unknown_hint": "(aucune donnée)",
+      "usda_foundation": "Aliments de base",
+      "usda_foundation_hint": "(données vérifiées)",
+      "usda_sr_legacy": "Ancien référentiel SR",
+      "usda_sr_legacy_hint": "(référence)",
+      "usda_survey": "Enquêtes alimentaires (FNDDS)",
+      "usda_survey_hint": "(données composites)",
+      "usda_branded": "Produits de marque",
+      "usda_branded_hint": "(données des marques)",
+      "usda_experimental": "Expérimental",
+      "usda_experimental_hint": "(recherche)"
+    },
+    "off_no_values_listed": "Aucune valeur nutritionnelle renseignée",
+    "off_skipped": "Open Food Facts ne fournit pas de valeurs pour ces produits tels qu’ils sont vendus : {names}. Ajoutez-les dans Aliments à partir de leur étiquette.",
+    "category_all": "Toutes",
+    "saved_meals": "Repas enregistrés",
+    "search_empty_hint": "Essayez une recherche dans Open Food Facts ou dans la base USDA.",
+    "multi_portion_sheet": "{count, plural, one {Définir la portion (# aliment)} other {Définir les portions (# aliments)}}",
+    "all_mode": {
+      "search_hint": "Rechercher dans toutes les sources activées",
+      "searching": "Recherche dans toutes les sources…",
+      "no_matches": "Aucun résultat pour « {q} »",
+      "loading_more": "Chargement des résultats suivants…",
+      "still_searching_others": "Recherche en cours dans les autres sources…"
+    },
+    "loading_library": "Chargement du catalogue…",
+    "pagination": {
+      "showing_x_of_y": "{shown} sur {total}",
+      "loading_more": "Chargement des résultats suivants…"
+    },
+    "tabs": {
+      "meals": "Repas",
+      "recipes": "Recettes"
+    },
+    "filters_empty": "Aucun filtre disponible pour cet onglet.",
+    "save_to_catalog": "Enregistrer dans mon catalogue",
+    "save_to_foods": "Enregistrer dans mes aliments"
   },
   "trace": {
     "panel_label": "Discussion Coach IA",
     "ask_placeholder": "Demandez-moi n'importe quoi…",
     "clear_conversation": "Effacer la conversation",
-    "attach_image": "Joindre une image"
+    "attach_image": "Joindre une image",
+    "food_card": {
+      "log_to": "Ajouter à",
+      "dont_log": "Ne pas ajouter"
+    },
+    "clear_confirm_title": "Effacer cette conversation ?",
+    "clear_confirm_message": "Les messages de cette conversation seront définitivement supprimés.",
+    "clear_confirm_ok": "Effacer",
+    "fab": {
+      "release_to_cancel": "Relâchez pour annuler",
+      "recording_release": "Enregistrement en cours. Relâchez pour ajouter.",
+      "open_with_voice_hint": "Ouvrir l’assistant IA. Maintenez enfoncé pour dicter un aliment.",
+      "tap_chat_hold_voice": "Appuyez pour discuter. Maintenez enfoncé pour dicter un aliment.",
+      "open_short": "Assistant IA"
+    },
+    "setup": {
+      "api_key_required": "Clé API requise",
+      "api_key_desc": "Ajoutez la clé de votre fournisseur dans <strong>Paramètres → Assistant IA</strong> pour commencer.",
+      "supported_providers": "Compatible avec Anthropic Claude, OpenAI et Google Gemini.",
+      "open_settings": "Ouvrir les paramètres"
+    }
   },
   "goals": {
     "save_goal": "Enregistrer l'objectif",
@@ -661,7 +899,64 @@
     "name_placeholder": "Nom de l'aliment",
     "brand_placeholder": "Marque (optionnelle)",
     "saved": "Enregistré",
-    "added_to_diary": "Ajouté au journal"
+    "added_to_diary": "Ajouté au journal",
+    "off_prepared": {
+      "only_prepared": "Open Food Facts fournit uniquement les valeurs du produit préparé : {kcal} kcal pour 100 {unit}. Vérifiez si elles correspondent au produit que vous pesez.",
+      "use": "Utiliser ces valeurs",
+      "implausible": "Les valeurs du produit préparé dans Open Food Facts semblent incohérentes ({kcal} kcal pour 100 {unit}). Saisissez celles de l’étiquette.",
+      "none": "Open Food Facts ne fournit aucune valeur nutritionnelle pour ce produit. Saisissez celles de l’étiquette.",
+      "note": "Valeurs nutritionnelles du produit préparé (Open Food Facts)."
+    },
+    "card_photo": "Photo",
+    "card_basic": "Informations générales",
+    "card_categories": "Catégories",
+    "card_notes": "Notes",
+    "card_nutrition": "Valeurs nutritionnelles",
+    "take_photo": "Prendre une photo",
+    "crop_photo": "Recadrer la photo",
+    "crop_hint": "Faites glisser le cadre pour le déplacer ou tirez sur un coin pour le redimensionner.",
+    "draft_restored": "Les modifications précédentes ont été récupérées.",
+    "draft_discard": "Abandonner les modifications",
+    "field_brand": "Marque",
+    "field_serving_size": "Taille de la portion",
+    "field_unit": "Unité",
+    "field_nutrition_basis": "Valeurs indiquées pour",
+    "field_serving_units": "Unités de portion",
+    "field_barcode": "Code-barres",
+    "placeholder_optional": "Facultatif",
+    "notes_placeholder": "Notes facultatives",
+    "readonly_sub": "Enregistrez une copie dans votre catalogue pour pouvoir la modifier.",
+    "photo_remove": "Supprimer la photo",
+    "close_camera": "Fermer l’appareil photo",
+    "cancel": "Annuler",
+    "scan_barcode": "Scanner un code-barres",
+    "scan_label_title": "Photographiez l’étiquette nutritionnelle pour remplir ces champs.",
+    "remove_serving_unit": "Supprimer cette unité de portion",
+    "toast": {
+      "camera_denied": "Accès à l’appareil photo refusé ou indisponible.",
+      "barcode_set": "Code-barres renseigné",
+      "off_upload_failed": "Échec de l’envoi vers Open Food Facts : {error}",
+      "off_not_found": "Produit introuvable dans Open Food Facts",
+      "off_refreshed": "Données Open Food Facts actualisées",
+      "off_updated": "{count, plural, one {# valeur actualisée depuis Open Food Facts} other {# valeurs actualisées depuis Open Food Facts}}. Enregistrez pour les conserver.",
+      "off_up_to_date": "Les valeurs sont déjà à jour.",
+      "off_prepared_only": "Open Food Facts fournit uniquement les valeurs du produit préparé. Les valeurs actuelles sont conservées.",
+      "off_units_differ": "Les valeurs d’Open Food Facts ne peuvent pas être converties en {unit}. Les valeurs actuelles sont conservées.",
+      "off_no_nutrition": "Open Food Facts ne fournit encore aucune valeur nutritionnelle pour ce produit.",
+      "off_offline": "L’actualisation depuis Open Food Facts nécessite une connexion.",
+      "off_prepared_used": "{count, plural, one {# valeur du produit préparé utilisée} other {# valeurs du produit préparé utilisées}}. Enregistrez pour les conserver.",
+      "refresh_failed": "Échec de l’actualisation : {error}",
+      "label_read_failed": "Impossible de lire l’étiquette. Essayez avec une photo plus nette.",
+      "nutrition_extracted": "Valeurs nutritionnelles relevées sur l’étiquette",
+      "scan_failed": "Échec de la lecture : {error}",
+      "saved_copy": "Copie enregistrée dans votre catalogue",
+      "save_copy_failed": "Impossible d’enregistrer la copie : {error}",
+      "save_failed": "Échec de l’enregistrement : {error}",
+      "unknown_error": "erreur inconnue"
+    },
+    "errors": {
+      "name_required": "Saisissez un nom."
+    }
   },
   "meal_editor": {
     "meal_name_placeholder": "Nom du repas",
@@ -675,8 +970,39 @@
       "per_serving_label": "Par portion :"
     },
     "errors": {
-      "no_ingredients": "Veuillez ajouter au moins un ingrédient"
-    }
+      "no_ingredients": "Veuillez ajouter au moins un ingrédient",
+      "off_no_values": "Open Food Facts ne fournit aucune valeur pour « {name} » tel que vendu. Créez sa fiche dans Aliments à partir de l’étiquette, puis sélectionnez-le ici."
+    },
+    "card_photo": "Photo",
+    "draft_restored": "Les modifications précédentes ont été récupérées.",
+    "draft_discard": "Abandonner les modifications",
+    "card_categories": "Catégories",
+    "card_notes": "Notes",
+    "card_nutrition_totals": "Totaux nutritionnels",
+    "add_ingredient": "Ajouter un ingrédient",
+    "save_changes": "Enregistrer les modifications",
+    "ct_refresh": {
+      "headline": "Une version plus récente est disponible dans CookTrace",
+      "sub": "Actualisez pour récupérer le nom, les ingrédients et les totaux à jour.",
+      "refresh": "Actualiser",
+      "dismiss": "Ignorer",
+      "refreshed_toast": "Recette actualisée depuis CookTrace",
+      "error_toast": "Impossible d’actualiser la recette depuis CookTrace",
+      "deleted_toast": "Recette supprimée"
+    },
+    "ct_deleted": {
+      "headline": "Recette d’origine indisponible dans CookTrace",
+      "sub": "La recette a été supprimée ou votre jeton ne permet plus d’y accéder.",
+      "unlink": "Dissocier",
+      "delete": "Supprimer"
+    },
+    "use_this_crop": "Appliquer le recadrage",
+    "back": "Retour",
+    "search_placeholder": "Rechercher…",
+    "scan_barcode": "Scanner un code-barres",
+    "field_serving_size": "Taille de la portion",
+    "field_unit": "Unité",
+    "field_quantity": "Quantité"
   },
   "accept_invite": {
     "title": "Créer un compte",
@@ -697,5 +1023,539 @@
       "username_required": "Le nom d'utilisateur est requis",
       "failed": "Échec de la création du compte"
     }
+  },
+  "navigation": {
+    "main": "Navigation principale",
+    "update": "Mise à jour disponible"
+  },
+  "settings_main": {
+    "group_data": "Données et suivi",
+    "group_app": "Application",
+    "clear_search": "Effacer la recherche",
+    "no_matches": "Aucune rubrique ne correspond à « {query} »",
+    "get_set_up": "Premiers réglages",
+    "group_display": "Affichage",
+    "custom_color": "Couleur personnalisée",
+    "persistent_sidebar": "Volet latéral toujours visible",
+    "persistent_sidebar_desc": "Sur tablette, appareil pliable ou ordinateur, le volet reste ouvert à côté du contenu.",
+    "start_page": "Page de démarrage",
+    "reduce_motion": "Réduire les animations",
+    "goal_pulse": "Animation à l’atteinte d’un objectif",
+    "goal_pulse_desc": "Anime la barre du journal quand un objectif quotidien est atteint. Les alertes se règlent dans Notifications.",
+    "page_banners": "En-têtes de page",
+    "page_banners_desc": "Choisissez un dégradé animé, un dégradé fixe ou un en-tête sobre.",
+    "banner_animated": "Animé",
+    "banner_gradient": "Dégradé",
+    "banner_off": "Désactivé",
+    "anim_style": "Style d’animation",
+    "anim_style_desc": "Choisissez un reflet, une variation de teinte, une pulsation ou une aurore. Le réglage de réduction des animations reste prioritaire.",
+    "anim_shimmer": "Reflet",
+    "anim_drift": "Variation de teinte",
+    "anim_pulse": "Pulsation",
+    "anim_aurora": "Aurore"
+  },
+  "diary_deep": {
+    "meal_fallback": "Repas",
+    "overview": "Vue d’ensemble",
+    "has_notes": "Contient des notes",
+    "meal_actions": "Actions du repas",
+    "meal_actions_for": "Actions pour « {meal} »",
+    "move_to_meal": "Déplacer vers un repas",
+    "move_items": "Déplacer les aliments vers…",
+    "replace": "Remplacer",
+    "select_multiple": "Sélection multiple",
+    "split_recipe": "Séparer les ingrédients de la recette",
+    "save_as_meal": "Enregistrer comme repas…",
+    "clear_meal": "Vider le repas",
+    "item_count": "{count, plural, one {# aliment} other {# aliments}}",
+    "meal_empty": "vide",
+    "save_meal_title": "Enregistrer le repas dans le catalogue",
+    "save_meal_example": "Par ex. Petit-déjeuner habituel",
+    "save_meal_count": "{count, plural, one {# aliment sera enregistré} other {# aliments seront enregistrés}}",
+    "meal_totals": "Totaux pour « {meal} »",
+    "energy_left": "{unit} restantes",
+    "energy_left_kj": "kJ restants",
+    "day_notes": "Notes du jour",
+    "consumed": "Consommées",
+    "remaining": "Restantes",
+    "water": "Eau",
+    "quick_add": "Ajout rapide",
+    "no_water_today": "Aucune consommation d’eau enregistrée aujourd’hui",
+    "qce_name_ph": "Collation au bureau, petit-déjeuner à l’hôtel…",
+    "optional_macros": "Macronutriments facultatifs",
+    "protein": "Protéines",
+    "carbs": "Glucides",
+    "fat": "Lipides",
+    "serving_size": "Taille de la portion",
+    "num_servings": "Nombre de portions",
+    "logged_time": "Heure de saisie",
+    "total_amount": "Quantité totale",
+    "cancel": "Annuler",
+    "meal_name": "Nom du repas",
+    "body_stats": "Mesures corporelles",
+    "nutrition_summary": "Bilan nutritionnel"
+  },
+  "nutrition_facts": {
+    "includes": "Dont {amount} de {name}",
+    "title": "Valeurs nutritionnelles",
+    "serving_size": "Taille de la portion",
+    "amount_per": "Quantité par portion"
+  },
+  "foods_deep": {
+    "cant_reach_retry_msg": "Serveur injoignable.",
+    "retry": "Réessayer",
+    "serving_size": "Taille de la portion",
+    "servings": "Portions",
+    "num_servings": "Nombre de portions",
+    "total_amount": "Quantité totale",
+    "total": "Total"
+  },
+  "barcode_scanner": {
+    "toast": {
+      "cam_denied": "Accès à l’appareil photo refusé",
+      "scan_failed": "Impossible de lire le code-barres : {error}",
+      "unknown_error": "Erreur inconnue"
+    },
+    "close": "Fermer le lecteur de codes-barres",
+    "close_short": "Fermer",
+    "torch": "Allumer ou éteindre la lampe",
+    "title": "Scanner un code-barres",
+    "library": "Galerie",
+    "camera": "Appareil photo",
+    "manual_ph": "Ou saisir le code-barres…",
+    "lookup": "Rechercher",
+    "status": {
+      "requesting": "Demande d’accès à l’appareil photo…",
+      "starting": "Démarrage de l’appareil photo…",
+      "align": "Cadrez le code-barres",
+      "error": "Erreur de l’appareil photo. Essayez un autre moteur de lecture.",
+      "loading": "Chargement du lecteur…",
+      "load_failed": "Impossible de charger le lecteur de codes-barres.",
+      "no_camera": "Aucun appareil photo détecté.",
+      "denied": "Accès à l’appareil photo refusé."
+    }
+  },
+  "statistics_page": {
+    "range": {
+      "last_7d": "7 derniers jours",
+      "last_30d": "30 derniers jours",
+      "last_90d": "90 derniers jours",
+      "this_month": "Ce mois-ci",
+      "last_month": "Mois dernier",
+      "ytd": "Depuis janvier",
+      "from": "Du",
+      "to": "Au",
+      "compact_7": "1 sem.",
+      "compact_14": "2 sem.",
+      "compact_30": "1 mois",
+      "compact_90": "3 mois",
+      "compact_180": "6 mois",
+      "compact_365": "1 an",
+      "compact_all": "Tout",
+      "custom": "Personnalisée"
+    },
+    "summary": {
+      "average": "Moyenne",
+      "min": "Min.",
+      "max": "Max.",
+      "logged": "Jours renseignés",
+      "days_unit": "jours"
+    },
+    "empty": {
+      "no_data": "Aucune donnée pour cette période",
+      "hint_food_metric": "Renseignez vos repas dans le journal pour voir les tendances.",
+      "hint_wellness": "Associez un appareil dans Paramètres → Bien-être.",
+      "hint_other": "Aucune donnée. Essayez une autre période."
+    },
+    "history_heading": "Historique",
+    "groups": {
+      "nutrition": "Nutrition",
+      "body": "Mesures corporelles"
+    },
+    "toggle_chart": "Changer de type de graphique",
+    "export_csv": "Exporter en CSV",
+    "metrics": "Indicateurs",
+    "summary_heading": "Résumé",
+    "overlays": "Repères du graphique",
+    "goal": "Objectif",
+    "trend": "Tendance",
+    "previous_month": "Mois précédent",
+    "next_month": "Mois suivant"
+  },
+  "meal_editor_deep": {
+    "readonly_recipe": "Enregistrez une copie de cette recette dans votre catalogue pour la modifier.",
+    "readonly_meal": "Enregistrez une copie de ce repas dans votre catalogue pour le modifier.",
+    "notes_ph": "Notes facultatives…",
+    "total_amount": "Quantité totale",
+    "take_photo": "Prendre une photo",
+    "crop_photo": "Recadrer la photo"
+  },
+  "quick_calories": {
+    "name_ph": "Collation au bureau, petit-déjeuner à l’hôtel…",
+    "optional_macros": "Macronutriments facultatifs",
+    "protein": "Protéines",
+    "carbs": "Glucides",
+    "cancel": "Annuler"
+  },
+  "settings_main_deep": {
+    "search_ph": "Rechercher dans les paramètres…",
+    "meal_placeholder": "Repas {n}",
+    "container_name_ph": "Nom (p. ex. Ma gourde)",
+    "volume_ph": "Volume",
+    "server_username_ph": "Votre identifiant",
+    "server_password_ph": "Votre mot de passe",
+    "bearer_ph": "Jeton d’accès"
+  },
+  "settings_scanner": {
+    "recipes_sort": "Trier les recettes",
+    "beep_on_scan": "Émettre un son quand le code-barres est lu",
+    "use_flashlight": "Allumer la lampe pendant la lecture",
+    "crop_photos": "Recadrer les photos à l’ajout"
+  },
+  "nutrient_names": {
+    "calories": "Calories",
+    "kilojoules": "Kilojoules",
+    "fat": "Lipides",
+    "saturated-fat": "Acides gras saturés",
+    "trans-fat": "Acides gras trans",
+    "polyunsaturated-fat": "Acides gras polyinsaturés",
+    "monounsaturated-fat": "Acides gras mono-insaturés",
+    "cholesterol": "Cholestérol",
+    "sodium": "Sodium",
+    "salt": "Sel",
+    "carbohydrates": "Glucides",
+    "fiber": "Fibres",
+    "sugars": "Sucres",
+    "added-sugars": "Sucres ajoutés",
+    "proteins": "Protéines",
+    "vitamin-d": "Vitamine D",
+    "calcium": "Calcium",
+    "iron": "Fer",
+    "potassium": "Potassium",
+    "vitamin-a": "Vitamine A",
+    "vitamin-c": "Vitamine C",
+    "vitamin-e": "Vitamine E",
+    "vitamin-k": "Vitamine K",
+    "b1": "Vitamine B1",
+    "b2": "Vitamine B2",
+    "b3": "Vitamine B3",
+    "b6": "Vitamine B6",
+    "b9": "Folates (B9)",
+    "b12": "Vitamine B12",
+    "magnesium": "Magnésium",
+    "zinc": "Zinc",
+    "phosphorus": "Phosphore",
+    "caffeine": "Caféine",
+    "alcohol": "Alcool"
+  },
+  "goals_page": {
+    "adaptive": {
+      "title": "Dépense énergétique adaptative",
+      "learned": "Estimation : <strong>{value} {unit}/jour</strong> · variation du poids : {trend} kg/semaine",
+      "building": "Données en cours de collecte : <strong>{available} / {required}</strong> jours avec un poids et un journal renseignés",
+      "help_button": "Comment ça marche ?",
+      "today_goal": "Objectif du jour",
+      "confidence": "Fiabilité de l’estimation",
+      "weight_source": "Source du poids",
+      "until_ready": "En attendant, votre objectif fixe de {value} {unit} s’applique.",
+      "help_headline": "Comment fonctionne l’estimation ?",
+      "help_intro": "L’estimation rapproche la tendance de votre poids sur 35 jours et les apports consignés dans le journal.",
+      "help_step_1": "La tendance du poids est estimée par régression linéaire sur 35 jours.",
+      "help_step_2": "La variation est convertie en bilan énergétique quotidien (1 kg de masse corporelle ≈ 7 700 kcal).",
+      "help_step_3": "La dépense quotidienne correspond à l’apport moyen moins ce bilan énergétique.",
+      "help_best_intro": "Pour affiner l’estimation",
+      "help_best_weigh": "<strong>Renseignez régulièrement votre poids</strong>, idéalement chaque jour ou tous les deux jours, avec une balance connectée ou dans les mesures corporelles.",
+      "help_best_log": "<strong>Renseignez régulièrement vos repas.</strong> Les jours sans saisie sont exclus du calcul.",
+      "help_best_switch": "<strong>Gardez un objectif stable.</strong> La moyenne glissante sur 35 jours s’ajuste progressivement.",
+      "help_best_reweigh": "<strong>Pesez-vous dans des conditions similaires</strong>, de préférence le matin. Les variations quotidiennes reflètent souvent l’eau corporelle.",
+      "help_caveats": "<strong>Limites.</strong> Un changement important d’activité met environ deux semaines à se refléter dans l’estimation. Des repas oubliés peuvent la fausser. L’objectif applique un facteur à la dépense estimée (perte −20 %, maintien, prise +20 %)."
+    },
+    "empty": {
+      "no_goals": "Aucun objectif défini.",
+      "add_hint": "Ouvrez l’onglet <strong>Tous les indicateurs</strong> pour ajouter des objectifs.",
+      "no_templates": "Aucun modèle enregistré.",
+      "no_templates_hint": "Enregistrez vos objectifs actuels pour créer votre premier modèle."
+    },
+    "sections": {
+      "body_stats": "Mesures corporelles",
+      "nutrients": "Nutriments",
+      "water": "Eau",
+      "wellness": "Bien-être"
+    },
+    "row": {
+      "not_set": "Non défini",
+      "no_goal": "Aucun objectif",
+      "min": "(min.)",
+      "stale_tip": "Dernière mesure des 30 derniers jours, utilisée jusqu’à la prochaine saisie",
+      "daily_water_goal": "Objectif d’eau quotidien"
+    },
+    "all_fields": {
+      "intro": "Appuyez sur un indicateur pour définir ou modifier son objectif."
+    },
+    "templates": {
+      "intro": "Enregistrez vos objectifs actuels dans un modèle pour les réutiliser.",
+      "save_button": "Enregistrer les objectifs actuels",
+      "goals_count": "{count, plural, one {# objectif} other {# objectifs}}",
+      "apply": "Appliquer",
+      "delete_template": "Supprimer le modèle",
+      "save_title": "Enregistrer comme modèle",
+      "template_name": "Nom du modèle",
+      "template_placeholder": "Par ex. Objectifs d’été",
+      "snapshot_hint": "Enregistre vos {count} objectifs actuels.",
+      "save_template": "Enregistrer le modèle",
+      "apply_title": "Appliquer le modèle",
+      "apply_confirm": "Appliquer <strong>{name}</strong> ?",
+      "apply_desc": "Vos objectifs actuels seront remplacés par les {count} objectifs du modèle.",
+      "cancel": "Annuler"
+    },
+    "editor": {
+      "display": "Affichage",
+      "show_in_diary": "Afficher dans le journal",
+      "show_in_statistics": "Afficher dans les statistiques",
+      "goal_behavior": "Fréquence de l’objectif",
+      "same_every_day": "Même objectif chaque jour",
+      "one_target": "Une valeur pour tous les jours",
+      "per_weekday": "Un objectif différent selon le jour",
+      "minimum_goal": "Objectif minimum",
+      "min_hint_true": "Atteindre au moins cette valeur",
+      "min_hint_false": "Ne pas dépasser cette valeur",
+      "as_percent_calories": "Objectif en % des calories",
+      "as_percent_hint": "La valeur suit votre objectif calorique.",
+      "auto_adjust": "Ajuster selon l’activité",
+      "auto_adjust_hint": "Suit les calories dépensées mesurées par les appareils connectés.",
+      "target": "Objectif",
+      "targets_per_day": "Objectifs par jour",
+      "value_percent_of_cal": "% des calories",
+      "value_label": "Valeur ({unit})",
+      "value_label_day": "{day} ({unit})",
+      "remove_goal": "Supprimer l’objectif",
+      "water_sheet_label": "Objectif ({unit})"
+    },
+    "macros": {
+      "title": "Macronutriments",
+      "balanced": "Équilibré",
+      "keto": "Cétogène",
+      "high_protein": "Riche en protéines",
+      "custom": "Personnalisé",
+      "current": "Profil actuel :",
+      "match_hint": "Répartition proche de ce profil (tolérance de ± 2 %)"
+    },
+    "tabs": {
+      "mine": "Mes objectifs",
+      "all": "Tous les indicateurs",
+      "templates": "Modèles"
+    }
+  },
+  "settings_diary": {
+    "show_brand": "Afficher les marques",
+    "show_brand_desc": "Affiche la marque sous le nom de chaque aliment.",
+    "show_timestamps": "Afficher l’heure de saisie",
+    "show_timestamps_desc": "Indique l’heure d’ajout de chaque aliment.",
+    "show_thumbnails": "Afficher les miniatures",
+    "show_thumbnails_desc": "Affiche les photos à côté des aliments et des repas.",
+    "show_all_nutrients": "Afficher tous les nutriments",
+    "show_all_nutrients_desc": "Affiche aussi les vitamines, minéraux et autres nutriments dans les totaux du repas.",
+    "show_units": "Afficher les unités nutritionnelles",
+    "show_units_desc": "Indique les unités après les valeurs (g, mg, etc.).",
+    "show_macro_summary": "Afficher les macronutriments par repas",
+    "show_macro_summary_desc": "Une barre résume les protéines, glucides et lipides. Appuyez dessus pour voir le détail.",
+    "ask_quantity": "Demander la quantité à l’ajout",
+    "ask_quantity_desc": "Permet de choisir la portion avant d’ajouter un aliment.",
+    "default_field": "Champ sélectionné par défaut",
+    "default_field_desc": "Champ actif à l’ouverture du formulaire d’ajout ou de modification.",
+    "opt_num_servings": "Nombre de portions",
+    "opt_serving_size": "Taille de la portion",
+    "unit_metadata": "Afficher les unités de portion avancées",
+    "unit_metadata_desc": "Ajoute la référence nutritionnelle, les unités de portion et la densité dans la fiche d’un aliment. Affiche aussi des raccourcis de portion à l’ajout.",
+    "warn_conversions": "Alerter lors des conversions d’unités",
+    "warn_conversions_desc": "Affiche une alerte si vous passez d’un poids à un volume, ou inversement, sans densité renseignée. L’estimation par défaut suppose que 1 ml ≈ 1 g.",
+    "show_portion": "Afficher la taille des portions",
+    "show_portion_desc": "Indique la portion à côté de chaque aliment du journal.",
+    "show_daily_notes": "Afficher les notes du jour",
+    "show_daily_notes_desc": "Ajoute une zone de notes en bas de chaque journée.",
+    "show_completion": "Activer la clôture des journées",
+    "show_completion_desc": "Ajoute des commandes pour marquer les repas et clôturer la journée. Les journées clôturées sont signalées dans le calendrier et les statistiques.",
+    "show_quick_cals": "Afficher la saisie rapide des calories",
+    "show_quick_cals_desc": "Ajoute un bouton pour saisir des calories directement dans un repas, sans renseigner d’aliment.",
+    "quick_cals_display": "Affichage des saisies rapides de calories",
+    "quick_cals_display_desc": "Regroupez les saisies d’un repas sur une ligne ou affichez-les séparément.",
+    "opt_summed": "Regroupées",
+    "opt_separate": "Séparées",
+    "show_activity": "Afficher la section Activité",
+    "show_activity_desc": "Permet de noter vos activités et la dépense calorique dans le journal.",
+    "adjust_calorie_goal": "Ajuster l’objectif calorique selon l’activité",
+    "adjust_calorie_goal_desc": "Augmente les calories disponibles selon la dépense du jour et la règle ci-dessous.",
+    "policy_wearable_wins": "Priorité à l’appareil connecté",
+    "policy_wearable_desc": ", les activités saisies à la main restent visibles dans le journal.",
+    "policy_manual_wins": "Priorité aux saisies manuelles",
+    "policy_manual_desc": ", la dépense saisie manuellement remplace celle de l’appareil connecté.",
+    "policy_add": "Additionner les deux",
+    "policy_add_desc": ", une activité enregistrée par les deux sources risque d’être comptée deux fois.",
+    "show_fasting": "Afficher le suivi du jeûne",
+    "show_fasting_desc": "Ajoute un minuteur de jeûne intermittent au journal.",
+    "default_fast_goal": "Durée de jeûne par défaut",
+    "notify_goal": "Notifier quand l’objectif est atteint",
+    "notify_goal_desc": "Envoie une notification quand le jeûne atteint la durée prévue.",
+    "recurring_schedule": "Planning récurrent",
+    "start_time": "Heure de début",
+    "repeat_on": "Répéter les jours suivants",
+    "schedule_goal": "Durée prévue",
+    "show_progress_bar": "Afficher la progression des objectifs du jour",
+    "show_progress_bar_desc": "Affiche en bas du journal la progression vers les objectifs quotidiens.",
+    "meal_names": "Noms des repas",
+    "groups": {
+      "food": "Affichage des aliments",
+      "food_desc": "Informations affichées sous chaque aliment du journal.",
+      "meal": "Affichage des repas",
+      "meal_desc": "Présentation et commandes de chaque repas.",
+      "units": "Unités nutritionnelles",
+      "units_desc": "Options désactivées par défaut. Activez-les pour personnaliser les portions ou peser en grammes les liquides d’Open Food Facts.",
+      "widgets": "Widgets du volet latéral",
+      "widgets_desc": "Widgets de la colonne de droite sur les écrans larges (à partir de 1 280 px).",
+      "quick": "Saisie rapide des calories",
+      "quick_desc": "Ajoutez des calories sans renseigner un aliment.",
+      "activity": "Activité",
+      "activity_desc": "Saisissez vos activités sous les repas.",
+      "activity_policy": "Quand une activité est saisie à la fois manuellement et par un appareil connecté",
+      "activity_manual": "En l’absence de données d’un appareil connecté, les saisies manuelles sont toujours comptées.",
+      "fasting": "Jeûne",
+      "fasting_desc": "Suivi du jeûne intermittent avec un planning facultatif.",
+      "fasting_schedule": "Le jeûne démarre automatiquement une fois par jour programmé. Vous pouvez toujours en démarrer un manuellement.",
+      "meal_order": "Faites glisser les repas pour changer leur ordre dans le journal.",
+      "remove_meal": "Retirer ce repas"
+    }
+  },
+  "settings_trace": {
+    "toast": {
+      "connected": "Trace est connecté. L’assistant est prêt.",
+      "test_failed": "Échec du test de connexion",
+      "empty_response": "L’assistant a renvoyé une réponse vide."
+    },
+    "provider_env_locked": "Géré par le serveur",
+    "env_lock_banner": "Ces réglages sont définis par les variables d’environnement du serveur.",
+    "labels": {
+      "enable": "Activer l’assistant IA",
+      "enable_desc": "Ajoute un bouton de discussion en dehors du journal en mode simple.",
+      "provider": "Fournisseur",
+      "base_url": "Adresse de base",
+      "base_url_ph": "http://localhost:11434 ou https://api.deepseek.com",
+      "base_url_desc": "Indiquez l’adresse de base du service compatible OpenAI, sans le chemin /v1/chat/completions.",
+      "model": "Modèle",
+      "custom_model_id": "Identifiant du modèle personnalisé",
+      "custom_model_hint": "Saisissez l’identifiant exact fourni par le service.",
+      "reliability_title": "La prise en charge des outils dépend du modèle.",
+      "reliability_body": "La saisie assistée et l’analyse des objectifs nécessitent des appels d’outils. L’analyse de photos requiert un modèle compatible avec les images.",
+      "api_key": "Clé API",
+      "api_key_optional_suffix": " (facultative)",
+      "api_key_ph_local": "Laissez vide pour un service local si aucune clé n’est requise.",
+      "api_key_ph_cloud": "Collez votre clé API ici.",
+      "hide": "Masquer",
+      "show": "Afficher",
+      "key_stored_device": "Votre clé est conservée sur cet appareil.",
+      "key_stored_server": "Votre clé est conservée sur le serveur.",
+      "key_hint_claude": "Récupérez votre clé sur",
+      "key_hint_openai": "Récupérez votre clé sur",
+      "key_hint_gemini": "Récupérez votre clé sur",
+      "key_hint_oai_compat": "Un service local ne requiert généralement pas de clé. Pour un service hébergé, consultez son tableau de bord.",
+      "assistant_name": "Nom de l’assistant",
+      "assistant_name_ph": "Trace",
+      "smart_log": "Saisie vocale des repas",
+      "smart_log_desc": "Maintenez le bouton de l’assistant enfoncé et dictez ce que vous avez mangé. Vérifiez la proposition avant de l’enregistrer.",
+      "voice_lang": "Langue de la saisie vocale",
+      "voice_lang_desc": "Par défaut, la reconnaissance vocale utilise la langue de l’appareil.",
+      "trigger_words": "Exemples de commandes vocales",
+      "trigger_meal": "« my X meal » → repas enregistrés",
+      "trigger_recipe": "« my X recipe » → recettes enregistrées",
+      "trigger_yesterday": "« same as yesterday for lunch » → recopier les aliments de la veille",
+      "smart_log_readme": "Consultez la rubrique Smart Log du README pour d’autres exemples et les détails de confidentialité.",
+      "activity_estimate": "Estimer les calories dépensées",
+      "activity_estimate_desc": "Trace peut estimer la dépense si votre poids, votre taille, votre âge et votre sexe sont renseignés. Sinon, il vous demandera une valeur.",
+      "goal_insights": "Analyse des objectifs",
+      "goal_insights_desc": "L’assistant analyse vos tendances et peut suggérer d’ajuster vos objectifs."
+    },
+    "voice_langs": {
+      "auto": "Automatique (langue de l’appareil)",
+      "en_US": "Anglais (États-Unis)",
+      "en_GB": "Anglais (Royaume-Uni)",
+      "it_IT": "Italien",
+      "es_ES": "Espagnol (Espagne)",
+      "es_MX": "Espagnol (Mexique)",
+      "fr_FR": "Français",
+      "de_DE": "Allemand",
+      "pt_BR": "Portugais (Brésil)",
+      "pt_PT": "Portugais (Portugal)",
+      "nl_NL": "Néerlandais",
+      "pl_PL": "Polonais",
+      "ru_RU": "Russe",
+      "sv_SE": "Suédois",
+      "da_DK": "Danois",
+      "nb_NO": "Norvégien",
+      "fi_FI": "Finnois",
+      "cs_CZ": "Tchèque",
+      "tr_TR": "Turc",
+      "ja_JP": "Japonais",
+      "ko_KR": "Coréen",
+      "zh_CN": "Chinois (simplifié)",
+      "zh_TW": "Chinois (traditionnel)",
+      "hi_IN": "Hindi",
+      "ar_SA": "Arabe"
+    }
+  },
+  "metric_names": {
+    "weight": "Poids",
+    "neck": "Tour de cou",
+    "waist": "Tour de taille",
+    "hips": "Tour de hanches",
+    "chest": "Tour de poitrine",
+    "thighs": "Tour de cuisse",
+    "biceps": "Tour de bras",
+    "calves": "Tour de mollet",
+    "body_fat": "Masse grasse",
+    "body_water": "Eau corporelle",
+    "wl_steps": "Pas",
+    "wl_active": "Minutes actives",
+    "wl_sleep": "Sommeil",
+    "wl_rhr": "Fréquence cardiaque au repos",
+    "wl_hrv": "Variabilité cardiaque",
+    "wl_spo2": "SpO₂",
+    "wl_muscle": "Masse musculaire",
+    "water": "Eau"
+  },
+  "settings_admin_group": "Administration",
+  "settings_goals": {
+    "calorie_goal_mode": "Mode de calcul de l’objectif calorique",
+    "calorie_goal_mode_desc": "Détermine comment votre objectif calorique quotidien est calculé.",
+    "mode_fixed": "Fixe",
+    "mode_dynamic": "Dynamique",
+    "mode_adaptive": "Adaptatif",
+    "goal_factor": "Facteur d’ajustement",
+    "factor_maintain": "Maintien",
+    "adaptive_note": "Estime votre dépense quotidienne à partir du poids et du journal sur 35 jours. L’objectif fixe reste en vigueur tant que les données sont insuffisantes.",
+    "how_it_works": "Comment ça marche ?",
+    "dynamic_needs_wearable": "Le mode dynamique nécessite un appareil connecté qui mesure la dépense énergétique (Fitbit, Garmin ou Google Health).",
+    "dynamic_needs_wearable_setup": "Configurer un appareil dans Bien-être"
+  },
+  "settings_water": {
+    "display_unit": "Unité d’affichage",
+    "show_in_diary": "Afficher dans le journal",
+    "show_in_statistics": "Afficher dans les statistiques",
+    "containers_title": "Contenants",
+    "no_containers": "Aucun contenant enregistré",
+    "add_container": "Ajouter un contenant"
+  },
+  "settings_stats": {
+    "default_chart": "Type de graphique par défaut",
+    "show_average_line": "Afficher la moyenne",
+    "show_goal_line": "Afficher l’objectif",
+    "show_trend_line": "Afficher la tendance",
+    "include_today": "Inclure aujourd’hui dans les tendances",
+    "show_empty_days": "Afficher les jours sans données",
+    "custom_nutrients": "Nutriments personnalisés",
+    "no_custom_nutrients": "Aucun nutriment personnalisé",
+    "no_categories": "Aucune catégorie",
+    "label": "Libellé",
+    "custom_units": "Unités personnalisées",
+    "no_custom_units": "Aucune unité personnalisée",
+    "full_name": "Nom complet"
   }
 }

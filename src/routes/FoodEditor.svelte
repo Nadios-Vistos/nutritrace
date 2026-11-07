@@ -1222,7 +1222,7 @@
           in:slide|local={{ duration: $disableAnimations ? 0 : 180 }}
           out:slide|local={{ duration: $disableAnimations ? 0 : 140 }}>
           <label class="form-label">
-            {_kjMode ? 'Energy' : n.label} ({_kjMode ? 'kJ' : n.unit})
+            {_kjMode ? $_('common.energy') : $_(`nutrient_names.${n.id}`, { default: n.label })} ({_kjMode ? 'kJ' : n.unit})
             {#if (n.id === 'sodium' || n.id === 'salt') && food._derived && food._derived[n.id]}
               <span class="material-symbols-rounded" style="font-size:14px;color:var(--text-3);vertical-align:middle;margin-left:2px"
                 title={n.id === 'sodium' ? 'Auto-calculated from salt (× 400 mg/g)' : 'Auto-calculated from sodium (÷ 400)'}>calculate</span>

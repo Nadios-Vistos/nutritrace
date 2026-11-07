@@ -552,7 +552,7 @@
     <span class="material-symbols-rounded chevron">expand_more</span>
   </button>
 
-  <p class="settings-group-label">Data &amp; Tracking</p>
+  <p class="settings-group-label">{$_('settings_main.group_data')}</p>
   <button class="section-toggle" class:hidden={!sectionVisible(settingsQuery, 'goals')} class:active={currentSection === 'goals'} aria-current={currentSection === 'goals' ? 'page' : undefined} on:click={() => toggleSection('goals')}>
     <span class="material-symbols-rounded si">flag</span>
     <span>{$_('settings.goals.section')}</span>
@@ -601,7 +601,7 @@
     <span class="material-symbols-rounded chevron">expand_more</span>
   </button>
 
-  <p class="settings-group-label">App</p>
+  <p class="settings-group-label">{$_('settings_main.group_app')}</p>
   {#if isNative}
     <button class="section-toggle" class:hidden={!sectionVisible(settingsQuery, 'serverConnection')} class:active={currentSection === 'serverConnection'} aria-current={currentSection === 'serverConnection' ? 'page' : undefined} on:click={() => toggleSection('serverConnection')}>
       <span class="material-symbols-rounded si">cloud_sync</span>
@@ -744,7 +744,7 @@
         bind:value={settingsSearch}
         on:input={_onSearchInput} />
       {#if settingsSearch}
-        <button class="settings-search-clear btn-icon" on:click={() => settingsSearch = ''} title="Clear search">
+        <button class="settings-search-clear btn-icon" on:click={() => settingsSearch = ''} title={$_('settings_main.clear_search')}>
           <span class="material-symbols-rounded" style="font-size:18px">close</span>
         </button>
       {/if}
@@ -777,10 +777,10 @@
                blank column. -->
           <div class="settings-nav-empty">
             <span class="material-symbols-rounded">search_off</span>
-            <p>No sections match "{settingsSearch}"</p>
+            <p>{$_('settings_main.no_matches', { values: { query: settingsSearch } })}</p>
             <button type="button" class="settings-nav-clear"
               on:click={() => settingsSearch = ''}>
-              Clear search
+              {$_('settings_main.clear_search')}
             </button>
           </div>
         {/if}
@@ -910,7 +910,7 @@
                  clean welcome, new users get one-click nudges. -->
             {#if !currentSection && _onboardingCards.length > 0}
               <div class="settings-onboarding">
-                <p class="settings-onboarding-heading">Get Set Up</p>
+                <p class="settings-onboarding-heading">{$_('settings_main.get_set_up')}</p>
                 <div class="settings-onboarding-grid">
                   {#each _onboardingCards as card (card.key)}
                     <div class="settings-onboarding-card-wrap">
@@ -924,8 +924,8 @@
                       </button>
                       <button type="button" class="settings-onboarding-dismiss"
                         on:click|stopPropagation={() => _dismissOnboarding(card.key)}
-                        aria-label="Dismiss {card.label}"
-                        title="Dismiss">
+                        aria-label={$_('common.dismiss_named', { values: { name: card.label } })}
+                        title={$_('common.dismiss')}>
                         <span class="material-symbols-rounded">close</span>
                       </button>
                     </div>

@@ -30,7 +30,7 @@
   let selectedEngine = localStorage.getItem('wl_scanEngine') || 'zxing';
   let selectedCamId  = localStorage.getItem('wl_scanCamId')  || '';
   let cameras = [];
-  let status = 'Requesting camera…';
+  let status = 'barcode_scanner.status.requesting';
   let torchVisible = false;
   let torchOn = false;
   let manualCode = '';
@@ -122,12 +122,12 @@
 
   async function startCamera(deviceId) {
     if (detected || !deviceId || !scannerDiv) return;
-    status = 'Starting camera…';
+    status = 'barcode_scanner.status.starting';
     torchVisible = false;
     torchOn = false;
 
     if (selectedEngine === 'zxing') {
-      if (!window.ZXing || !ZXing.BrowserMultiFormatReader) { status = 'ZXing not loaded.'; return; }
+      if (!window.ZXing || !ZXing.BrowserMultiFormatReader) { status = 'barcode_scanner.status.load_failed'; return; }
       scannerDiv.innerHTML = '';
       const videoEl = document.createElement('video');
       videoEl.style.cssText = 'width:100%;height:100%;object-fit:cover;display:block;position:absolute;top:0;left:0';
@@ -140,7 +140,7 @@
           videoEl.srcObject = stream;
           return videoEl.play().then(() => reader.decodeFromStream(stream, videoEl, async r => { if (r) await onCode(r.getText()); }));
         }).then(() => {
-          if (!detected) status = 'Align Barcode';
+          if (!detected) status = 'barcode_scanner.status.align';
           try {
             const t = videoEl.srcObject && videoEl.srcObject.getVideoTracks()[0];
             if (t) {
@@ -154,10 +154,10 @@
               }
             }
           } catch(e) {}
-        }).catch(err => { console.error('[ZXing]', err); status = 'Camera error — try another engine.'; });
+        }).catch(err => { console.error('[ZXing]', err); status = 'barcode_scanner.status.error'; });
 
     } else if (selectedEngine === 'html5qr') {
-      if (!window.Html5Qrcode) { status = 'html5-qrcode not loaded.'; return; }
+      if (!window.Html5Qrcode) { status = 'barcode_scanner.status.load_failed'; return; }
       scannerDiv.innerHTML = '';
       const hId = readerId + 'h';
       const inner = document.createElement('div');
@@ -200,7 +200,7 @@
       reader.start(deviceId, { fps: 10 }, async t => await onCode(t), () => {})
         .then(() => {
           engine.running = true;
-          if (!detected) status = 'Align Barcode';
+          if (!detected) status = 'barcode_scanner.status.align';
           try {
             inner.querySelectorAll('div,img,button,span').forEach(el => _hideEl(el));
             const shaded = document.getElementById('qr-shaded-region');
@@ -228,10 +228,10 @@
               }
             }
           } catch(e) {}
-        }).catch(err => { console.error('[html5qr]', err); status = 'Camera error — try another engine.'; });
+        }).catch(err => { console.error('[html5qr]', err); status = 'barcode_scanner.status.error'; });
 
     } else if (selectedEngine === 'quagga2') {
-      if (!window.Quagga) { status = 'Quagga2 not loaded.'; return; }
+      if (!window.Quagga) { status = 'barcode_scanner.status.load_failed'; return; }
       scannerDiv.innerHTML = '';
       engine = { _type: 'quagga2', torchOn: false };
       Quagga.init({
@@ -239,9 +239,9 @@
         decoder: { readers: ['ean_reader','ean_8_reader','upc_reader','upc_e_reader','code_128_reader','code_39_reader'] },
         locate: true
       }, err => {
-        if (err) { console.error('[Quagga2]', err); status = 'Quagga2 error — try another engine.'; return; }
+        if (err) { console.error('[Quagga2]', err); status = 'barcode_scanner.status.error'; return; }
         Quagga.start();
-        if (!detected) status = 'Align Barcode';
+        if (!detected) status = 'barcode_scanner.status.align';
         setTimeout(() => {
           try {
             const t = window.Quagga && Quagga.CameraAccess && Quagga.CameraAccess.getActiveTrack && Quagga.CameraAccess.getActiveTrack();
@@ -318,11 +318,11 @@
   async function startScanner() {
     detected = false;
     scanning = true;
-    status = 'Loading scanner…';
+    status = 'barcode_scanner.status.loading';
     try {
       await _loadBarcodeLibs();
     } catch (e) {
-      status = 'Failed to load scanner libraries.';
+      status = 'barcode_scanner.status.load_failed';
       scanning = false;
       return;
     }
@@ -341,7 +341,7 @@
         cameras = devices.filter(d => d.kind === 'videoinput').map((d, i) => ({
           deviceId: d.deviceId, label: d.label || ('Camera ' + (i + 1))
         }));
-        if (!cameras.length) { status = 'No camera found.'; return; }
+        if (!cameras.length) { status = 'barcode_scanner.status.no_camera'; return; }
         const preferred = (selectedCamId && cameras.find(d => d.deviceId === selectedCamId))
                        || cameras.find(d => /back|rear|environment/i.test(d.label))
                        || cameras[0];
@@ -349,7 +349,7 @@
         localStorage.setItem('wl_scanCamId', selectedCamId);
         startCamera(selectedCamId);
       })
-      .catch(() => { status = 'Camera access denied.'; });
+      .catch(() => { status = 'barcode_scanner.status.denied'; });
   }
 
   // Native mode: use ML Kit bundled scanner. Runs camera BEHIND the
@@ -360,13 +360,13 @@
   let _nativeListener = null;
   let _nativeBarcodeScannerRef = null;
   let nativeScannerActive = false;
-  let nativeStatus = 'Starting camera…';
+  let nativeStatus = 'barcode_scanner.status.starting';
   let nativeTorchOn = false;
 
   async function startNativeScanner() {
     detected = false;  // reset detected guard so re-opening after a prior scan works
     scanning = true;
-    nativeStatus = 'Requesting camera…';
+    nativeStatus = 'barcode_scanner.status.requesting';
     try {
       const { BarcodeScanner } = await import('@capacitor-mlkit/barcode-scanning');
       _nativeBarcodeScannerRef = BarcodeScanner;
@@ -384,7 +384,7 @@
       // bottom of this file. App-wide global CSS opt-in is in main.js.
       document.body.classList.add('barcode-scanner-active');
       nativeScannerActive = true;
-      nativeStatus = 'Align Barcode';
+      nativeStatus = 'barcode_scanner.status.align';
 
       _nativeListener = await BarcodeScanner.addListener('barcodeScanned', (event) => {
         const code = event?.barcode?.rawValue;
@@ -496,7 +496,7 @@
       <button class="btn-icon ns-close" on:click={closeNative} aria-label={$_('barcode_scanner.close')} title={$_('barcode_scanner.close')}>
         <span class="material-symbols-rounded">close</span>
       </button>
-      <div class="ns-status">{nativeStatus}</div>
+      <div class="ns-status">{$_(nativeStatus)}</div>
       <button class="btn-icon ns-torch" class:active={nativeTorchOn} on:click={toggleNativeTorch} aria-label={$_('barcode_scanner.torch')} title={$_('barcode_scanner.torch')}>
         <span class="material-symbols-rounded">{nativeTorchOn ? 'flash_on' : 'flash_off'}</span>
       </button>
@@ -580,7 +580,7 @@
           </div>
         </div>
         <!-- Status pill -->
-        <div class="scanner-status-pill">{status}</div>
+        <div class="scanner-status-pill">{$_(status)}</div>
       </div>
 
       <!-- Action buttons -->

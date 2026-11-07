@@ -694,13 +694,13 @@
   <!-- Tabs -->
   <div class="tab-bar">
     <button class="tab-btn" class:active={activeTab==='yours'} on:click={() => activeTab='yours'}>
-      Your Goals
+      {$_('goals_page.tabs.mine')}
     </button>
     <button class="tab-btn" class:active={activeTab==='all'} on:click={() => activeTab='all'}>
-      All Fields
+      {$_('goals_page.tabs.all')}
     </button>
     <button class="tab-btn" class:active={activeTab==='templates'} on:click={() => activeTab='templates'}>
-      Templates
+      {$_('goals_page.tabs.templates')}
     </button>
   </div>
 
@@ -715,15 +715,15 @@
       <div class="goals-rail-heading">Navigate</div>
       <button class="goals-rail-nav" class:active={activeTab === 'yours'} on:click={() => activeTab = 'yours'}>
         <span class="material-symbols-rounded">flag</span>
-        Your Goals
+        {$_('goals_page.tabs.mine')}
       </button>
       <button class="goals-rail-nav" class:active={activeTab === 'all'} on:click={() => activeTab = 'all'}>
         <span class="material-symbols-rounded">list</span>
-        All Fields
+        {$_('goals_page.tabs.all')}
       </button>
       <button class="goals-rail-nav" class:active={activeTab === 'templates'} on:click={() => activeTab = 'templates'}>
         <span class="material-symbols-rounded">bookmark</span>
-        Templates
+        {$_('goals_page.tabs.templates')}
       </button>
 
       <div class="goals-rail-heading" style="margin-top:16px">{$_('settings_goals.calorie_goal_mode')}</div>
@@ -859,33 +859,33 @@
       <div class="card goals-macro-card">
         <div class="goals-macro-head">
           <div>
-            <div class="font-medium">Macros</div>
+            <div class="font-medium">{$_('goals_page.macros.title')}</div>
           </div>
         </div>
         <div class="goals-macro-grid">
           <button class="goals-macro-cell" on:click={() => openEdit({ id: 'proteins',      label: 'Protein', unit: 'g' })}>
-            <span class="gm-lbl">Protein</span>
+            <span class="gm-lbl">{$_('nutrient_names.proteins')}</span>
             <span class="gm-val">{_proteinGoalG ?? '—'}<span class="gm-u">g</span></span>
             <span class="gm-pct">{_macroPct.p}%</span>
           </button>
           <button class="goals-macro-cell" on:click={() => openEdit({ id: 'carbohydrates', label: 'Carbohydrates', unit: 'g' })}>
-            <span class="gm-lbl">Carbs</span>
+            <span class="gm-lbl">{$_('nutrient_names.carbohydrates')}</span>
             <span class="gm-val">{_carbsGoalG ?? '—'}<span class="gm-u">g</span></span>
             <span class="gm-pct">{_macroPct.c}%</span>
           </button>
           <button class="goals-macro-cell" on:click={() => openEdit({ id: 'fat',           label: 'Fat', unit: 'g' })}>
-            <span class="gm-lbl">Fat</span>
+            <span class="gm-lbl">{$_('nutrient_names.fat')}</span>
             <span class="gm-val">{_fatGoalG ?? '—'}<span class="gm-u">g</span></span>
             <span class="gm-pct">{_macroPct.f}%</span>
           </button>
         </div>
         <div class="goals-macro-presets">
-          <button class="chip" class:chip-active={_currentPreset === 'Balanced'} on:click={() => applyMacroPreset('balanced')}>Balanced 30/40/30</button>
-          <button class="chip" class:chip-active={_currentPreset === 'Keto'} on:click={() => applyMacroPreset('keto')}>Keto 25/5/70</button>
-          <button class="chip" class:chip-active={_currentPreset === 'High-Protein'} on:click={() => applyMacroPreset('high-protein')}>High-Protein 40/30/30</button>
+          <button class="chip" class:chip-active={_currentPreset === 'Balanced'} on:click={() => applyMacroPreset('balanced')}>{$_('goals_page.macros.balanced')} 30/40/30</button>
+          <button class="chip" class:chip-active={_currentPreset === 'Keto'} on:click={() => applyMacroPreset('keto')}>{$_('goals_page.macros.keto')} 25/5/70</button>
+          <button class="chip" class:chip-active={_currentPreset === 'High-Protein'} on:click={() => applyMacroPreset('high-protein')}>{$_('goals_page.macros.high_protein')} 40/30/30</button>
           {#if _currentPreset}
-            <span class="goals-macro-current" title="Ratio matches this preset (±2% tolerance)">
-              Currently: <strong>{_currentPreset}</strong>
+            <span class="goals-macro-current" title={$_('goals_page.macros.match_hint')}>
+              {$_('goals_page.macros.current')} <strong>{$_(`goals_page.macros.${_currentPreset.toLowerCase().replace('-', '_')}`, { default: _currentPreset })}</strong>
             </span>
           {/if}
         </div>
@@ -905,7 +905,7 @@
               {#if i > 0}<div class="divider"></div>{/if}
               <button class="goal-row" on:click={() => openEdit(stat)}>
                 <div class="goal-info">
-                  <span class="font-medium">{stat.label}</span>
+                  <span class="font-medium">{$_((stat.isBody ? 'metric_names.' : 'nutrient_names.') + stat.id, { default: stat.label })}</span>
                   {#if getTarget(stat) != null}
                     {@const pct = getPct(stat, todayTotals, todayBodyStats, todayWellness, recentBodyStats)}
                     {@const tgt = getTarget(stat)}
@@ -944,7 +944,7 @@
               {#if i > 0}<div class="divider"></div>{/if}
               <button class="goal-row" on:click={() => openEdit(stat)}>
                 <div class="goal-info">
-                  <span class="font-medium">{stat.label}{#if (stat.id === 'calories' || stat.id === 'kilojoules') && $calorieGoalMode === 'dynamic' && _dynamicCaloriesOut != null} ⚡{:else if (stat.id === 'calories' || stat.id === 'kilojoules') && $calorieGoalMode === 'adaptive' && _adaptive?.ready} 📈{/if}</span>
+                  <span class="font-medium">{$_((stat.isBody ? 'metric_names.' : 'nutrient_names.') + stat.id, { default: stat.label })}{#if (stat.id === 'calories' || stat.id === 'kilojoules') && $calorieGoalMode === 'dynamic' && _dynamicCaloriesOut != null} ⚡{:else if (stat.id === 'calories' || stat.id === 'kilojoules') && $calorieGoalMode === 'adaptive' && _adaptive?.ready} 📈{/if}</span>
                   {#if getTarget(stat) != null}
                     {@const _isEnergy = stat.id === 'calories' || stat.id === 'kilojoules'}
                     {@const _dynAdapt = _isEnergy && ($calorieGoalMode === 'dynamic' || ($calorieGoalMode === 'adaptive' && _adaptive?.ready))}
@@ -1006,7 +1006,7 @@
             {#if i > 0}<div class="divider"></div>{/if}
             <button class="goal-row" on:click={() => openEdit(stat)}>
               <div class="goal-info">
-                <span class="font-medium">{stat.label}</span>
+                <span class="font-medium">{$_((stat.isBody ? 'metric_names.' : 'nutrient_names.') + stat.id, { default: stat.label })}</span>
                 {#if getTarget(stat) != null}
                   {@const pct = getPct(stat, todayTotals, todayBodyStats, todayWellness, recentBodyStats)}
                   {@const tgt = getTarget(stat)}
@@ -1047,7 +1047,7 @@
           {#if i > 0}<div class="divider"></div>{/if}
           <button class="goal-row" class:goal-row-set={getTarget(stat) != null} on:click={() => openEdit(stat)}>
             <div class="goal-info">
-              <span class="font-medium">{stat.label}</span>
+              <span class="font-medium">{$_((stat.isBody ? 'metric_names.' : 'nutrient_names.') + stat.id, { default: stat.label })}</span>
               {#if $goals[_goalStorageId(stat.id)]}
                 {@const pct = getPct(stat, todayTotals, todayBodyStats, todayWellness, recentBodyStats)}
                 {@const tgt = getTarget(stat)}
@@ -1082,7 +1082,7 @@
           {#if i > 0}<div class="divider"></div>{/if}
           <button class="goal-row" class:goal-row-set={getTarget(stat) != null} on:click={() => openEdit(stat)}>
             <div class="goal-info">
-              <span class="font-medium">{stat.label}</span>
+              <span class="font-medium">{$_((stat.isBody ? 'metric_names.' : 'nutrient_names.') + stat.id, { default: stat.label })}</span>
               {#if $goals[_goalStorageId(stat.id)]}
                 {@const pct = getPct(stat, todayTotals, todayBodyStats, todayWellness, recentBodyStats)}
                 {@const tgt = getTarget(stat)}
@@ -1135,7 +1135,7 @@
             {#if i > 0}<div class="divider"></div>{/if}
             <button class="goal-row" class:goal-row-set={getTarget(stat) != null} on:click={() => openEdit(stat)}>
               <div class="goal-info">
-                <span class="font-medium">{stat.label}</span>
+                <span class="font-medium">{$_((stat.isBody ? 'metric_names.' : 'nutrient_names.') + stat.id, { default: stat.label })}</span>
                 {#if $goals[_goalStorageId(stat.id)]}
                   {@const pct = getPct(stat, todayTotals, todayBodyStats, todayWellness, recentBodyStats)}
                   {@const _tgtRaw = getTarget(stat)}
@@ -1288,7 +1288,7 @@
     <div class="sheet-panel" on:click|stopPropagation on:keydown={() => {}}>
       <div class="sheet-handle"></div>
       <div class="sheet-header">
-        <h3 class="sheet-title">{editStat.label} {_editUnit ? '('+_editUnit+')' : ''}</h3>
+        <h3 class="sheet-title">{$_((editStat.isBody ? 'metric_names.' : 'nutrient_names.') + editStat.id, { default: editStat.label })} {_editUnit ? '('+_editUnit+')' : ''}</h3>
       </div>
       <div class="sheet-body" bind:this={_editGoalSheetEl} on:keydown={_onEditGoalKey}>
 

@@ -47,10 +47,10 @@
       <span class="setting-label">{$_('settings.regional.date_format')}</span>
       <div class="select-wrap" style="width:160px">
         <select class="select sel-sm" value={$dateFormat} on:change={e => dateFormat.set(e.target.value)}>
-          <option value="ISO">YYYY-MM-DD</option>
-          <option value="US">MM/DD/YYYY</option>
-          <option value="EU">DD/MM/YYYY</option>
-          <option value="natural">D MMM YYYY</option>
+          <option value="ISO">{$_('settings.regional.date_iso')}</option>
+          <option value="US">{$_('settings.regional.date_us')}</option>
+          <option value="EU">{$_('settings.regional.date_eu')}</option>
+          <option value="natural">{$_('settings.regional.date_natural')}</option>
         </select>
       </div>
     </div>
@@ -67,7 +67,7 @@
   </div>
 
   <!-- Group: Units — metric / imperial preferences across the app -->
-  <p class="settings-group-heading">Units</p>
+  <p class="settings-group-heading">{$_('settings.regional.units')}</p>
   <p class="settings-group-sub">Unit choices apply everywhere the value shows.</p>
   <div class="card settings-card">
     <div class="setting-row">
