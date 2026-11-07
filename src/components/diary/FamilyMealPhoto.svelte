@@ -7,7 +7,8 @@
   import { _newUuid, addReviewedMeal } from '../../stores/diary.js';
   import { showSuccess } from '../../stores/toast.js';
   import { loadCiqual, searchCiqual } from '../../lib/ciqual.js';
-  import { identifyMealPhoto, prepareMealPhoto } from '../../lib/meal-photo.js';
+  import { identifyMealPhoto } from '../../lib/meal-photo.js';
+  import { prepareVisionPhoto } from '../../lib/photo-vision.js';
   import { acquireScreenWakeLock } from '../../lib/wake-lock.js';
 
   export let date;
@@ -42,7 +43,7 @@
     errorKey = '';
     preparing = true;
     try {
-      const next = await prepareMealPhoto(file);
+      const next = await prepareVisionPhoto(file);
       if (!active) return;
       photo = next;
       reviewed = false;

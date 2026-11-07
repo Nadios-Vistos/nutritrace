@@ -877,8 +877,8 @@
     ? (52 + 48 + ($diaryShowNutritionBar && nutritionBarItems.length > 0 ? 8 + nutritionBarItems.length * 28 : 0) + 8 + (_waterShowInDiary ? 40 : 0))
     : 0;
   $: _barBaseH = 46 + (_waterShowInDiary ? 8 : 0);
-  $: bottomSpace = $familyDiaryMode ? 12 : _barBaseH + _barExpandedExtra + 12;
-  $: contentPad = _hasBottomNav
+  $: bottomSpace = _barBaseH + _barExpandedExtra + 12;
+  $: contentPad = $familyDiaryMode ? '10px' : _hasBottomNav
     ? `calc(var(--nav-h) + ${bottomSpace}px)`
     : `${bottomSpace}px`;
   $: showMealMacros = $diaryShowMacroSummary && !$familyDiaryMode;
@@ -1076,7 +1076,7 @@
   // the template) so the class comes off cleanly when the user leaves the
   // Diary route or turns the setting off.
   $: if (typeof document !== 'undefined') {
-    document.body.classList.toggle('has-day-status', !!$diaryShowCompletion);
+    document.body.classList.toggle('has-day-status', !!$diaryShowCompletion && !$familyDiaryMode);
   }
   onDestroy(() => {
     if (typeof document !== 'undefined') document.body.classList.remove('has-day-status');
@@ -1933,7 +1933,7 @@
   {/if}
 {/snippet}
 
-<div class="page-shell diary-page">
+<div class="page-shell diary-page" class:family-page={$familyDiaryMode}>
   <!-- Action icons — fixed at top-right, same level as hamburger -->
   <div use:portal class="diary-topbar-actions" class:select-mode-actions={selectMode}>
     {#if selectMode}
@@ -1960,7 +1960,7 @@
   </div>
 
   <!-- Standard page-header — identical to every other page -->
-  <header bind:this={_diaryHeaderEl} class="page-header diary-header" class:banner-gradient={$bannerStyle === 'gradient' && !selectMode} class:banner-animated={$bannerStyle === 'animated' && !selectMode}>
+  <header bind:this={_diaryHeaderEl} class="page-header diary-header" class:banner-gradient={$bannerStyle === 'gradient' && !selectMode && !$familyDiaryMode} class:banner-animated={$bannerStyle === 'animated' && !selectMode && !$familyDiaryMode}>
     {#if selectMode}
       <h1 class="select-mode-title">{selectedItems.size} selected</h1>
     {:else}
@@ -2021,7 +2021,7 @@
   {/if}
   </div>
 
-  {#if $diaryShowCompletion}
+  {#if $diaryShowCompletion && !$familyDiaryMode}
     <!-- #207: day-completion status bar. Sits between the week strip
          and the day's content so the mark reads as "state of this day",
          not a floating action. Combines the progress line and the
@@ -2043,6 +2043,8 @@
       } catch {}
       return formatDate($currentDate);
     })()}
+    <!-- Keep the conditional block anchored when its status elements are portaled. -->
+    <div class="day-status-anchor">
     <!-- A solid band from the bottom of the sticky block to just below the
          status bar, so no content shows above, beside or under its edges. -->
     {#if _dayStatusBand}
@@ -2095,6 +2097,7 @@
         </button>
       {/if}
     </div>
+    </div>
   {/if}
 
   <div
@@ -2118,25 +2121,26 @@
         <span>{$_('diary.server_error.unreachable')} <button class="server-error-retry" on:click={() => loadEntry($currentDate)}>{$_('diary.server_error.retry')}</button></span>
       </div>
     {/if}
+    {#if $familyDiaryMode}
+      <FamilyDiary
+        calories={$currentEntry?.date === $currentDate ? totals.calories : 0}
+        budget={$familyCalorieBudget}
+        meals={familyMealLabels}
+        date={$currentDate}
+        onSaveBudget={(budget) => familyCalorieBudget.set(budget)}
+        onAdd={openAddFood}
+        onDetailed={() => familyDiaryMode.set(false)}
+      />
+    {:else}
     {#if !selectMode}
       <div class="family-mode-switch">
-        <button type="button" class="btn btn-secondary btn-sm" on:click={() => familyDiaryMode.set(!$familyDiaryMode)}>
-          {$familyDiaryMode ? $_('family_diary.disable') : $_('family_diary.enable')}
+        <button type="button" class="btn btn-secondary btn-sm" on:click={() => familyDiaryMode.set(true)}>
+          {$_('family_diary.enable')}
         </button>
       </div>
-      {#if $familyDiaryMode}
-        <FamilyDiary
-          calories={$currentEntry?.date === $currentDate ? totals.calories : 0}
-          budget={$familyCalorieBudget}
-          meals={familyMealLabels}
-          date={$currentDate}
-          onSaveBudget={(budget) => familyCalorieBudget.set(budget)}
-          onAdd={openAddFood}
-        />
-      {/if}
     {/if}
     <!-- Intermittent fasting widget — opt-in via Settings → Diary -->
-    {#if !$familyDiaryMode && $fastingEnabled}
+    {#if $fastingEnabled}
       <FastingWidget />
     {/if}
     <!-- Meal groups. Rendered via a Svelte 5 snippet `mealCard` so we
@@ -2171,7 +2175,7 @@
       >
         <div class="meal-header" style="--meal-color:{mealColor(mealIdx)}">
           <span class="meal-type-icon material-symbols-rounded">{mealIcon(meal)}</span>
-          <span class="meal-name">{$familyDiaryMode ? familyMealLabels[mealIdx] : meal}</span>
+          <span class="meal-name">{meal}</span>
           {#if $diaryShowCompletion}
             {@const _mealDone = Array.isArray(entry?.completed_meals) && entry.completed_meals.includes(mealIdx)}
             <!-- #207 per-meal (opt-in via Settings > Diary > Show meal completion):
@@ -2433,7 +2437,7 @@
       </div>
     {/key}
 
-    {#if !$familyDiaryMode && $diaryShowActivity}
+    {#if $diaryShowActivity}
       {@const acts = $dayActivity || []}
       {@const sum  = $activitySummary || { manual: 0, wearable: 0, effective: 0, policy: 'wearable_wins' }}
       {@const policy = $manualActivityPolicy || 'wearable_wins'}
@@ -2522,6 +2526,7 @@
           </div>
         {/if}
       </section>
+    {/if}
     {/if}
     </div><!-- /.diary-main -->
 
@@ -3388,7 +3393,39 @@
 
 <style>
   .family-mode-switch { display: flex; justify-content: flex-end; }
-  .diary-page .diary-content.family-mode { display: flex; }
+  .family-page {
+    --family-accent: #781d3d;
+    --family-border: #e4bfc9;
+    --family-surface: #fff5f4;
+    display: flex;
+    flex-direction: column;
+  }
+  :global([data-theme="dark"]) .family-page {
+    --family-accent: #ffc2d0;
+    --family-border: #6b3a4d;
+    --family-surface: #311c26;
+  }
+  .family-page .diary-header {
+    background: linear-gradient(115deg, #50132b, #7e2343);
+    color: #fff5ef;
+  }
+  .family-page .diary-header h1 {
+    background: none;
+    -webkit-text-fill-color: currentColor;
+  }
+  .day-status-anchor { display: contents; }
+  .family-page .diary-date-bar {
+    background: var(--family-surface);
+    border-color: var(--family-border);
+  }
+  .family-page .date-label, .family-page .diary-date-bar .btn-icon { color: var(--family-accent); }
+  .family-page .diary-date-bar .btn-icon { background: var(--family-border); }
+  .diary-page .diary-content.family-mode { display: flex; flex: 1; padding-top: 8px; }
+  .family-mode .diary-main { flex: 1; width: min(100%, 600px); margin-inline: auto; }
+  @media (max-height: 650px) {
+    .family-page .diary-header { padding-top: var(--page-top, var(--safe-top)); padding-bottom: 6px; }
+    .family-page .diary-date-bar { padding-block: 4px; }
+  }
   /* Date picker sheet wrapper — calendar UI lives in DatePicker.svelte */
   .dp-sheet { padding-bottom: 4px; }
 

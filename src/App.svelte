@@ -13,7 +13,7 @@
   import ConfirmDialogMount from './components/ui/ConfirmDialogMount.svelte';
   import { DB, localDateStr } from './lib/db.js';
   import { currentDate, loadEntry } from './stores/diary.js';
-  import { reloadSettingStores } from './stores/settings.js';
+  import { familyDiaryMode, reloadSettingStores } from './stores/settings.js';
   import { navStyle, applyAccentColor, accentColor, applyAppearance, appearance, disableAnimations, sidebarPersistent, language, pageBanners, bannerStyle, bannerAnimation, forceMobileLayout } from './stores/settings.js';
   import { locale, _ } from 'svelte-i18n';
   import { currentUser, userMgmtActive, setupRequired, loadAuthState, handleOidcCallback } from './stores/auth.js';
@@ -984,7 +984,7 @@
 {/key}
 
 <Toast />
-<Trace />
+<Trace hideLauncher={$familyDiaryMode && $location.split('?')[0] === '/'} />
 
 {/if}
 

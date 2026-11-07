@@ -29,6 +29,27 @@
     "portion": "Amount in grams",
     "invalid_amount": "Enter a positive weight in grams."
   },
+  "family_avatar": {
+    "edit": "Change avatar",
+    "kind": { "rabbit": "Rabbit", "manga_man": "Manga man", "manga_woman": "Manga woman" },
+    "expression": { "smile": "{name}, smiling", "curious": "{name}, looking curious", "calm": "{name}, looking calm" },
+    "customize": "Customize features",
+    "from_photo": "Create from a photo",
+    "privacy": "Choose a portrait of one person. Analysing it sends the photo to your configured AI provider. NutriTrace saves only the avatar settings.",
+    "selected_photo": "Selected portrait",
+    "analyse": "Analyse portrait",
+    "review": "The preview shows the suggested features. You can adjust them before saving.",
+    "ai_required": "Configure an AI model that supports images to use a portrait. You can still customize the avatar manually.",
+    "analysis_error": "Could not suggest an avatar. Try a clear portrait with one face and check that your model accepts images.",
+    "glasses": "Glasses",
+    "field": { "style": "Hairstyle", "skin": "Skin tone", "hair": "Hair colour", "eyes": "Eye colour" },
+    "option": {
+      "short": "Short", "long": "Long", "curly": "Curly", "shaved": "Shaved",
+      "light": "Light", "tan": "Tan", "brown": "Brown", "deep": "Deep",
+      "black": "Black", "blond": "Blond", "red": "Red", "silver": "Silver",
+      "blue": "Blue", "green": "Green", "dark": "Very dark"
+    }
+  },
   "family_diary": {
     "enable": "Simple mode",
     "disable": "Detailed diary",
@@ -44,6 +65,9 @@
     "meal_slot": "Add to",
     "saved_meals": "Usual meals",
     "scan": "Scan",
+    "action_food": "Food",
+    "action_meals": "Meals",
+    "action_photo": "Photo",
     "today": "Today",
     "yesterday": "Yesterday",
     "breakfast": "Breakfast",

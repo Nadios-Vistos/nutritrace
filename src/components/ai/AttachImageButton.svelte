@@ -20,6 +20,7 @@
   export let disabled = false;
   /** Keep the choices in the normal layout when used inside a scrollable sheet. */
   export let inlineChoices = false;
+  export let capture = 'environment';
   /** Tooltip and accessible name, from the parent's own translations. */
   export let title = '';
 
@@ -120,7 +121,7 @@
   {/if}
   {/if}
   <input bind:this={fileInput} type="file" accept="image/*" {multiple} hidden on:change={onPicked} />
-  <input bind:this={cameraInput} type="file" accept="image/*" capture="environment" hidden on:change={onPicked} />
+  <input bind:this={cameraInput} type="file" accept="image/*" {capture} hidden on:change={onPicked} />
 </div>
 
 <style>

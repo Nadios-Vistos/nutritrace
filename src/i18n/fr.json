@@ -49,12 +49,36 @@
     "meal_slot": "Ajouter à",
     "saved_meals": "Repas habituels",
     "scan": "Scanner",
+    "action_food": "Aliment",
+    "action_meals": "Repas",
+    "action_photo": "Photo",
     "today": "Aujourd’hui",
     "yesterday": "Hier",
     "breakfast": "Petit-déjeuner",
     "lunch": "Déjeuner",
     "dinner": "Dîner",
     "snacks": "Collations"
+  },
+  "family_avatar": {
+    "edit": "Changer d’avatar",
+    "kind": { "rabbit": "Lapin", "manga_man": "Manga homme", "manga_woman": "Manga femme" },
+    "expression": { "smile": "{name}, sourire", "curious": "{name}, air curieux", "calm": "{name}, expression calme" },
+    "customize": "Personnaliser les traits",
+    "from_photo": "Créer à partir d’une photo",
+    "privacy": "Utilise un portrait d’une seule personne. Si tu lances l’analyse, la photo sera envoyée au fournisseur d’IA configuré. NutriTrace enregistre uniquement les réglages de l’avatar.",
+    "selected_photo": "Portrait sélectionné",
+    "analyse": "Analyser le portrait",
+    "review": "Les traits proposés sont visibles dans l’aperçu. Tu peux les retoucher avant d’enregistrer.",
+    "ai_required": "Configure une IA capable d’analyser des images pour utiliser un portrait. La personnalisation manuelle reste disponible.",
+    "analysis_error": "Impossible de proposer un avatar. Essaie un portrait net avec un seul visage et vérifie que ton modèle accepte les images.",
+    "glasses": "Lunettes",
+    "field": { "style": "Coiffure", "skin": "Teint", "hair": "Couleur des cheveux", "eyes": "Couleur des yeux" },
+    "option": {
+      "short": "Courts", "long": "Longs", "curly": "Bouclés", "shaved": "Rasés",
+      "light": "Clair", "tan": "Doré", "brown": "Brun", "deep": "Foncé",
+      "black": "Noir", "blond": "Blond", "red": "Roux", "silver": "Argenté",
+      "blue": "Bleu", "green": "Vert", "dark": "Très foncé"
+    }
   },
   "nav": {
     "diary": "Journal",

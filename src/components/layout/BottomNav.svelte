@@ -5,6 +5,7 @@
   import WellnessIcon from '../icons/WellnessIcon.svelte';
   import { updateAvailable } from '../../lib/updates.js';
   import { pwaUpdateReady } from '../../lib/pwa-update.js';
+  import { familyDiaryMode } from '../../stores/settings.js';
 
   $: BASE_TABS = [
     { path: '/',            icon: 'book',          label: $_('nav.diary')      },
@@ -35,7 +36,7 @@
   function go(path) { push(path); }
 </script>
 
-<nav class="bottom-nav" role="navigation" aria-label="Main navigation">
+<nav class="bottom-nav" class:family-nav={$familyDiaryMode && $location.split('?')[0] === '/'} role="navigation" aria-label="Main navigation">
   <!-- Sliding pill indicator -->
   <div
     class="nav-pill"
@@ -111,6 +112,16 @@
   }
   .nav-tab.active  { color: var(--accent); }
   .nav-tab:active  { transform: scale(0.92); }
+  .family-nav {
+    --family-nav-text: #781d3d;
+    --family-nav-pill: #edd2dc;
+  }
+  :global([data-theme="dark"]) .family-nav {
+    --family-nav-text: #ffc2d0;
+    --family-nav-pill: #633047;
+  }
+  .family-nav .nav-pill { background: var(--family-nav-pill); box-shadow: none; }
+  .family-nav .nav-tab.active { color: var(--family-nav-text); }
 
   .nav-icon {
     font-size: 22px;

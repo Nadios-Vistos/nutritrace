@@ -2022,6 +2022,7 @@ Diary logging streak: ${ctx.streakText || '(unknown)'}`
       visibility: 'private',
     });
   }
+  export let hideLauncher = false;
 </script>
 
 {#if $aiEffectivelyEnabled}
@@ -2035,6 +2036,7 @@ Diary logging streak: ${ctx.streakText || '(unknown)'}`
        users upgrading from a previous release where verified didn't
        exist and their FAB was working fine. -->
 
+  {#if !hideLauncher || panelOpen || recordingMode}
   <!-- svelte-ignore a11y-no-static-element-interactions -->
   <div
     class="ai-fab"
@@ -2064,6 +2066,7 @@ Diary logging streak: ${ctx.streakText || '(unknown)'}`
       <div class="fab-badge" transition:fade={{ duration: 120 }}></div>
     {/if}
   </div>
+  {/if}
 
   <!-- Recording hint tooltip — centered above the FAB while recording.
        Uses transform: translateX(-50%) so the pill stays centered on the FAB
