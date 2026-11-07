@@ -1,4 +1,26 @@
 {
+  "family_diary": {
+    "enable": "Mode simple",
+    "disable": "Journal détaillé",
+    "title": "Budget calorique",
+    "set_budget": "Définir mon budget",
+    "edit_budget": "Modifier le budget",
+    "daily_budget": "Budget quotidien (kcal)",
+    "budget_help": "Choisis un budget fixe par jour. L’activité ne le modifie pas.",
+    "consumed": "Consommées",
+    "budget": "Budget du jour",
+    "remaining": "Restantes",
+    "over_budget": "Au-dessus du budget",
+    "meal_slot": "Ajouter à",
+    "saved_meals": "Repas habituels",
+    "scan": "Scanner",
+    "today": "Aujourd’hui",
+    "yesterday": "Hier",
+    "breakfast": "Petit-déjeuner",
+    "lunch": "Déjeuner",
+    "dinner": "Dîner",
+    "snacks": "Collations"
+  },
   "nav": {
     "diary": "Journal",
     "foods": "Aliments",
@@ -550,7 +572,11 @@
     },
     "toast": {
       "deleted": "Supprimé",
-      "cloned": "Cloné"
+      "cloned": "Cloné",
+      "added_to_diary": "Ajouté au journal",
+      "meal_partly_added": "Certains ingrédients n’ont pas pu être ajoutés : {names}",
+      "meal_none_added": "Le repas n’a pas pu être ajouté. Vérifie ta connexion et réessaie.",
+      "meal_stale_ingredients": "Ajouté au journal. Ces ingrédients ne sont plus dans tes aliments : {names}. Modifie le repas pour les corriger."
     }
   },
   "trace": {

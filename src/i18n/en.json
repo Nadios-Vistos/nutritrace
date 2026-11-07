@@ -1,4 +1,26 @@
 {
+  "family_diary": {
+    "enable": "Simple mode",
+    "disable": "Detailed diary",
+    "title": "Calorie budget",
+    "set_budget": "Set my budget",
+    "edit_budget": "Edit budget",
+    "daily_budget": "Daily budget (kcal)",
+    "budget_help": "Choose a fixed daily budget. Activity does not change it.",
+    "consumed": "Consumed",
+    "budget": "Daily budget",
+    "remaining": "Remaining",
+    "over_budget": "Over budget",
+    "meal_slot": "Add to",
+    "saved_meals": "Usual meals",
+    "scan": "Scan",
+    "today": "Today",
+    "yesterday": "Yesterday",
+    "breakfast": "Breakfast",
+    "lunch": "Lunch",
+    "dinner": "Dinner",
+    "snacks": "Snacks"
+  },
   "nav": {
     "diary": "Diary",
     "foods": "Foods",

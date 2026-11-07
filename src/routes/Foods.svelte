@@ -1843,11 +1843,15 @@
       };
       document.addEventListener('keydown', _onKeyGlobal);
     }
-    // Restore tab before load so the right list is fetched
+    // Restore the editor's tab, or open the saved meals picker from the diary.
     if (editorState.foodsActiveTab != null) {
       activeTab = editorState.foodsActiveTab;
       editorState.foodsActiveTab = null;
+    } else if (pickMode && params.tab === 'meals') {
+      activeTab = 1;
     }
+    scannerOpen = pickMode && editorState.foodsOpenScanner;
+    editorState.foodsOpenScanner = false;
     // Load local data FIRST — don't block on server calls
     await load();
     await loadYesterdayMeals();

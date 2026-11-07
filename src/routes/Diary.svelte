@@ -3,7 +3,7 @@
   import { onMount, onDestroy, tick } from 'svelte';
   import { fold } from '../lib/fold.js';
   import { push } from 'svelte-spa-router';
-  import { _ } from 'svelte-i18n';
+  import { _, locale } from 'svelte-i18n';
   import DatePicker from '../components/ui/DatePicker.svelte';
   import DateInput  from '../components/ui/DateInput.svelte';
   import { resolveAssetUrl, isNative, getServerUrl } from '../lib/platform.js';
@@ -14,6 +14,7 @@
 
   import MacroRing    from '../components/diary/MacroRing.svelte';
   import DaySummaryWidget from '../components/diary/DaySummaryWidget.svelte';
+  import FamilyDiary from '../components/diary/FamilyDiary.svelte';
   import WaterWidget       from '../components/diary/WaterWidget.svelte';
   import BodyStatsWidget   from '../components/diary/BodyStatsWidget.svelte';
   import ActivityImpactWidget from '../components/diary/ActivityImpactWidget.svelte';
@@ -57,6 +58,7 @@
            diaryRailShowSummary, diaryRailShowWater, diaryRailShowBodyStats,
            diaryRailShowActivity as diaryRailShowActivityWidget,
            diaryRailShowNotes,
+           familyDiaryMode, familyCalorieBudget,
            forceMobileLayout } from '../stores/settings.js';
   import { dayActivity, activitySummary, loadActivity, deleteActivity } from '../stores/activity.js';
   import WaterBanner  from '../components/banners/WaterBanner.svelte';
@@ -363,6 +365,13 @@
   }
 
   $: meals = $mealNames || ['Breakfast','Lunch','Dinner','Snacks'];
+  $: defaultFamilyMealLabels = new Map([
+    ['Breakfast', $_('family_diary.breakfast')],
+    ['Lunch', $_('family_diary.lunch')],
+    ['Dinner', $_('family_diary.dinner')],
+    ['Snacks', $_('family_diary.snacks')],
+  ]);
+  $: familyMealLabels = meals.map(meal => defaultFamilyMealLabels.get(meal) ?? meal);
   $: editCalc = (() => {
     if (!editItem) return {};
     const origPortion   = parseFloat(editItem.portion) || 100;
@@ -868,9 +877,11 @@
     ? (52 + 48 + ($diaryShowNutritionBar && nutritionBarItems.length > 0 ? 8 + nutritionBarItems.length * 28 : 0) + 8 + (_waterShowInDiary ? 40 : 0))
     : 0;
   $: _barBaseH = 46 + (_waterShowInDiary ? 8 : 0);
+  $: bottomSpace = $familyDiaryMode ? 12 : _barBaseH + _barExpandedExtra + 12;
   $: contentPad = _hasBottomNav
-    ? `calc(var(--nav-h) + ${_barBaseH + _barExpandedExtra + 12}px)`
-    : `${_barBaseH + _barExpandedExtra + 12}px`;
+    ? `calc(var(--nav-h) + ${bottomSpace}px)`
+    : `${bottomSpace}px`;
+  $: showMealMacros = $diaryShowMacroSummary && !$familyDiaryMode;
 
   // Per-macro goals (absolute) for bottom bar remaining display.
   // #203: resolve per-weekday when the macro has its own weekday split.
@@ -888,15 +899,17 @@
   $: protGoal  = _macroGoal('proteins', $currentDate);
   $: calPct    = Math.min(100, ((totals.calories||0) / caloriesGoalAdjusted) * 100);
 
-  function formatDate(d) {
+  function formatDate(d, labels, locale) {
     if (!d) return '';
     const dt = new Date(d + 'T12:00:00');
     const today = localDateStr();
     const yest  = localDateStr(new Date(Date.now() - 86400000));
-    if (d === today) return 'Today';
-    if (d === yest)  return 'Yesterday';
-    return dt.toLocaleDateString(undefined, { weekday:'short', month:'short', day:'numeric' });
+    if (d === today) return labels?.today ?? 'Today';
+    if (d === yest)  return labels?.yesterday ?? 'Yesterday';
+    return dt.toLocaleDateString(locale, { weekday:'short', month:'short', day:'numeric' });
   }
+
+  $: familyDateLabels = { today: $_('family_diary.today'), yesterday: $_('family_diary.yesterday') };
 
   function formatDateSub(d, fmt) {
     if (!d) return '';
@@ -916,12 +929,14 @@
     return d; // ISO default
   }
 
-  function openAddFood(mealIdx) {
+  function openAddFood(mealIdx, mode = 'food') {
     addMealIdx = mealIdx;
     // Save scroll position so we can restore it when returning
     const scrollContainer = document.querySelector('.page-transition');
     editorState.diaryScrollY = scrollContainer ? scrollContainer.scrollTop : 0;
-    push('/foods?pick=1&meal=' + mealIdx + '&date=' + $currentDate);
+    editorState.foodsOpenScanner = mode === 'scan';
+    const tab = mode === 'meals' ? '&tab=meals' : '';
+    push('/foods?pick=1&meal=' + mealIdx + '&date=' + $currentDate + tab);
   }
 
   // ── Quick Calories sheet — Fitbit-style "log just a calorie number" entry
@@ -1929,7 +1944,7 @@
         on:click={() => showMultiDeleteDialog = true} aria-label={$_('diary.actions.delete_selected')} title={$_('diary.actions.delete_selected')}>
         <span class="material-symbols-rounded">delete</span>
       </button>
-    {:else}
+    {:else if !$familyDiaryMode}
       {#if _waterShowInDiary}
         <button class="btn-icon accent" on:click={() => showWaterQuickAdd = true} aria-label={$_('diary.actions.log_water')} title={$_('diary.actions.log_water_long')}>
           <span class="material-symbols-rounded">water_drop</span>
@@ -1964,7 +1979,7 @@
     </button>
     <button class="date-btn" on:click={openDatePicker} title={$_('diary.nav.jump_to_date')}>
       <span class="date-label">
-        {formatDate($currentDate)}
+        {$familyDiaryMode ? formatDate($currentDate, familyDateLabels, $locale || undefined) : formatDate($currentDate)}
         {#if $diaryShowNotes && (entry?.notes || '').trim()}
           <span class="material-symbols-rounded date-note-indicator" title="Has notes">edit_note</span>
         {/if}
@@ -1982,6 +1997,7 @@
   <!-- Week strip (Phase 6 desktop). Pinned with the date bar, below it, at
        ≥1280px; hidden on mobile. Data refetches whenever the diary
        store fires an update (bumps refreshKey). -->
+  {#if !$familyDiaryMode}
   <div bind:this={_weekStripWrapEl} class="diary-week-strip-wrap">
     <!-- #180 — pass the UNADJUSTED base goal. caloriesGoalAdjusted
          mixes in the CURRENT day's activity kcal, and WeekStrip
@@ -2002,6 +2018,7 @@
       showCompletion={$diaryShowCompletion}
     />
   </div>
+  {/if}
   </div>
 
   {#if $diaryShowCompletion}
@@ -2083,7 +2100,8 @@
   <div
     bind:this={_diaryContentEl}
     class="page-content diary-content"
-    class:rail-notes-active={$diaryRailShowNotes && $diaryShowNotes}
+    class:family-mode={$familyDiaryMode}
+    class:rail-notes-active={!$familyDiaryMode && $diaryRailShowNotes && $diaryShowNotes}
     class:rail-hidden={_railMode === 'hidden'}
     class:day-loading={_daySwapLoading}
     class:fold-pages={mealFoldSnap}
@@ -2100,8 +2118,24 @@
         <span>{$_('diary.server_error.unreachable')} <button class="server-error-retry" on:click={() => loadEntry($currentDate)}>{$_('diary.server_error.retry')}</button></span>
       </div>
     {/if}
+    {#if !selectMode}
+      <div class="family-mode-switch">
+        <button type="button" class="btn btn-secondary btn-sm" on:click={() => familyDiaryMode.set(!$familyDiaryMode)}>
+          {$familyDiaryMode ? $_('family_diary.disable') : $_('family_diary.enable')}
+        </button>
+      </div>
+      {#if $familyDiaryMode}
+        <FamilyDiary
+          calories={$currentEntry?.date === $currentDate ? totals.calories : 0}
+          budget={$familyCalorieBudget}
+          meals={familyMealLabels}
+          onSaveBudget={(budget) => familyCalorieBudget.set(budget)}
+          onAdd={openAddFood}
+        />
+      {/if}
+    {/if}
     <!-- Intermittent fasting widget — opt-in via Settings → Diary -->
-    {#if $fastingEnabled}
+    {#if !$familyDiaryMode && $fastingEnabled}
       <FastingWidget />
     {/if}
     <!-- Meal groups. Rendered via a Svelte 5 snippet `mealCard` so we
@@ -2136,7 +2170,7 @@
       >
         <div class="meal-header" style="--meal-color:{mealColor(mealIdx)}">
           <span class="meal-type-icon material-symbols-rounded">{mealIcon(meal)}</span>
-          <span class="meal-name">{meal}</span>
+          <span class="meal-name">{$familyDiaryMode ? familyMealLabels[mealIdx] : meal}</span>
           {#if $diaryShowCompletion}
             {@const _mealDone = Array.isArray(entry?.completed_meals) && entry.completed_meals.includes(mealIdx)}
             <!-- #207 per-meal (opt-in via Settings > Diary > Show meal completion):
@@ -2150,7 +2184,7 @@
               <span class="material-symbols-rounded">{_mealDone ? 'task_alt' : 'radio_button_unchecked'}</span>
             </button>
           {/if}
-          {#if items.length > 0 && !$diaryShowMacroSummary}
+          {#if items.length > 0 && !showMealMacros}
             {@const _mealKcal = items.reduce((s,it) => s + formatKcal(it), 0)}
             {@const _mealEnergy = Nutrition.displayEnergy(_mealKcal, $energyUnit)}
             <span class="meal-kcal text-3 text-sm">
@@ -2356,7 +2390,7 @@
             <span>{$_('diary.add_food')}</span>
           </button>
         {/if}
-        {#if $diaryShowMacroSummary && items.length > 0}
+        {#if showMealMacros && items.length > 0}
           {@const mt = getMealTotals(items)}
           {#if mt}
             {@const _mtEnergy = Nutrition.displayEnergy(mt.cal, $energyUnit)}
@@ -2398,7 +2432,7 @@
       </div>
     {/key}
 
-    {#if $diaryShowActivity}
+    {#if !$familyDiaryMode && $diaryShowActivity}
       {@const acts = $dayActivity || []}
       {@const sum  = $activitySummary || { manual: 0, wearable: 0, effective: 0, policy: 'wearable_wins' }}
       {@const policy = $manualActivityPolicy || 'wearable_wins'}
@@ -2501,6 +2535,7 @@
          (which is itself position:fixed and the app's scroll
          container — descendants of it don't get viewport-relative
          fixed positioning cleanly). -->
+    {#if !$familyDiaryMode}
     {#if _railMode === 'hidden' && _wideViewport}
       <button
         use:portal
@@ -2547,6 +2582,7 @@
         {@render railWidgets()}
       </aside>
     {/if}
+    {/if}
 
   </div>
 </div>
@@ -2556,13 +2592,14 @@
      .page-transition (which is itself position:fixed + overflow-y
      auto — the app's scroll container). Rendered only when the
      overlay is actually open so widgets don't double-mount. -->
-{#if _railMode === 'hidden' && _railOverlay && _wideViewport}
+{#if !$familyDiaryMode && _railMode === 'hidden' && _railOverlay && _wideViewport}
   <aside use:portal class="diary-right-col diary-right-col-overlay" use:closeOnBack={() => _railOverlay = false}>
     {@render railWidgets()}
   </aside>
 {/if}
 
 <!-- Persistent bottom nutrition bar -->
+{#if !$familyDiaryMode}
 <div use:portal={'#bottom-dock-slot'} class="diary-bottom-bar">
   <!-- Calorie progress strip -->
   <!-- svelte-ignore a11y-click-events-have-key-events a11y-no-static-element-interactions -->
@@ -2686,6 +2723,7 @@
     </div>
   {/if}
 </div>
+{/if}
 
 <!-- Water card sheet -->
 <Sheet bind:open={showWaterQuickAdd} title="" overlayClose on:close={() => { showWaterQuickAdd = false; _waterShowCustom = false; _waterCustomAmt = ''; }}>
@@ -3348,6 +3386,8 @@
 
 
 <style>
+  .family-mode-switch { display: flex; justify-content: flex-end; }
+  .diary-page .diary-content.family-mode { display: flex; }
   /* Date picker sheet wrapper — calendar UI lives in DatePicker.svelte */
   .dp-sheet { padding-bottom: 4px; }
 

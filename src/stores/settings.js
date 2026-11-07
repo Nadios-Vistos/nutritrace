@@ -28,6 +28,7 @@ export const USER_PREFS = new Set([
   'visibleNutriments','nutrimentsOrder','customNutriments',
   'bodyStatsOrder','hiddenBodyStats','foodCategories','customUnits',
   'diaryShowNutritionBar','diaryTotalsMode','macroLegendMode',
+  'familyDiaryMode','familyCalorieBudget',
   'diaryShowBrands','diaryShowTimestamps','diaryShowThumbnails',
   'diaryShowAllNutrients','diaryShowNutritionUnits','diaryShowMacroSummary',
   'diaryPromptQuantity','diaryShowPortionSize','diaryShowNotes','warnUnitMismatch','showUnitMetadata',
@@ -551,6 +552,8 @@ export const customUnits       = createSettingStore('customUnits',      []);
 
 // Display prefs used in multiple pages
 export const diaryShowNutritionBar = createSettingStore('diaryShowNutritionBar', true);
+export const familyDiaryMode = createSettingStore('familyDiaryMode', false);
+export const familyCalorieBudget = createSettingStore('familyCalorieBudget', null);
 export const diaryTotalsMode      = createSettingStore('diaryTotalsMode', 'consumed'); // 'consumed' | 'remaining'
 export const macroLegendMode      = createSettingStore('macroLegendMode', 'percent');  // 'percent' | 'grams' — MacroRing legend under the ring on the Nutrition Summary sheet
 export const diaryShowBrands        = createSettingStore('diaryShowBrands',        true);
