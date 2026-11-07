@@ -11,12 +11,12 @@ This file lists them so operators and contributors know what applies to what.
 
 ## Data sources
 
-NutriTrace does not bundle any food database inside the Docker image. All
-food data is either created by the user or queried live from the source's
-own public endpoint. The table below covers each source and its license.
+NutriTrace bundles the Anses Ciqual reference catalogue. Other food data is
+created by the user or queried from the sources below.
 
 | Source                       | License                          | How NutriTrace uses it                                                                                                         |
 | ---------------------------- | -------------------------------- | ------------------------------------------------------------------------------------------------------------------------------ |
+| **Ciqual 2025 (Anses)**       | [Licence Ouverte Etalab 2.0][ciqual-license] | Bundled read-only catalogue. Records use the Ciqual food codes and published numeric values per 100 g. |
 | **Open Food Facts**          | [ODbL 1.0][odbl]                 | Live queries against the OFF public API. Only foods the user actually searches are cached locally in that user's own SQLite.   |
 | **Open Food Facts (mirror)** | [ODbL 1.0][odbl]                 | Opt-in via `OFF_LOCAL_DB` env var. Server downloads OFF's own public snapshot ([Hugging Face][hf-off]) to the operator's disk. |
 | **USDA FoodData Central**    | Public Domain (US Government)    | Live queries with the user's own [api.data.gov][usda] key. No license restrictions.                                            |
@@ -26,6 +26,14 @@ own public endpoint. The table below covers each source and its license.
 [odbl]: https://opendatacommons.org/licenses/odbl/1-0/
 [hf-off]: https://huggingface.co/datasets/openfoodfacts/product-database
 [usda]: https://api.data.gov/
+[ciqual-license]: https://ciqual.anses.fr/cms/fr/mentions-legales
+
+The bundled extract credits **Anses. 2025. Table de composition nutritionnelle
+des aliments Ciqual** ([source and release][ciqual]). Regenerate it from the
+official `alim`, `alim_grp` and `compo` XML files with
+`python3 scripts/import-ciqual.py SOURCE_DIR src/lib/catalogues/ciqual-2025.json`.
+
+[ciqual]: https://doi.org/10.57745/RDMHWY
 
 ## Notes for operators
 

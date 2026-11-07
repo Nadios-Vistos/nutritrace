@@ -265,7 +265,7 @@ async function _callClaude(apiKey, model, messages, systemPrompt, tools) {
   const toolUses  = blocks.filter(b => b.type === 'tool_use');
   const textParts = blocks.filter(b => b.type === 'text').map(b => b.text);
 
-  if (toolUses.length === 0 || data.stop_reason !== 'tool_use') {
+  if (!claudeTools.length || toolUses.length === 0 || data.stop_reason !== 'tool_use') {
     return { text: textParts.join('\n') || '' };
   }
   // Build OpenAI-shape assistant message echoing the tool calls. The
@@ -314,7 +314,7 @@ async function _callOpenAI(apiKey, model, messages, systemPrompt, tools, baseUrl
   if (!res.ok) throw new Error(data.error?.message || `OpenAI API error ${res.status}`);
 
   const msg = data.choices?.[0]?.message || {};
-  if (!msg.tool_calls || msg.tool_calls.length === 0) {
+  if (!openaiTools.length || !msg.tool_calls || msg.tool_calls.length === 0) {
     return { text: msg.content || '' };
   }
   const toolCalls = msg.tool_calls.map(tc => ({
@@ -356,7 +356,7 @@ async function _callGemini(apiKey, model, messages, systemPrompt, tools) {
   const fnCalls = parts.filter(p => p.functionCall);
   const textParts = parts.filter(p => p.text).map(p => p.text);
 
-  if (fnCalls.length === 0) {
+  if (!tools?.length || fnCalls.length === 0) {
     return { text: textParts.join('\n') || '' };
   }
   // Gemini's functionCall has no ID. Mint stable synthetic IDs so the

@@ -2129,6 +2129,7 @@
           calories={$currentEntry?.date === $currentDate ? totals.calories : 0}
           budget={$familyCalorieBudget}
           meals={familyMealLabels}
+          date={$currentDate}
           onSaveBudget={(budget) => familyCalorieBudget.set(budget)}
           onAdd={openAddFood}
         />

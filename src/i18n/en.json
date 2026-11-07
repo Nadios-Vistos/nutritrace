@@ -1,4 +1,34 @@
 {
+  "meal_photo": {
+    "open": "Photograph my meal",
+    "choose": "Take or choose a photo",
+    "setup": "Enable Trace with a model that supports images to analyse a meal photo.",
+    "settings": "Open AI settings",
+    "privacy": "Analyse sends this photo to your configured AI provider.",
+    "analyse": "Analyse photo",
+    "analysing": "Looking for foods…",
+    "photo_error": "This photo could not be opened. Try a smaller JPEG, PNG or WebP image.",
+    "analyse_error": "Could not analyse the photo. Check your connection and the AI settings.",
+    "review": "Check the foods and enter the weight of each one. Calories come from Ciqual.",
+    "empty": "No foods were identified. You can search Ciqual here.",
+    "search": "Search for a food",
+    "choose_food": "Choose a Ciqual food",
+    "no_match": "No Ciqual match. Try another name.",
+    "remove": "Remove this food",
+    "grams": "Weight in grams",
+    "add_row": "Add another food",
+    "total": "Meal total",
+    "save_error": "Could not save the meal. Your selection is still here."
+  },
+  "ciqual": {
+    "all_categories": "All categories",
+    "missing_calories": "Calories unavailable",
+    "unavailable": "Could not open the Ciqual catalogue.",
+    "show_more": "Show more",
+    "per_100g": "{calories} kcal per 100 g",
+    "portion": "Amount in grams",
+    "invalid_amount": "Enter a positive weight in grams."
+  },
   "family_diary": {
     "enable": "Simple mode",
     "disable": "Detailed diary",
@@ -884,7 +914,7 @@
     },
     "offline": {
       "source": "needs a connection",
-      "search_hint": "You're offline, so only your own foods were searched. Open Food Facts, USDA and the other sources need a connection.",
+      "search_hint": "You can search your own foods and Ciqual offline. Open Food Facts and other online sources need a connection.",
       "barcode": "You're offline, so only your own foods were checked for this barcode.",
       "import": "That import needs a connection. It will work once you're back online."
     },

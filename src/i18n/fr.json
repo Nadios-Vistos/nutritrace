@@ -1,4 +1,34 @@
 {
+  "meal_photo": {
+    "open": "Photographier mon repas",
+    "choose": "Prendre ou choisir une photo",
+    "setup": "Active Trace avec un modèle compatible avec les images pour analyser une photo de repas.",
+    "settings": "Ouvrir les réglages IA",
+    "privacy": "Le bouton Analyser envoie cette photo au fournisseur IA configuré.",
+    "analyse": "Analyser la photo",
+    "analysing": "Recherche des aliments…",
+    "photo_error": "Impossible d’ouvrir cette photo. Essaie une image JPEG, PNG ou WebP plus légère.",
+    "analyse_error": "Impossible d’analyser la photo. Vérifie ta connexion et les réglages IA.",
+    "review": "Vérifie les aliments et indique le poids de chacun. Les calories viennent de Ciqual.",
+    "empty": "Aucun aliment reconnu. Tu peux chercher dans Ciqual ici.",
+    "search": "Chercher un aliment",
+    "choose_food": "Choisir une fiche Ciqual",
+    "no_match": "Aucune correspondance Ciqual. Essaie un autre nom.",
+    "remove": "Retirer cet aliment",
+    "grams": "Poids en grammes",
+    "add_row": "Ajouter un autre aliment",
+    "total": "Total du repas",
+    "save_error": "Impossible d’enregistrer le repas. Ta sélection est toujours affichée."
+  },
+  "ciqual": {
+    "all_categories": "Toutes les catégories",
+    "missing_calories": "Valeur calorique indisponible",
+    "unavailable": "Impossible d’ouvrir le catalogue Ciqual.",
+    "show_more": "Voir plus d’aliments",
+    "per_100g": "{calories} kcal pour 100 g",
+    "portion": "Quantité en grammes",
+    "invalid_amount": "Saisis un poids positif en grammes."
+  },
   "family_diary": {
     "enable": "Mode simple",
     "disable": "Journal détaillé",
@@ -548,6 +578,7 @@
     "add_n": "Ajouter {n}",
     "adding": "Ajout…",
     "add_selected_to_diary": "Ajouter la sélection au journal",
+    "add_to_diary": "Ajouter au journal",
     "search_in": "Rechercher dans {source}",
     "searching_in": "Recherche dans {source}…",
     "no_results_in": "Aucun résultat dans {source}",
@@ -569,6 +600,9 @@
     "sources": {
       "local": "Local",
       "from_others": "D'autres utilisateurs"
+    },
+    "offline": {
+      "search_hint": "Hors connexion, tu peux chercher dans tes aliments et dans Ciqual. Open Food Facts et les autres sources en ligne nécessitent une connexion."
     },
     "toast": {
       "deleted": "Supprimé",

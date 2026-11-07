@@ -96,7 +96,7 @@ const _KEEP_FIELDS = [
   'name', 'brand', 'portion', 'unit', 'quantity',   // history-protected snapshot
   'nutrition', 'notes',                             // history-protected snapshot
   'imgUrl',                                         // scrubbed by _stripCachedPaths, hydrated on read
-  'source', 'source_meal_id',                       // provenance (MCP writes / imports)
+  'source', 'source_meal_id', 'source_external_id',  // provenance (MCP writes / imports)
 ];
 function _toReferenceShape(items) {
   if (!Array.isArray(items)) return items;
@@ -320,6 +320,20 @@ export async function addDiaryItem(foodItem, meal, date) {
       : NtApi.markFoodUsed(item.id, targetDate);
     usageUpdate.catch(() => {});
   }
+}
+
+// A reviewed photo can contain several Ciqual references. Write them as one
+// diary update and keep their UUIDs across retries so an uncertain save does
+// not create duplicates. These reference rows have no personal food ID.
+export async function addReviewedMeal(items, meal, date) {
+  const addedAt = new Date().toISOString();
+  return _refetchAndSave(date, (entry) => {
+    const existing = entry.items || [];
+    const logged = new Set(existing.map(item => item.uuid));
+    const additions = items.filter(item => !logged.has(item.uuid));
+    if (!additions.length) return null;
+    return { ...entry, items: [...existing, ...additions.map(item => ({ ...item, meal, addedAt }))] };
+  });
 }
 
 /** Add a "Quick Calories" entry to the diary — a calorie-(plus-optional-

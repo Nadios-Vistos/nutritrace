@@ -1,15 +1,18 @@
 <script>
   import { _, locale } from 'svelte-i18n';
+  import FamilyMealPhoto from './FamilyMealPhoto.svelte';
 
   export let calories = 0;
   export let budget = null;
   export let meals = [];
+  export let date;
   export let onSaveBudget;
   export let onAdd;
 
   let editingBudget = false;
   let draftBudget;
   let mealIndex = 0;
+  let photoTarget = null;
 
   $: hasBudget = Number.isSafeInteger(budget) && budget > 0;
   $: consumed = Math.max(0, Math.round(calories || 0));
@@ -104,10 +107,18 @@
           <span class="material-symbols-rounded" aria-hidden="true">dinner_dining</span>
           {$_('family_diary.saved_meals')}
         </button>
+        <button type="button" class="btn btn-secondary photo-action" on:click={() => photoTarget = { date, meal: targetMeal }}>
+          <span class="material-symbols-rounded" aria-hidden="true">photo_camera</span>
+          {$_('meal_photo.open')}
+        </button>
       </div>
     </div>
   {/if}
 </section>
+
+{#if photoTarget}
+  <FamilyMealPhoto date={photoTarget.date} meal={photoTarget.meal} onClose={() => photoTarget = null} />
+{/if}
 
 <style>
   .family-card { display: grid; gap: 16px; padding: clamp(14px, 4vw, 28px); }
@@ -132,6 +143,6 @@
   .quick-add { border-top: 1px solid var(--border); padding-top: 14px; }
   .quick-actions { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
   .quick-actions .btn { min-height: 44px; height: auto; white-space: normal; text-align: center; }
-  .quick-actions .btn-primary { grid-column: 1 / -1; }
+  .quick-actions .btn-primary, .quick-actions .photo-action { grid-column: 1 / -1; }
   .quick-actions .material-symbols-rounded { font-size: 19px; }
 </style>

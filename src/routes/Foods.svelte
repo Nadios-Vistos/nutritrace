@@ -23,6 +23,7 @@
   import { loadEntry } from '../stores/diary.js';
   import { API, USDA, NtApi } from '../lib/api.js';
   import { Nutrition } from '../lib/nutrition.js';
+  import { loadCiqual, searchCiqual } from '../lib/ciqual.js';
   import { Mealie } from '../lib/mealieApi.js';
   import { CookTrace } from '../lib/cooktraceApi.js';
   import { offlineState } from '../lib/offline-api.js';
@@ -109,6 +110,7 @@
   // parallel and shows results grouped by source with per-row source badges.
   $: _perSourceOptions = [
     { value: 'local',  label: $_('foods.sources.local')  },
+    ...(activeTab === 0 ? [{ value: 'ciqual', label: 'Ciqual' }] : []),
     ...(activeTab === 0 && $offEnabled    ? [{ value: 'off',    label: 'OFF' }] : []),
     ...(activeTab === 0 && $usdaEnabled   ? [{ value: 'usda',   label: 'USDA' }] : []),
     ...(activeTab === 0 && _mealieEnabled ? [{ value: 'mealie', label: 'Mealie' }] : []),
@@ -123,6 +125,32 @@
     ? [{ value: 'all', label: $_('foods.sources.all') }, ..._perSourceOptions]
     : _perSourceOptions;
   $: _sourceLabel = availableSources.find(s => s.value === searchSource)?.label || '';
+
+  let ciqualCatalogue = null;
+  let ciqualLoading = false;
+  let ciqualError = false;
+  let ciqualCategory = '';
+  const CIQUAL_PAGE_SIZE = 40;
+  let ciqualLimit = CIQUAL_PAGE_SIZE;
+  $: { search; ciqualCategory; ciqualLimit = CIQUAL_PAGE_SIZE; }
+  $: ciqualMatches = searchSource === 'ciqual' ? searchCiqual(ciqualCatalogue, search, ciqualCategory) : [];
+  $: ciqualAllMatches = searchSource === 'all' && activeTab === 0 && search.trim()
+    && (pinnedSources.size === 0 || pinnedSources.has('ciqual'))
+    ? searchCiqual(ciqualCatalogue, search).filter(food => food.nutrition.calories != null).slice(0, 12) : [];
+  $: if (activeTab === 0 && (searchSource === 'ciqual' || searchSource === 'all')
+    && !ciqualCatalogue && !ciqualLoading && !ciqualError) refreshCiqual();
+
+  async function refreshCiqual() {
+    ciqualLoading = true;
+    ciqualError = false;
+    try { ciqualCatalogue = await loadCiqual(); }
+    catch { ciqualError = true; }
+    finally { ciqualLoading = false; }
+  }
+
+  function isCiqualReference(food) {
+    return food?.source_app === 'ciqual' && food.id == null;
+  }
 
   // ── Per-source quality-tier filters ──────────────────────────────────────
   // Backdrop-pattern dropdown attached to the OFF + USDA source chips (via
@@ -233,6 +261,7 @@
   // pinned set was correctly updated (verified via adb logcat).
   $: activeChips = {
     local:  pinnedSources.size > 0 ? pinnedSources.has('local')  : searchSource === 'local',
+    ciqual: pinnedSources.size > 0 ? pinnedSources.has('ciqual') : searchSource === 'ciqual',
     off:    pinnedSources.size > 0 ? pinnedSources.has('off')    : searchSource === 'off',
     usda:   pinnedSources.size > 0 ? pinnedSources.has('usda')   : searchSource === 'usda',
     mealie: pinnedSources.size > 0 ? pinnedSources.has('mealie') : searchSource === 'mealie',
@@ -632,6 +661,7 @@
   // user's tier picks within each source.
   $: _allModeItems = searchSource !== 'all' ? [] : [
     ...(_isSourceActive('local')  ? (_ownList || []).filter(f => search.trim() ? _fuzzyMatch(f, search) : false).map(item => ({ source: 'local',  item })) : []),
+    ...ciqualAllMatches.map(item => ({ source: 'ciqual', item })),
     ...(_isSourceActive('shared') && _tabHasShared ? (_groupList || []).filter(f => search.trim() ? _fuzzyMatch(f, search) : false).map(item => ({ source: 'shared', item })) : []),
     ...(_isSourceActive('mealie') ? (mealieResults || []).map(item => ({ source: 'mealie', item })) : []),
     ...(_isSourceActive('cooktrace') ? (cooktraceResults || []).map(item => ({ source: 'cooktrace', item })) : []),
@@ -1061,7 +1091,7 @@
     const chosenMeal = Number(e.detail.meal) || 0;
     pickMeal = String(chosenMeal);
     pickDate = localDateStr();
-    if ($diaryPromptQuantity) {
+    if ($diaryPromptQuantity || isCiqualReference(food)) {
       promptFood = food;
       promptServings = 1;
       promptPortion = food.portion || 100;
@@ -1179,7 +1209,7 @@
       return;
     }
     // Foods & Recipes: prompt for quantity if setting enabled
-    if ($diaryPromptQuantity) {
+    if ($diaryPromptQuantity || isCiqualReference(food)) {
       promptFood = food;
       promptServings = 1;
       promptPortion = food.portion || 100;
@@ -1262,7 +1292,7 @@
   async function _addFoodToDiaryNoNav(food, qty) {
     const { addDiaryItem } = await import('../stores/diary.js');
     let savedFood = food;
-    if (!food.id || typeof food.id !== 'number') {
+    if (!isCiqualReference(food) && (!food.id || typeof food.id !== 'number')) {
       const { id: _drop, ...rest } = food;
       savedFood = await NtApi.createFood({ ...rest, created_at: food.dateTime || new Date().toISOString() });
     }
@@ -1361,9 +1391,15 @@
 
   async function confirmQtyPrompt() {
     if (!promptFood || _addingToDiary) return;
+    const ciqual = isCiqualReference(promptFood);
+    const amount = parseDecimal(promptPortion);
+    if (ciqual && (!Number.isFinite(amount) || amount <= 0)) {
+      showError($_('ciqual.invalid_amount'));
+      return;
+    }
     const origPortion = parseFloat(promptFood.portion) || 100;
     const origUnit    = promptFood.unit || 'g';
-    const newPortion  = parseDecimal(promptPortion) || origPortion;
+    const newPortion  = amount || origPortion;
     const newUnit     = promptUnit || origUnit;
 
     // Scale by mass when both units are mass-convertible (g/oz/lb/ml/etc.),
@@ -1381,6 +1417,19 @@
       unit: newUnit,
       nutrition: scaledNutrition
     };
+    if (ciqual && !pickMode) {
+      _addingToDiary = true;
+      try {
+        await _addFoodToDiaryNoNav(food, 1);
+        showSuccess($_('foods.toast.added_to_diary'));
+        showQtyPrompt = false;
+      } catch (error) {
+        showError(error.message);
+      } finally {
+        _addingToDiary = false;
+      }
+      return;
+    }
     await _addFoodToDiary(food, parseDecimal(promptServings) || 1);
   }
 
@@ -2160,7 +2209,7 @@
           <span class="material-symbols-rounded empty-icon">search</span>
           <p>{$_('foods.all_mode.search_hint')}</p>
         </div>
-      {:else if (loading || mealieLoading || cooktraceLoading || ctPantryLoading) && _allModeItems.length === 0}
+      {:else if (loading || mealieLoading || cooktraceLoading || ctPantryLoading || ciqualLoading) && _allModeItems.length === 0}
         <div class="loading-row">
           <span class="material-symbols-rounded spin">refresh</span>
           <span class="text-2 text-sm">{$_('foods.all_mode.searching')}</span>
@@ -2179,7 +2228,7 @@
             {@const isMealie = source === 'mealie'}
             {@const isCookTrace = source === 'cooktrace'}
             {@const isCtPantry = source === 'ctpantry'}
-            {@const isExternal = source === 'off' || source === 'usda'}
+            {@const isExternal = source === 'off' || source === 'usda' || source === 'ciqual'}
             {@const _foodEnergy = isMealie
               ? null
               : Nutrition.displayEnergy(item.nutrition?.calories || item.calories || 0, $energyUnit)}
@@ -2259,6 +2308,7 @@
                   {:else if source === 'mealie'}{$_('foods.sources.mealie')}
                   {:else if source === 'cooktrace' || source === 'ctpantry'}CookTrace
                   {:else if source === 'usda'}USDA
+                  {:else if source === 'ciqual'}Ciqual
                   {:else}OFF{/if}
                 </span>
               </button>
@@ -2307,6 +2357,51 @@
         {/if}
         {#if _allHasMoreAny && !_allLoadingMore}
           <div class="scroll-sentinel" use:_infiniteScroll={{ onIntersect: loadMoreAll }}></div>
+        {/if}
+      {/if}
+
+    {:else if searchSource === 'ciqual'}
+      {#if ciqualLoading}
+        <div class="loading-row">{$_('foods.loading_library')}</div>
+      {:else if ciqualError}
+        <div class="empty-state">
+          <p>{$_('ciqual.unavailable')}</p>
+          <button class="btn btn-secondary" type="button" on:click={refreshCiqual}>{$_('foods_deep.retry')}</button>
+        </div>
+      {:else if ciqualCatalogue}
+        <div class="ciqual-toolbar">
+          <a href={ciqualCatalogue.url} target="_blank" rel="noreferrer">{ciqualCatalogue.source} · {ciqualCatalogue.license}</a>
+          <select class="select" aria-label={$_('ciqual.all_categories')} bind:value={ciqualCategory}>
+            <option value="">{$_('ciqual.all_categories')}</option>
+            {#each ciqualCatalogue.categories as category}
+              <option value={category}>{category}</option>
+            {/each}
+          </select>
+        </div>
+        {#if ciqualMatches.length === 0}
+          <div class="empty-state"><p>{$_('foods.no_results_in', { values: { source: 'Ciqual' } })}</p></div>
+        {:else}
+          <ul class="food-list">
+            {#each ciqualMatches.slice(0, ciqualLimit) as food (food.source_external_id)}
+              <li class="food-item card">
+                <button class="food-item-btn" type="button" disabled={food.nutrition.calories == null} on:click={() => pickFood(food, 'ciqual')}>
+                  <div class="food-thumb-placeholder"><span class="material-symbols-rounded" aria-hidden="true">restaurant</span></div>
+                  <div class="food-info">
+                    <span class="food-name">{food.name}</span>
+                    <span class="food-brand text-3 text-sm">{food.category}</span>
+                    <span class="food-kcal text-sm">{food.nutrition.calories == null
+                      ? $_('ciqual.missing_calories')
+                      : $_('ciqual.per_100g', { values: { calories: food.nutrition.calories } })}</span>
+                  </div>
+                </button>
+              </li>
+            {/each}
+          </ul>
+          {#if ciqualMatches.length > ciqualLimit}
+            <button class="btn btn-secondary" type="button" on:click={() => ciqualLimit += CIQUAL_PAGE_SIZE}>
+              {$_('ciqual.show_more')}
+            </button>
+          {/if}
         {/if}
       {/if}
 
@@ -2725,6 +2820,20 @@
 <!-- Quantity prompt sheet -->
 <Sheet bind:open={showQtyPrompt} title={promptFood ? promptFood.name : 'Add to Diary'}>
   <div style="display:flex;flex-direction:column;gap:16px;padding-top:8px" on:keydown={_onQtyPromptKey}>
+    {#if isCiqualReference(promptFood)}
+      <div class="qty-quickpicks">
+        {#each [50, 100, 150] as grams}
+          <button type="button" class="qty-quickpick" class:active={parseDecimal(promptPortion) === grams}
+            on:click={() => promptPortion = grams}>{grams} g</button>
+        {/each}
+      </div>
+      <label class="ciqual-toolbar">
+        {$_('ciqual.portion')}
+        <input class="input" type="text" inputmode="decimal" use:decimalInput bind:value={promptPortion}
+          bind:this={_qtyPromptPortionEl} data-field="portion" />
+      </label>
+      <strong>{_qtyEnergy.value.toLocaleString()} {_qtyEnergy.unit}</strong>
+    {:else}
     <!-- Issues #69 + #70: surface the OFF nutrition basis so users know
          whether values are per-100-g or per-100-ml at a glance. Gated on
          the showUnitMetadata opt-in (or the warn-about-conversions toggle
@@ -2812,6 +2921,7 @@
         <span class="qty-macro-label">fat</span>
       </div>
     </div>
+    {/if}
     <button class="btn btn-primary w-full" on:click={confirmQtyPrompt} disabled={_addingToDiary}>{$_('foods.add_to_diary')}</button>
   </div>
 </Sheet>
@@ -3051,6 +3161,8 @@
 {/if}
 
 <style>
+  .ciqual-toolbar { display: grid; gap: 8px; }
+  .ciqual-toolbar a { color: var(--accent); font-size: 0.85rem; }
   /* Live-preview macro pills inside the qty-prompt sheet (#30).
      Mirrors the diary edit sheet's .edit-macro-pill styling. */
   .qty-macros { display: flex; gap: 8px; flex-wrap: wrap; }

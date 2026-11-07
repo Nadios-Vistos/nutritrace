@@ -309,7 +309,7 @@ export async function callAIProxy({ messages, systemPrompt, tools, onToolCall })
     }
 
     // No tools fired — final reply, return it.
-    if (!data.toolCalls || data.toolCalls.length === 0) {
+    if (!tools?.length || !data.toolCalls || data.toolCalls.length === 0) {
       return data.text || '';
     }
 
@@ -436,7 +436,7 @@ async function _callClaudeWithTools(apiKey, model, messages, systemPrompt, tools
     const toolUses = (data.content || []).filter(b => b.type === 'tool_use');
     const textBlocks = (data.content || []).filter(b => b.type === 'text');
 
-    if (toolUses.length === 0 || data.stop_reason !== 'tool_use') {
+    if (!claudeTools.length || toolUses.length === 0 || data.stop_reason !== 'tool_use') {
       // No tool calls — return text
       return textBlocks.map(b => b.text).join('\n') || '';
     }
@@ -499,7 +499,7 @@ async function _callOpenAIWithTools(apiKey, model, messages, systemPrompt, tools
     const choice = data.choices[0];
     const msg = choice.message;
 
-    if (!msg.tool_calls || msg.tool_calls.length === 0) {
+    if (!openaiTools.length || !msg.tool_calls || msg.tool_calls.length === 0) {
       return msg.content || '';
     }
 
@@ -581,7 +581,7 @@ async function _callGeminiWithTools(apiKey, model, messages, systemPrompt, tools
     const functionCalls = parts.filter(p => p.functionCall);
     const textParts = parts.filter(p => p.text);
 
-    if (functionCalls.length === 0) {
+    if (!geminiTools || functionCalls.length === 0) {
       return textParts.map(p => p.text).join('\n') || '';
     }
 
