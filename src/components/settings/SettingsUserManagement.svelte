@@ -718,37 +718,37 @@
 <!-- Type-username-to-confirm delete-user dialog with cascade preview -->
 <Dialog
   bind:open={_delOpen}
-  title={_delTarget ? `Delete ${_delTarget.full_name || _delTarget.username}?` : 'Delete user?'}
+  title={_delTarget ? $_('settings.users.delete_named', { values: { name: _delTarget.full_name || _delTarget.username } }) : $_('settings.users.delete_generic')}
   message=""
-  confirmText={_delLoading ? 'Deleting…' : 'Delete Permanently'}
-  cancelText="Cancel"
+  confirmText={$_(_delLoading ? 'settings.users.deleting' : 'settings.users.delete_permanently')}
+  cancelText={$_('common.cancel')}
   dangerous={true}
   manualClose={true}
   confirmDisabled={!_delTarget || _delTyped.trim() !== _delTarget.username || _delLoading}
   on:cancel={_cancelDeleteUser}
   on:confirm={_confirmDeleteUser}>
   {#if _delTarget}
-    <p class="del-intro">This will permanently delete the account and everything it owns. This cannot be undone.</p>
+    <p class="del-intro">{$_('settings.users.delete_intro')}</p>
     {#if !_delCounts}
-      <div class="del-counts-loading">Loading data preview…</div>
+      <div class="del-counts-loading">{$_('settings.users.delete_loading')}</div>
     {:else if _delCounts.error}
-      <div class="del-error">Couldn't load data preview: {_delCounts.error}</div>
+      <div class="del-error">{$_('settings.users.delete_preview_error', { values: { error: _delCounts.error } })}</div>
     {:else}
       <ul class="del-counts">
-        {#if _delCounts.foods         > 0}<li><strong>{_delCounts.foods.toLocaleString()}</strong> {_delCounts.foods === 1 ? 'food' : 'foods'}</li>{/if}
-        {#if _delCounts.meals         > 0}<li><strong>{_delCounts.meals.toLocaleString()}</strong> {_delCounts.meals === 1 ? 'meal' : 'meals'}</li>{/if}
-        {#if _delCounts.recipes       > 0}<li><strong>{_delCounts.recipes.toLocaleString()}</strong> {_delCounts.recipes === 1 ? 'recipe' : 'recipes'}</li>{/if}
-        {#if _delCounts.diary_days    > 0}<li><strong>{_delCounts.diary_days.toLocaleString()}</strong> diary {_delCounts.diary_days === 1 ? 'day' : 'days'}</li>{/if}
-        {#if _delCounts.activities    > 0}<li><strong>{_delCounts.activities.toLocaleString()}</strong> manual {_delCounts.activities === 1 ? 'activity' : 'activities'}</li>{/if}
-        {#if _delCounts.workouts      > 0}<li><strong>{_delCounts.workouts.toLocaleString()}</strong> {_delCounts.workouts === 1 ? 'workout' : 'workouts'}</li>{/if}
-        {#if _delCounts.wellness_data > 0}<li><strong>{_delCounts.wellness_data.toLocaleString()}</strong> wellness data points</li>{/if}
+        {#if _delCounts.foods         > 0}<li>{$_('settings.users.delete_count_foods', { values: { count: _delCounts.foods } })}</li>{/if}
+        {#if _delCounts.meals         > 0}<li>{$_('settings.users.delete_count_meals', { values: { count: _delCounts.meals } })}</li>{/if}
+        {#if _delCounts.recipes       > 0}<li>{$_('settings.users.delete_count_recipes', { values: { count: _delCounts.recipes } })}</li>{/if}
+        {#if _delCounts.diary_days    > 0}<li>{$_('settings.users.delete_count_diary_days', { values: { count: _delCounts.diary_days } })}</li>{/if}
+        {#if _delCounts.activities    > 0}<li>{$_('settings.users.delete_count_activities', { values: { count: _delCounts.activities } })}</li>{/if}
+        {#if _delCounts.workouts      > 0}<li>{$_('settings.users.delete_count_workouts', { values: { count: _delCounts.workouts } })}</li>{/if}
+        {#if _delCounts.wellness_data > 0}<li>{$_('settings.users.delete_count_wellness_data', { values: { count: _delCounts.wellness_data } })}</li>{/if}
         {#if !_delCounts.foods && !_delCounts.meals && !_delCounts.recipes && !_delCounts.diary_days && !_delCounts.activities && !_delCounts.workouts && !_delCounts.wellness_data}
-          <li class="del-empty">No data attached to this account.</li>
+          <li class="del-empty">{$_('settings.users.delete_empty')}</li>
         {/if}
       </ul>
     {/if}
     <label class="del-confirm-label" for="del-confirm-input">
-      Type <code>{_delTarget.username}</code> to confirm:
+      {$_('settings.users.delete_type_username', { values: { username: _delTarget.username } })}
     </label>
     <input id="del-confirm-input" class="input del-confirm-input" type="text"
       autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false"
@@ -756,7 +756,7 @@
       placeholder={_delTarget.username}
       class:matched={_delTyped.trim() === _delTarget.username} />
     {#if _delTyped.trim() !== _delTarget.username}
-      <p class="del-hint">Confirm button enables once the username matches exactly.</p>
+      <p class="del-hint">{$_('settings.users.delete_hint')}</p>
     {/if}
   {/if}
 </Dialog>
@@ -772,7 +772,6 @@
   }
   .del-counts li { color: var(--text-2); }
   .del-counts li::before { content: '· '; color: var(--text-3); }
-  .del-counts li strong { color: var(--text-1); font-weight: 600; }
   .del-empty::before { content: ''; }
   .del-empty { color: var(--text-3); font-style: italic; }
   .del-counts-loading { font-size: 13px; color: var(--text-3); padding: 10px 0; }

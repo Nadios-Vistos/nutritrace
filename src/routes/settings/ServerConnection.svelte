@@ -320,11 +320,11 @@
       <div style="padding:12px 16px;display:flex;flex-direction:column;gap:8px">
         <button class="btn btn-ghost w-full" on:click={logoutServer}>
           <span class="material-symbols-rounded" style="font-size:18px">logout</span>
-          Log Out
+          {$_('common.log_out')}
         </button>
         <button class="btn btn-ghost w-full" style="color:var(--danger)" on:click={disconnectServer}>
           <span class="material-symbols-rounded" style="font-size:18px">link_off</span>
-          Disconnect &amp; Use Locally
+          {$_('settings_merge.disconnect_local')}
         </button>
       </div>
     {:else}
@@ -359,7 +359,7 @@
           </div>
         </div>
         <button class="btn btn-primary w-full" on:click={connectServer} disabled={serverConnecting}>
-          {serverConnecting ? 'Connecting…' : 'Connect to Server'}
+          {$_(serverConnecting ? 'native_setup.signing_in' : 'native_setup.connect_to_server')}
         </button>
       </div>
     {/if}
@@ -372,17 +372,17 @@
     <div class="merge-dialog">
       <h3 style="margin:0 0 6px;font-size:18px;color:var(--text-1)">{$_('settings_merge.title')}</h3>
       <p style="font-size:13px;color:var(--text-3);margin:0 0 12px;line-height:1.5">
-        You have data on this phone. How should it be handled when connecting?
+        {$_('settings_merge.question')}
       </p>
       {#if localCounts && localCounts.total > 0}
         <div class="merge-counts" style="margin:0 0 16px">
-          <div class="merge-counts-title">On this phone:</div>
+          <div class="merge-counts-title">{$_('settings_merge.on_phone')}</div>
           <div class="merge-counts-grid">
-            {#if localCounts.foods    > 0}<div><strong>{localCounts.foods}</strong> {localCounts.foods === 1 ? 'food' : 'foods'}</div>{/if}
-            {#if localCounts.meals    > 0}<div><strong>{localCounts.meals}</strong> {localCounts.meals === 1 ? 'meal' : 'meals'}</div>{/if}
-            {#if localCounts.recipes  > 0}<div><strong>{localCounts.recipes}</strong> {localCounts.recipes === 1 ? 'recipe' : 'recipes'}</div>{/if}
-            {#if localCounts.diary    > 0}<div><strong>{localCounts.diary}</strong> diary {localCounts.diary === 1 ? 'day' : 'days'}</div>{/if}
-            {#if localCounts.settings > 0}<div><strong>{localCounts.settings}</strong> settings</div>{/if}
+            {#if localCounts.foods    > 0}<div>{$_('settings_merge.count_foods', { values: { count: localCounts.foods } })}</div>{/if}
+            {#if localCounts.meals    > 0}<div>{$_('settings_merge.count_meals', { values: { count: localCounts.meals } })}</div>{/if}
+            {#if localCounts.recipes  > 0}<div>{$_('settings_merge.count_recipes', { values: { count: localCounts.recipes } })}</div>{/if}
+            {#if localCounts.diary    > 0}<div>{$_('settings_merge.count_diary', { values: { count: localCounts.diary } })}</div>{/if}
+            {#if localCounts.settings > 0}<div>{$_('settings_merge.count_settings', { values: { count: localCounts.settings } })}</div>{/if}
           </div>
         </div>
       {/if}
@@ -391,21 +391,21 @@
           <span class="material-symbols-rounded" style="font-size:22px;color:var(--accent)">cloud_upload</span>
           <div>
             <div class="merge-option-title">{$_('settings_merge.upload')}</div>
-            <div class="merge-option-desc">Send this phone's foods, diary, and settings to the server. Existing server data stays.</div>
+            <div class="merge-option-desc">{$_('settings_merge.upload_desc')}</div>
           </div>
         </button>
         <button class="merge-option" on:click={() => _mergeAndConnect('download')}>
           <span class="material-symbols-rounded" style="font-size:22px;color:var(--accent)">cloud_download</span>
           <div>
             <div class="merge-option-title">{$_('settings_merge.download')}</div>
-            <div class="merge-option-desc">Replace this phone's data with everything from the server. Local data is discarded.</div>
+            <div class="merge-option-desc">{$_('settings_merge.download_desc')}</div>
           </div>
         </button>
         <button class="merge-option" on:click={() => _mergeAndConnect('merge')}>
           <span class="material-symbols-rounded" style="font-size:22px;color:var(--accent)">sync</span>
           <div>
             <div class="merge-option-title">{$_('settings_merge.merge')}</div>
-            <div class="merge-option-desc">Upload phone data to the server AND download server data. Nothing is lost, but duplicates are possible.</div>
+            <div class="merge-option-desc">{$_('settings_merge.merge_desc')}</div>
           </div>
         </button>
         <button class="btn btn-ghost w-full" style="color:var(--text-3);margin-top:4px" on:click={cancelMerge}>{$_('settings_merge.cancel')}</button>
@@ -416,8 +416,8 @@
   <div class="merge-overlay" use:portal transition:fade={{ duration: 150 }} use:closeOnBack={() => {}}>
     <div class="merge-dialog" style="text-align:center">
       <span class="material-symbols-rounded" style="font-size:36px;color:var(--accent);animation:spin 1.2s linear infinite">autorenew</span>
-      <p style="font-size:15px;color:var(--text-1);margin:12px 0 4px;font-weight:600">Syncing…</p>
-      <p style="font-size:13px;color:var(--text-3);margin:0">{mergeProgress || 'Preparing…'}</p>
+      <p style="font-size:15px;color:var(--text-1);margin:12px 0 4px;font-weight:600">{$_('sync.syncing')}</p>
+      <p style="font-size:13px;color:var(--text-3);margin:0">{mergeProgress || $_('settings_merge.preparing')}</p>
       {#if mergeProgressPct > 0}
         <div class="merge-progress-bar" style="margin-top:14px">
           <div class="merge-progress-fill" style="width:{mergeProgressPct}%"></div>
@@ -429,26 +429,26 @@
   <div class="merge-overlay" use:portal transition:fade={{ duration: 150 }} use:closeOnBack={() => {}}>
     <div class="merge-dialog">
       <h3 style="margin:0 0 6px;font-size:18px;color:var(--text-1)">
-        {migrationSummary.errors.length === 0 ? 'Upload complete' : 'Upload finished with issues'}
+        {migrationSummary.errors.length === 0 ? $_('settings_merge.upload_complete') : $_('settings_merge.upload_partial')}
       </h3>
       <p style="font-size:13px;color:var(--text-3);margin:0 0 14px;line-height:1.5">
-        {migrationSummary.totalSuccess} of {migrationSummary.total} {migrationSummary.total === 1 ? 'item' : 'items'} uploaded successfully.
+        {$_('settings_merge.summary', { values: { success: migrationSummary.totalSuccess, total: migrationSummary.total } })}
       </p>
       <div class="merge-counts" style="margin:0 0 14px">
-        <div class="merge-counts-title">Uploaded to server:</div>
+        <div class="merge-counts-title">{$_('settings_merge.uploaded')}</div>
         <div class="merge-counts-grid">
-          {#if migrationSummary.success.foods    > 0}<div><strong>{migrationSummary.success.foods}</strong> {migrationSummary.success.foods === 1 ? 'food' : 'foods'}</div>{/if}
-          {#if migrationSummary.success.meals    > 0}<div><strong>{migrationSummary.success.meals}</strong> {migrationSummary.success.meals === 1 ? 'meal' : 'meals'}</div>{/if}
-          {#if migrationSummary.success.recipes  > 0}<div><strong>{migrationSummary.success.recipes}</strong> {migrationSummary.success.recipes === 1 ? 'recipe' : 'recipes'}</div>{/if}
-          {#if migrationSummary.success.diary    > 0}<div><strong>{migrationSummary.success.diary}</strong> diary {migrationSummary.success.diary === 1 ? 'day' : 'days'}</div>{/if}
-          {#if migrationSummary.success.settings > 0}<div><strong>{migrationSummary.success.settings}</strong> settings</div>{/if}
+          {#if migrationSummary.success.foods    > 0}<div>{$_('settings_merge.count_foods', { values: { count: migrationSummary.success.foods } })}</div>{/if}
+          {#if migrationSummary.success.meals    > 0}<div>{$_('settings_merge.count_meals', { values: { count: migrationSummary.success.meals } })}</div>{/if}
+          {#if migrationSummary.success.recipes  > 0}<div>{$_('settings_merge.count_recipes', { values: { count: migrationSummary.success.recipes } })}</div>{/if}
+          {#if migrationSummary.success.diary    > 0}<div>{$_('settings_merge.count_diary', { values: { count: migrationSummary.success.diary } })}</div>{/if}
+          {#if migrationSummary.success.settings > 0}<div>{$_('settings_merge.count_settings', { values: { count: migrationSummary.success.settings } })}</div>{/if}
         </div>
       </div>
       {#if migrationSummary.errors.length > 0}
         <div style="margin:0 0 14px">
           <div class="merge-counts-title" style="color:var(--danger,#e57373)">
-            {migrationSummary.errors.length} {migrationSummary.errors.length === 1 ? 'error' : 'errors'}
-            {#if migrationSummary.errors.length > 5}(showing first 5){/if}
+            {$_('settings_merge.errors', { values: { count: migrationSummary.errors.length } })}
+            {#if migrationSummary.errors.length > 5}{$_('settings_merge.errors_first_five')}{/if}
           </div>
           <ul style="font-size:12px;color:var(--text-3);padding-left:18px;margin:6px 0 0;line-height:1.5">
             {#each migrationSummary.errors.slice(0, 5) as err}
@@ -511,7 +511,6 @@
     font-size: 13px;
     color: var(--text-2);
   }
-  .merge-counts-grid strong { color: var(--text-1); font-weight: 600; }
   .merge-progress-bar {
     height: 6px;
     background: var(--surface-2);

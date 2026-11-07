@@ -99,8 +99,8 @@
 <div class="section-body">
 
   <!-- Group: Visible Nutrients -->
-  <p class="settings-group-heading">Visible Nutrients</p>
-  <p class="settings-group-sub">Drag to reorder. Toggle off any nutrient you don't want shown in the diary and food editor.</p>
+  <p class="settings-group-heading">{$_('settings_custom_nutrient.visible')}</p>
+  <p class="settings-group-sub">{$_('settings_custom_nutrient.visible_desc')}</p>
   <!-- svelte-ignore a11y-no-static-element-interactions -->
   <div class="card settings-card drag-list"
     on:pointermove={onNutDragMove}
@@ -126,7 +126,7 @@
 
   <!-- Group: Custom Nutrients -->
   <p class="settings-group-heading">{$_('settings_stats.custom_nutrients')}</p>
-  <p class="settings-group-sub">Track nutrients not covered by the built-in list (e.g. Omega-3).</p>
+  <p class="settings-group-sub">{$_('settings_custom_nutrient.custom_desc')}</p>
   <div class="card settings-card">
     {#each ($customNutriments || []) as cn, i}
       {#if i > 0}<div class="setting-divider"></div>{/if}

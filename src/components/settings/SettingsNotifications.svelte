@@ -144,7 +144,7 @@
 
   <!-- Delivery setup -->
   <p class="settings-group-heading">{$_('settings_notifications.sections.delivery')}</p>
-  <p class="settings-group-sub">How notifications reach you: on-device pop-ups and optional third-party push service.</p>
+  <p class="settings-group-sub">{$_('settings_notifications.sections.delivery_desc')}</p>
   <div class="card settings-card">
     {#if _notifPushService !== 'none'}
       <ConnectionStatus
@@ -241,7 +241,7 @@
 
   {#if _anyNotifEnabled}
     <p class="settings-group-heading">{$_('settings_notifications.sections.scheduled_reminders')}</p>
-    <p class="settings-group-sub">Recurring reminders at set times of day: water, meals, weigh-in, bedtime.</p>
+    <p class="settings-group-sub">{$_('settings_notifications.sections.reminders_desc')}</p>
     <div class="card settings-card">
       <div class="setting-row">
         <div>
@@ -356,7 +356,7 @@
     </div>
 
     <p class="settings-group-heading">{$_('settings_notifications.sections.alerts_summaries')}</p>
-    <p class="settings-group-sub">Milestone alerts and periodic summary reports.</p>
+    <p class="settings-group-sub">{$_('settings_notifications.sections.alerts_desc')}</p>
     <div class="card settings-card">
       <div class="setting-row">
         <div>

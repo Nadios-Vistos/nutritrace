@@ -39,8 +39,7 @@
     setDayCompletion, setMealCompletion,
     splitRecipeItem, removeSplitChild, updateSplitChild,
     diaryShowNutritionSummary, diaryShowBodyStats, diaryLoadError,
-    buildDiaryWritePayload,
-    _newUuid as _diaryUuid
+    buildDiaryWritePayload
   } from '../stores/diary.js';
   import { mealNames, goals, energyUnit, weightUnit, lengthUnit, navStyle,
            diaryShowBrands, diaryShowThumbnails,
@@ -58,10 +57,11 @@
            diaryRailShowSummary, diaryRailShowWater, diaryRailShowBodyStats,
            diaryRailShowActivity as diaryRailShowActivityWidget,
            diaryRailShowNotes,
-           familyDiaryMode, familyCalorieBudget,
+           familyDiaryMode, familyCalorieBudget, waterGoalMl, waterUnit, waterContainers, waterShowInDiary,
            forceMobileLayout } from '../stores/settings.js';
   import { dayActivity, activitySummary, loadActivity, deleteActivity } from '../stores/activity.js';
-  import WaterBanner  from '../components/banners/WaterBanner.svelte';
+  import WaterSheet from '../components/diary/WaterSheet.svelte';
+  import { formatWater, waterShortcuts } from '../lib/water-volume.js';
   import { editorState } from '../stores/editorState.js';
   import { NtApi } from '../lib/api.js';
   import { DB, localDateStr } from '../lib/db.js';
@@ -867,9 +867,9 @@
   }
   $: _prevWaterPct = _waterPct;
   $: _barExpandedExtra = barExpanded
-    ? (52 + 48 + ($diaryShowNutritionBar && nutritionBarItems.length > 0 ? 8 + nutritionBarItems.length * 28 : 0) + 8 + (_waterShowInDiary ? 40 : 0))
+    ? (52 + 48 + ($diaryShowNutritionBar && nutritionBarItems.length > 0 ? 8 + nutritionBarItems.length * 28 : 0) + 8 + ($waterShowInDiary ? 40 : 0))
     : 0;
-  $: _barBaseH = 46 + (_waterShowInDiary ? 8 : 0);
+  $: _barBaseH = 46 + ($waterShowInDiary ? 8 : 0);
   $: bottomSpace = _barBaseH + _barExpandedExtra + 12;
   $: contentPad = $familyDiaryMode ? '10px' : _hasBottomNav
     ? `calc(var(--nav-h) + ${bottomSpace}px)`
@@ -1538,160 +1538,38 @@
     showSuccess('Moved to ' + (meals[mealIdx] || 'meal'));
   }
 
-  // ── Water ──────────────────────────────────────────────────────────────────
-  let _waterGoalMl      = DB.getSetting('waterGoalMl',      2000);
-  let _waterUnit        = DB.getSetting('waterUnit',        'ml');
-  let _waterContainers  = DB.getSetting('waterContainers',  [
-    { id: '1', name: 'Small Bottle',     volumeMl: 250  },
-    { id: '2', name: 'Standard Bottle', volumeMl: 500  },
-    { id: '3', name: 'Large Bottle',    volumeMl: 1000 },
-    { id: '4', name: 'Gallon Jug',       volumeMl: 3785 },
-  ]);
-  let _waterShowInDiary = DB.getSetting('waterShowInDiary', true);
 
-  // Water card state
-  let _waterCustomAmt  = '';
-  let _waterShowCustom = false;
-  let _waterCustomInput;          // focus target when Custom panel opens
-  function _toggleWaterCustom() {
-    _waterShowCustom = !_waterShowCustom;
-    if (_waterShowCustom) tick().then(() => _waterCustomInput?.focus());
-  }
-  let _waterEditIndex  = -1;   // which log row is being edited (-1 = none)
-  let _waterEditAmt    = '';   // edit field value (in display unit)
+  $: _waterLogs = entry.water || [];
+  $: _waterTotal = _waterLogs.reduce((sum, log) => sum + (Number(log.amount) || 0), 0);
+  $: _waterRawPct = $waterGoalMl > 0 ? Math.round(_waterTotal / $waterGoalMl * 100) : 0;
+  $: _waterPct = Math.min(100, _waterRawPct);
+  $: waterDisplay = (ml) => formatWater(ml, $waterUnit, $locale);
+  $: waterQuickContainers = waterShortcuts($waterContainers);
 
-  // SVG bottle fill geometry (fillable interior y=50→182, 132 units tall)
-  const _WB_TOP = 50, _WB_BOTTOM = 182, _WB_H = 132;
-  $: _waterFillY     = _WB_BOTTOM - (_waterPct / 100) * _WB_H;
-  $: _waterOverflow  = _waterRawPct >= 100;
+  async function changeWaterLog(log, index, amount) {
+    const date = $currentDate;
+    const current = $currentEntry;
+    if (current?.date !== date) throw new Error('Water log no longer available');
+    const water = [...(current.water || [])];
+    const idx = log.uuid ? water.findIndex(item => item.uuid === log.uuid) : index;
+    if (idx < 0 || (!log.uuid && water[idx] !== log)) throw new Error('Water log no longer available');
 
-  function _reloadWaterSettings() {
-    _waterGoalMl      = DB.getSetting('waterGoalMl',      2000);
-    _waterUnit        = DB.getSetting('waterUnit',        'ml');
-    _waterContainers  = DB.getSetting('waterContainers',  []);
-    _waterShowInDiary = DB.getSetting('waterShowInDiary', true);
-  }
+    if (amount == null) water.splice(idx, 1);
+    else water[idx] = { ...water[idx], amount, updatedAt: new Date().toISOString() };
 
-  $: _waterLogs    = entry?.water || [];
-  $: _waterTotal   = _waterLogs.reduce((s, l) => s + (l.amount || 0), 0);
-  $: _waterRawPct  = _waterGoalMl > 0 ? Math.round(_waterTotal / _waterGoalMl * 100) : 0;
-  $: _waterPct     = Math.min(100, _waterRawPct);
-
-  function _waterDisplay(ml) {
-    if (_waterUnit === 'oz') return (ml / 29.5735).toFixed(0)  + ' fl oz';
-    if (_waterUnit === 'L')  return (ml / 1000).toFixed(2)     + ' L';
-    if (_waterUnit === 'G')  return (ml / 3785.41).toFixed(3)  + ' G';
-    return ml + ' ml';
-  }
-  function _waterDisplayGoal() {
-    if (_waterUnit === 'oz') return Math.round(_waterGoalMl / 29.5735)    + ' fl oz';
-    if (_waterUnit === 'L')  return (_waterGoalMl / 1000).toFixed(1)      + ' L';
-    if (_waterUnit === 'G')  return (_waterGoalMl / 3785.41).toFixed(2)   + ' G';
-    return _waterGoalMl + ' ml';
-  }
-  function _contDisplay(cont) {
-    if (_waterUnit === 'oz') return (cont.volumeMl / 29.5735).toFixed(0) + ' fl oz';
-    if (_waterUnit === 'L')  return (cont.volumeMl / 1000).toFixed(2)    + ' L';
-    if (_waterUnit === 'G')  return (cont.volumeMl / 3785.41).toFixed(3) + ' G';
-    return cont.volumeMl + ' ml';
-  }
-
-  // Custom water input — input value is in the user's chosen waterUnit
-  // (fl oz / L / G / ml). Convert to ml before logging since storage is
-  // always ml. Reported by cearum (#11) when in Imperial mode the input
-  // was treated as ml regardless of the unit label.
-  async function _addWaterCustom() {
-    const raw = parseDecimal(_waterCustomAmt);
-    if (!raw || raw <= 0) return;
-    let ml = raw;
-    if      (_waterUnit === 'oz') ml = raw * 29.5735;
-    else if (_waterUnit === 'L')  ml = raw * 1000;
-    else if (_waterUnit === 'G')  ml = raw * 3785.41;
-    await _addWaterFromDiary(Math.round(ml));
-    _waterCustomAmt = '';
-  }
-
-  async function _addWaterFromDiary(volumeMl) {
-    const ml = Number(volumeMl);
-    if (!ml || ml <= 0) return;
-    let ent = null;
-    currentEntry.subscribe(v => ent = v)();
-    const _use24 = $timeFormat === '24h';
-    const log = {
-      uuid: _diaryUuid(),
-      amount: ml,
-      time: new Date().toLocaleTimeString([], { hour: 'numeric', minute: '2-digit', hour12: !_use24 }),
-    };
-    const updated = { ...ent, water: [...(ent?.water || []), log] };
-    await NtApi.saveDiaryDate($currentDate, buildDiaryWritePayload(updated));
-    await loadEntry($currentDate);
-    _waterCustomAmt  = '';
-    _waterShowCustom = false;
-    // Check water + nutrition goals immediately
-    const today = localDateStr();
-    if ($currentDate === today) {
-      try {
-        const { checkGoals, requestPermission } = await import('../lib/notifications.js');
-        await requestPermission(); // ensure we have permission
-        const waterTotal = updated.water.reduce((s, l) => s + (l.amount || 0), 0);
-        const waterGoal = DB.getSetting('waterGoalMl', 0);
-        const goals = DB.getSetting('goals', {});
-        if (waterGoal > 0) goals.water_ml = { min: waterGoal };
-        const totals = Nutrition.sum((updated.items || []).map(i => Nutrition.calculate(i)));
-        await checkGoals(goals, { ...totals, water_ml: waterTotal });
-      } catch (e) {
-        console.error('[diary] goal check error:', e);
-      }
-    }
-  }
-
-  async function _removeWaterLog(index) {
-    let ent = null;
-    currentEntry.subscribe(v => ent = v)();
-    if (!ent) return;
-    const removed = (ent.water || [])[index];
-    const water = (ent.water || []).filter((_, i) => i !== index);
-    // Option C: send the water uuid as an explicit tombstone so the
-    // server-side merge doesn't just preserve the missing entry (which
-    // is now its safe default for anything not addressed).
-    await NtApi.saveDiaryDate($currentDate, buildDiaryWritePayload({
-      ...ent,
+    await NtApi.saveDiaryDate(date, buildDiaryWritePayload({
+      ...current,
       water,
-      deleted_uuids: { items: [], water: removed?.uuid ? [removed.uuid] : [] },
+      deleted_uuids: { water: amount == null && log.uuid ? [log.uuid] : [] },
     }));
-    await loadEntry($currentDate);
+    if ($currentDate === date) await loadEntry(date);
   }
 
-  function _startWaterEdit(i) {
-    const log = _waterLogs[i];
-    // Convert stored ml back to display unit for the input
-    if (_waterUnit === 'oz') _waterEditAmt = (log.amount / 29.5735).toFixed(0);
-    else if (_waterUnit === 'L') _waterEditAmt = (log.amount / 1000).toFixed(2);
-    else if (_waterUnit === 'G') _waterEditAmt = (log.amount / 3785.41).toFixed(3);
-    else _waterEditAmt = String(log.amount);
-    _waterEditIndex = i;
-  }
-
-  async function _saveWaterEdit(i) {
-    const val = parseDecimal(_waterEditAmt);
-    if (!val || val <= 0) { _waterEditIndex = -1; return; }
-    // Convert display unit back to ml
-    let ml = val;
-    if (_waterUnit === 'oz') ml = val * 29.5735;
-    else if (_waterUnit === 'L') ml = val * 1000;
-    else if (_waterUnit === 'G') ml = val * 3785.41;
-    ml = Math.round(ml);
-    let ent = null;
-    currentEntry.subscribe(v => ent = v)();
-    if (!ent) return;
-    // Option C: bump updatedAt on the edited entry so the server merge picks
-    // this copy over a stale server-side one.
-    const water = (ent.water || []).map((l, idx) => idx === i
-      ? { ...l, amount: ml, updatedAt: new Date().toISOString() }
-      : l);
-    await NtApi.saveDiaryDate($currentDate, buildDiaryWritePayload({ ...ent, water }));
-    _waterEditIndex = -1;
-    await loadEntry($currentDate);
+  async function removeWidgetWater(index) {
+    const log = _waterLogs[index];
+    if (!log) return;
+    try { await changeWaterLog(log, index, null); }
+    catch { showError($_('water_tracking.save_error')); }
   }
 
   // Whether this mount is a genuine first load (no cached entry yet) or a
@@ -1751,7 +1629,6 @@
       }
     }
 
-    window.addEventListener('wl:setting', _reloadWaterSettings);
     // Trigger bar fill-in animation after first paint
     requestAnimationFrame(() => requestAnimationFrame(() => { _barsMounted = true; }));
 
@@ -1782,7 +1659,6 @@
 
     return () => {
       document.removeEventListener('visibilitychange', _onVisibility);
-      window.removeEventListener('wl:setting', _reloadWaterSettings);
       if (_onSyncComplete) window.removeEventListener('nt:sync-complete', _onSyncComplete);
     };
   });
@@ -1877,15 +1753,15 @@
       onOpenTrends={() => push('#/statistics?metric=calories&range=1M')}
     />
   {/if}
-  {#if $diaryRailShowWater && _waterShowInDiary}
+  {#if $diaryRailShowWater && $waterShowInDiary}
     <WaterWidget
       logs={_waterLogs}
       totalMl={_waterTotal}
-      goalMl={_waterGoalMl}
-      unit={_waterUnit}
-      containers={_waterContainers}
+      goalMl={$waterGoalMl}
+      unit={$waterUnit}
+      containers={waterQuickContainers}
       onQuickAdd={(ml) => addWaterLog(ml, $currentDate)}
-      onRemove={_removeWaterLog}
+      onRemove={removeWidgetWater}
       onOpen={() => showWaterQuickAdd = true}
     />
   {/if}
@@ -1939,7 +1815,7 @@
         <span class="material-symbols-rounded">delete</span>
       </button>
     {:else if !$familyDiaryMode}
-      {#if _waterShowInDiary}
+      {#if $waterShowInDiary}
         <button class="btn-icon accent" on:click={() => showWaterQuickAdd = true} aria-label={$_('diary.actions.log_water')} title={$_('diary.actions.log_water_long')}>
           <span class="material-symbols-rounded">water_drop</span>
         </button>
@@ -2123,6 +1999,10 @@
         date={$currentDate}
         onSaveBudget={(budget) => familyCalorieBudget.set(budget)}
         onAdd={openAddFood}
+        waterTotal={$waterShowInDiary ? _waterTotal : null}
+        waterGoal={$waterGoalMl}
+        waterUnit={$waterUnit}
+        onWater={() => showWaterQuickAdd = true}
         onDetailed={() => familyDiaryMode.set(false)}
       />
     {:else}
@@ -2617,7 +2497,7 @@
     <div class="dbb-mb-f" style="width:{_barsMounted ? _mp.fat : 0}%"     title="Fat {_mp.fat}%"></div>
   </div>
   <!-- Water progress strip (collapsed, always visible) -->
-  {#if _waterShowInDiary}
+  {#if $waterShowInDiary}
     <!-- svelte-ignore a11y-click-events-have-key-events a11y-no-static-element-interactions -->
     <div class="dbb-water-strip" on:click={() => barExpanded = !barExpanded}
       title="Water: {_waterPct}%">
@@ -2630,7 +2510,7 @@
   <!-- Text summary row — taps to expand/collapse -->
   <button class="dbb-summary-row" on:click={() => barExpanded = !barExpanded}
     aria-label="{barExpanded ? 'Collapse' : 'Expand'} nutrition panel">
-    <span class="dbb-summary-text"><span style="color:var(--macro-protein)">{_mp.protein}% P</span> · <span style="color:var(--macro-carbs)">{_mp.carbs}% C</span> · <span style="color:var(--macro-fat)">{_mp.fat}% F</span> · <span style="color:var(--macro-calories)">{_sumEnergy.value.toLocaleString()} {_sumEnergy.unit}</span>{#if _waterShowInDiary} · <span style="color:var(--water-blue)"><span class="material-symbols-rounded" style="font-size:14px;vertical-align:middle">water_drop</span> {_waterDisplay(_waterTotal)}</span>{/if}</span>
+    <span class="dbb-summary-text"><span style="color:var(--macro-protein)">{_mp.protein}% P</span> · <span style="color:var(--macro-carbs)">{_mp.carbs}% C</span> · <span style="color:var(--macro-fat)">{_mp.fat}% F</span> · <span style="color:var(--macro-calories)">{_sumEnergy.value.toLocaleString()} {_sumEnergy.unit}</span>{#if $waterShowInDiary} · <span style="color:var(--water-blue)"><span class="material-symbols-rounded" style="font-size:14px;vertical-align:middle">water_drop</span> {waterDisplay(_waterTotal)}</span>{/if}</span>
     <span class="dbb-chevron material-symbols-rounded">{barExpanded ? 'expand_more' : 'expand_less'}</span>
   </button>
 
@@ -2682,7 +2562,7 @@
         </div>
       {/if}
       <!-- Water row -->
-      {#if _waterShowInDiary}
+      {#if $waterShowInDiary}
         <div class="dbb-water-row">
           <span class="material-symbols-rounded dbb-water-icon">water_drop</span>
           <div class="dbb-water-track">
@@ -2691,11 +2571,11 @@
             </div>
             <span class="dbb-water-text">
               {#if _totalsMode === 'remaining'}
-                {_waterDisplay(Math.max(0, _waterGoalMl - _waterTotal))} left
+                {$_('water_tracking.remaining', { values: { amount: waterDisplay(Math.max(0, $waterGoalMl - _waterTotal)) } })}
               {:else}
-                {_waterDisplay(_waterTotal)}
+                {waterDisplay(_waterTotal)}
               {/if}
-              / {_waterDisplay(_waterGoalMl)}
+              {#if $waterGoalMl > 0} / {waterDisplay($waterGoalMl)}{/if}
             </span>
           </div>
           <span class="dbb-water-pct">{_totalsMode === 'remaining' ? Math.max(0, 100 - _waterPct) + '%' : _waterPct + '%'}</span>
@@ -2725,158 +2605,23 @@
 </div>
 {/if}
 
-<!-- Water card sheet -->
-<Sheet bind:open={showWaterQuickAdd} title="" overlayClose on:close={() => { showWaterQuickAdd = false; _waterShowCustom = false; _waterCustomAmt = ''; }}>
-  <div class="wc-body">
-
-    <!-- Banner strip with title overlaid at bottom-left. Sheet renders its
-         own floating close button (overlayClose) so the X stays pinned even
-         when the user scrolls through the day's water log. -->
-    <div class="wc-banner-strip">
-      <WaterBanner />
-      <h2 class="wc-banner-title">{$_('diary_deep.water')}</h2>
-    </div>
-
-    <div class="wc-inner">
-    <!-- Bottle + stats -->
-    <div class="wc-bottle-section">
-      <div class="wc-bottle-wrap" class:wc-overflowing={_waterOverflow}>
-        <svg class="wc-bottle-svg" class:wc-overflowing={_waterOverflow}
-          viewBox="0 0 120 200" xmlns="http://www.w3.org/2000/svg"
-          aria-label="Water bottle, {_waterRawPct}% full">
-          <defs>
-            <clipPath id="wc-clip-d">
-              <path d="M 46 16 L 46 38 C 32 44 22 56 22 68 L 22 168 Q 22 184 37 184 L 83 184 Q 98 184 98 168 L 98 68 C 98 56 88 44 74 38 L 74 16 Z" />
-            </clipPath>
-          </defs>
-          <!-- Bottle body background -->
-          <path d="M 46 16 L 46 38 C 32 44 22 56 22 68 L 22 168 Q 22 184 37 184 L 83 184 Q 98 184 98 168 L 98 68 C 98 56 88 44 74 38 L 74 16 Z" class="wc-bottle-bg" />
-          <!-- Water fill -->
-          {#if _waterPct > 0}
-            <g clip-path="url(#wc-clip-d)">
-              <rect x="-5" y={_waterFillY + 10} width="130" height={_WB_BOTTOM - _waterFillY + 10} class="wc-water-body" />
-              <g transform="translate(0, {_waterFillY})">
-                <path class="wc-water-wave" d="M -120,10 C -90,2 -60,18 -30,10 C 0,2 30,18 60,10 C 90,2 120,18 150,10 C 180,2 210,18 240,10 L 240,30 L -120,30 Z" />
-              </g>
-            </g>
-          {/if}
-          <!-- Bottle outline -->
-          <path d="M 46 16 L 46 38 C 32 44 22 56 22 68 L 22 168 Q 22 184 37 184 L 83 184 Q 98 184 98 168 L 98 68 C 98 56 88 44 74 38 L 74 16 Z"
-            class="wc-bottle-outline" class:wc-full={_waterPct >= 100} />
-          <rect x="44" y="2" width="32" height="16" rx="5" class="wc-bottle-cap" />
-          <line x1="44" y1="16" x2="76" y2="16" class="wc-cap-line" />
-          {#if _waterOverflow}
-            <ellipse class="wc-overflow-spill" cx="60" cy="5" rx="19" ry="4" />
-            <circle class="wc-overflow-drip wc-drip-1" cx="43" cy="14" r="3" />
-            <circle class="wc-overflow-drip wc-drip-2" cx="42" cy="13" r="2.5" />
-            <circle class="wc-overflow-drip wc-drip-3" cx="77" cy="14" r="3" />
-            <circle class="wc-overflow-drip wc-drip-4" cx="78" cy="13" r="2.5" />
-          {/if}
-        </svg>
-      </div>
-
-      <div class="wc-stats">
-        <div class="wc-amount">
-          <span class="wc-current">{_waterDisplay(_waterTotal)}</span>
-          <span class="wc-sep">/</span>
-          <span class="wc-goal">{_waterDisplayGoal()}</span>
-        </div>
-        <div class="wc-pct" class:wc-goal-met={_waterOverflow}>
-          {_waterRawPct}%{_waterOverflow ? ' 🎉' : ''}
-        </div>
-        <div class="wc-progress-bar">
-          <div class="wc-progress-fill" style="width:{_waterPct}%"></div>
-        </div>
-      </div>
-    </div>
-
-    <!-- Quick-add grid -->
-    <p class="section-title" style="padding:4px 0 8px;text-align:center">{$_('diary_deep.quick_add')}</p>
-    <div class="wc-grid">
-      {#if _waterContainers.length > 0}
-        {#each _waterContainers as cont (cont.id)}
-          <button class="wc-btn" on:click={() => _addWaterFromDiary(cont.volumeMl)}>
-            <span class="material-symbols-rounded">water_drop</span>
-            <span class="wc-btn-name">{cont.name}</span>
-            <span class="wc-btn-vol">{_contDisplay(cont)}</span>
-          </button>
-        {/each}
-      {:else}
-        {#each [250, 500, 1000] as ml}
-          <button class="wc-btn" on:click={() => _addWaterFromDiary(ml)}>
-            <span class="material-symbols-rounded">water_drop</span>
-            <span class="wc-btn-vol">{_waterDisplay(ml)}</span>
-          </button>
-        {/each}
-      {/if}
-      <button class="wc-btn wc-btn-custom" on:click={_toggleWaterCustom}>
-        <span class="material-symbols-rounded">edit</span>
-        <span class="wc-btn-name">{$_('diary.water.custom')}</span>
-      </button>
-    </div>
-
-    {#if _waterShowCustom}
-      <div class="wc-custom-row" transition:slide={{ duration: 160 }}>
-        <input class="input" type="text" inputmode="decimal" use:decimalInput
-          placeholder={`Amount (${_waterUnit === 'oz' ? 'fl oz' : _waterUnit})`}
-          bind:value={_waterCustomAmt} bind:this={_waterCustomInput}
-          on:keydown={e => e.key === 'Enter' && _addWaterCustom()} />
-        <button class="btn btn-primary" on:click={_addWaterCustom}>{$_('diary.water.add')}</button>
-      </div>
-    {/if}
-
-    <!-- Today's log -->
-    {#if _waterLogs.length > 0}
-      <p class="section-title" style="padding:12px 0 8px">Today's Log</p>
-      <div class="card wc-log-card">
-        {#each _waterLogs as log, i}
-          {#if i > 0}<div class="wc-divider"></div>{/if}
-          {#if _waterEditIndex === i}
-            <div class="wc-log-row wc-log-edit">
-              <span class="material-symbols-rounded wc-log-icon">edit</span>
-              <input
-                class="input wc-edit-input"
-                type="number"
-                min="1"
-                bind:value={_waterEditAmt}
-                on:keydown={e => { if (e.key === 'Enter') _saveWaterEdit(i); if (e.key === 'Escape') _waterEditIndex = -1; }}
-                autofocus />
-              <span class="text-3 text-sm">{_waterUnit}</span>
-              <button class="btn-icon" on:click={() => _saveWaterEdit(i)} title={$_('common.save')}>
-                <span class="material-symbols-rounded" style="font-size:18px;color:var(--accent)">check</span>
-              </button>
-              <button class="btn-icon" on:click={() => _waterEditIndex = -1} title={$_('common.cancel')}>
-                <span class="material-symbols-rounded" style="font-size:18px;color:var(--text-3)">close</span>
-              </button>
-            </div>
-          {:else}
-            <div class="wc-log-row" role="button" tabindex="0"
-              on:click={() => _startWaterEdit(i)}
-              on:keydown={e => e.key === 'Enter' && _startWaterEdit(i)}
-              title="Tap to edit">
-              <span class="material-symbols-rounded wc-log-icon">water_drop</span>
-              <div class="wc-log-info">
-                <span class="font-medium">{_waterDisplay(log.amount)}</span>
-                {#if log.time}<span class="text-3 text-sm">{log.time}</span>{/if}
-              </div>
-              <button class="btn-icon" on:click|stopPropagation={() => _removeWaterLog(i)} title={$_('diary.water.remove')}>
-                <span class="material-symbols-rounded" style="font-size:18px;color:var(--text-3)">delete</span>
-              </button>
-            </div>
-          {/if}
-        {/each}
-      </div>
-    {:else}
-      <div class="wc-empty-log">
-        <span class="material-symbols-rounded wc-empty-icon">water_drop</span>
-        <p class="text-3 text-sm">{$_('diary_deep.no_water_today')}</p>
-      </div>
-    {/if}
-
-    <div style="height:16px"></div>
-    </div><!-- /.wc-inner -->
-  </div>
-</Sheet>
+{#if showWaterQuickAdd}
+  {#key $currentDate}
+    <WaterSheet
+      dateLabel={formatDate($currentDate, dateLabels, $locale || undefined)}
+      logs={_waterLogs}
+      total={_waterTotal}
+      goal={$waterGoalMl}
+      unit={$waterUnit}
+      containers={waterQuickContainers}
+      onAdd={(ml) => addWaterLog(ml, $currentDate)}
+      onEdit={changeWaterLog}
+      onRemove={(log, index) => changeWaterLog(log, index, null)}
+      onGoal={(ml) => waterGoalMl.set(ml)}
+      onClose={() => showWaterQuickAdd = false}
+    />
+  {/key}
+{/if}
 
 <!-- Edit item sheet -->
 <Sheet bind:open={showEditSheet} title={editItem ? editItem.name : ''} on:close={() => showEditSheet = false}>
@@ -4113,124 +3858,6 @@
   .dbb-water-fill { height: 100%; background: var(--water-blue); border-radius: var(--radius-full); transition: width 0.4s ease; }
   .dbb-water-text { font-size: 11px; color: var(--text-3); }
   .dbb-water-pct  { font-size: 11px; font-weight: 600; color: var(--water-blue); flex-shrink: 0; min-width: 36px; text-align: right; }
-
-  /* Water quick-add sheet */
-  /* ── Water card sheet ─────────────────────────────────────────────────────── */
-  .wc-body { padding: 0; display: flex; flex-direction: column; }
-
-  /* Banner strip — flush against the sheet top, SVG fills it, title sits at bottom-left.
-     The page-header.has-banner uses padding-bottom:52px but on a ~150px header (safe area
-     adds significant padding-top). On our fixed 110px strip that same value pushes the
-     title to the middle; 16px keeps it in the natural bottom-third like other banners. */
-  .wc-banner-strip {
-    position: relative;
-    height: 110px;
-    overflow: hidden;
-    flex-shrink: 0;
-    clip-path: inset(0);
-    display: flex;
-    align-items: flex-end;
-    padding: 0 20px 16px;
-  }
-  .wc-banner-title {
-    position: relative;
-    z-index: 1;
-    font-size: 28px;
-    font-weight: 800;
-    letter-spacing: -0.02em;
-    line-height: 1.1;
-    margin: 0;
-    flex: 1;
-    background: linear-gradient(135deg, var(--accent), var(--accent-2));
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    background-clip: text;
-    filter: drop-shadow(0 2px 8px rgba(0,0,0,0.35));
-  }
-  /* Inner padding wrapper below the banner */
-  .wc-inner { padding: 0 16px; display: flex; flex-direction: column; }
-
-  .wc-empty-log {
-    display: flex; flex-direction: column; align-items: center;
-    gap: 8px; padding: 28px 0;
-  }
-  .wc-empty-icon { font-size: 36px; color: var(--accent); opacity: 0.4; }
-
-  /* Bottle + stats */
-  .wc-bottle-section {
-    display: flex; flex-direction: column; align-items: center;
-    gap: 16px; padding: 8px 0 16px;
-  }
-  .wc-bottle-wrap {
-    width: 120px; height: auto;
-    filter: drop-shadow(0 8px 24px rgba(0,0,0,0.3));
-  }
-  .wc-bottle-wrap.wc-overflowing { animation: wc-overflow-glow 1.8s ease-in-out infinite; }
-  @keyframes wc-overflow-glow {
-    0%,100% { filter: drop-shadow(0 8px 24px rgba(0,0,0,0.3)); }
-    50%      { filter: drop-shadow(0 0 22px rgba(79,255,176,0.55)) drop-shadow(0 8px 24px rgba(0,0,0,0.2)); }
-  }
-  .wc-bottle-svg { width: 100%; height: auto; overflow: visible; }
-  .wc-bottle-svg.wc-overflowing .wc-water-wave { animation-duration: 0.65s; }
-  .wc-bottle-bg      { fill: var(--surface-3); }
-  .wc-bottle-outline { fill: none; stroke: var(--border-strong); stroke-width: 2; transition: stroke 0.4s; }
-  .wc-bottle-outline.wc-full { stroke: var(--accent); filter: drop-shadow(0 0 4px var(--accent)); }
-  .wc-bottle-cap     { fill: var(--accent); }
-  .wc-cap-line       { stroke: var(--border-strong); stroke-width: 1; }
-  .wc-water-body     { fill: var(--accent); opacity: 0.55; transition: y 0.6s ease, height 0.6s ease; }
-  .wc-water-wave     { fill: var(--accent); opacity: 0.75; animation: wc-wave-flow 1.8s linear infinite; }
-  @keyframes wc-wave-flow { from { transform: translateX(0); } to { transform: translateX(-120px); } }
-  .wc-overflow-spill { fill: var(--accent); animation: wc-spill-pulse 1.6s ease-in-out infinite; }
-  @keyframes wc-spill-pulse { 0%,100% { opacity: 0.35; } 50% { opacity: 0.65; } }
-  .wc-overflow-drip  { fill: var(--accent); }
-  .wc-drip-1 { animation: wc-drip-l 1.4s ease-in 0s    infinite; }
-  .wc-drip-2 { animation: wc-drip-l 1.4s ease-in 0.7s  infinite; }
-  .wc-drip-3 { animation: wc-drip-r 1.4s ease-in 0.35s infinite; }
-  .wc-drip-4 { animation: wc-drip-r 1.4s ease-in 1.05s infinite; }
-  @keyframes wc-drip-l { 0% { transform:translate(0,0);    opacity:0; } 8% { opacity:0.85; } 100% { transform:translate(-10px,34px); opacity:0; } }
-  @keyframes wc-drip-r { 0% { transform:translate(0,0);    opacity:0; } 8% { opacity:0.85; } 100% { transform:translate(10px, 34px); opacity:0; } }
-
-  .wc-stats { display:flex; flex-direction:column; align-items:center; gap:8px; width:100%; max-width:280px; }
-  .wc-amount { display:flex; align-items:baseline; gap:6px; }
-  .wc-current { font-size:28px; font-weight:700; color:var(--accent); line-height:1; }
-  .wc-sep     { font-size:20px; color:var(--text-3); }
-  .wc-goal    { font-size:18px; font-weight:500; color:var(--text-2); }
-  .wc-pct     { font-size:14px; font-weight:600; color:var(--text-3); }
-  .wc-pct.wc-goal-met { color:var(--accent); }
-  .wc-progress-bar  { width:100%; height:8px; background:var(--surface-3); border-radius:var(--radius-full); overflow:hidden; }
-  .wc-progress-fill { height:100%; background:linear-gradient(90deg,var(--accent),var(--accent-2)); border-radius:var(--radius-full); transition:width 0.5s cubic-bezier(0.34,1.56,0.64,1); }
-
-  /* Quick-add grid */
-  .wc-grid { display:flex; flex-wrap:wrap; justify-content:center; gap:8px; }
-  .wc-btn {
-    width:100px;
-    display:flex; flex-direction:column; align-items:center; gap:6px;
-    padding:18px 8px; border-radius:var(--radius-lg);
-    background:var(--surface-2); border:1px solid var(--border);
-    color:var(--text-1); cursor:pointer;
-    transition:background var(--dur-fast), border-color var(--dur-fast), transform var(--dur-fast);
-  }
-  .wc-btn .material-symbols-rounded { font-size:26px; color:var(--accent); }
-  .wc-btn:hover  { background:var(--accent-dim); border-color:var(--accent); }
-  .wc-btn:active { transform:scale(0.94); }
-  .wc-btn-custom { border-style:dashed; }
-  .wc-btn-name { font-size:12px; font-weight:600; }
-  .wc-btn-vol  { font-size:12px; color:var(--text-3); font-weight:500; }
-
-  .wc-custom-row { display:flex; gap:8px; margin-top:10px; align-items:center; }
-  .wc-custom-row .input { flex:1; }
-
-  /* Log */
-  .wc-log-card { border-left:3px solid var(--accent); }
-  .wc-log-row  { display:flex; align-items:center; gap:12px; padding:12px 16px; cursor:pointer; }
-  .wc-log-row:hover { background:var(--bg-2); }
-  .wc-log-edit { cursor:default; background:var(--bg-2); }
-  .wc-log-edit:hover { background:var(--bg-2); }
-  .wc-edit-input { width:80px; padding:4px 8px; font-size:14px; }
-  .wc-log-icon { color:var(--accent); font-size:20px; flex-shrink:0; }
-  .wc-log-info { flex:1; display:flex; flex-direction:column; gap:2px; }
-  .wc-divider  { height:1px; background:var(--border); margin:0 16px; }
-
 
   /* Daily notes card */
   .diary-notes {

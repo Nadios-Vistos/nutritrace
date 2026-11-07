@@ -752,7 +752,6 @@
         { id: '1', name: 'Small Bottle',    volumeMl: 250  },
         { id: '2', name: 'Standard Bottle', volumeMl: 500  },
         { id: '3', name: 'Large Bottle',    volumeMl: 1000 },
-        { id: '4', name: 'Gallon Jug',      volumeMl: 3785 },
       ]);
     }
   });

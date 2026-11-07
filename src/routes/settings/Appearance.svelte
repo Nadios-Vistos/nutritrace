@@ -154,8 +154,8 @@
 <div class="section-body">
 
   <!-- Group: Theme & Color -->
-  <p class="settings-group-heading">Theme &amp; Color</p>
-  <p class="settings-group-sub">System theme and accent palette used across the app.</p>
+  <p class="settings-group-heading">{$_('settings.appearance.theme_color')}</p>
+  <p class="settings-group-sub">{$_('settings.appearance.theme_color_desc')}</p>
   <div class="card settings-card">
     <div class="setting-row">
       <span class="setting-label">{$_('settings.appearance.theme')}</span>
@@ -193,8 +193,8 @@
   </div>
 
   <!-- Group: Navigation -->
-  <p class="settings-group-heading">Navigation</p>
-  <p class="settings-group-sub">How you get around the app and where you land on open.</p>
+  <p class="settings-group-heading">{$_('settings.appearance.navigation')}</p>
+  <p class="settings-group-sub">{$_('settings.appearance.navigation_desc')}</p>
   <div class="card settings-card">
     <div class="setting-row">
       <span class="setting-label">{$_('settings.appearance.navigation_style')}</span>
@@ -226,16 +226,16 @@
     <div class="setting-divider"></div>
     <div class="setting-row">
       <div>
-        <span class="setting-label">Force Mobile Layout</span>
-        <div class="setting-desc">For users who prefer the compact phone-style layout on large screens. When on, the large-screen breakpoints (Diary right rail, Settings two-pane, week strip) are all disabled at every viewport width, and drag-to-copy meals is turned off. Keep this off to use the full large-screen experience.</div>
+        <span class="setting-label">{$_('settings.appearance.force_mobile')}</span>
+        <div class="setting-desc">{$_('settings.appearance.force_mobile_desc')}</div>
       </div>
       <Toggle checked={$forceMobileLayout} on:change={e => forceMobileLayout.set(e.detail)} />
     </div>
   </div>
 
   <!-- Group: Motion & Chrome -->
-  <p class="settings-group-heading">Motion &amp; Chrome</p>
-  <p class="settings-group-sub">Animation intensity and top-of-page banner treatment.</p>
+  <p class="settings-group-heading">{$_('settings.appearance.motion')}</p>
+  <p class="settings-group-sub">{$_('settings.appearance.motion_desc')}</p>
   <div class="card settings-card">
     <div class="setting-row">
       <span class="setting-label">{$_('settings_main.reduce_motion')}</span>
@@ -293,7 +293,7 @@
     </div>
     <!-- Hue slider -->
     <div class="cp-slider-group">
-      <label class="form-label">Hue</label>
+      <label class="form-label">{$_('settings_color.hue')}</label>
       <div class="cp-slider-wrap">
         <input type="range" class="cp-slider cp-hue" min="0" max="360"
           bind:value={cpHue} on:input={cpUpdateFromSliders} />

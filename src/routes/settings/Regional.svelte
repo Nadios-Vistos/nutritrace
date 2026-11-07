@@ -31,8 +31,8 @@
 <div class="section-body">
 
   <!-- Group: Language & Formats -->
-  <p class="settings-group-heading">Language &amp; Formats</p>
-  <p class="settings-group-sub">Interface language and how dates and times are shown.</p>
+  <p class="settings-group-heading">{$_('settings.regional.language_and_formats')}</p>
+  <p class="settings-group-sub">{$_('settings.regional.language_and_formats_desc')}</p>
   <div class="card settings-card">
     <div class="setting-row">
       <span class="setting-label">{$_('settings.regional.language')}</span>
@@ -68,7 +68,7 @@
 
   <!-- Group: Units — metric / imperial preferences across the app -->
   <p class="settings-group-heading">{$_('settings.regional.units')}</p>
-  <p class="settings-group-sub">Unit choices apply everywhere the value shows.</p>
+  <p class="settings-group-sub">{$_('settings.regional.units_desc')}</p>
   <div class="card settings-card">
     <div class="setting-row">
       <span class="setting-label">{$_('settings.regional.energy')}</span>

@@ -56,7 +56,9 @@
     <ellipse cx="105" cy="99" rx="8" ry="3.7" fill="#e98394" stroke="none" opacity=".62" />
     {#each [63, 97] as x}
       <g transform="translate({x} 87)">
-        {#if mood === 'calm'}
+        {#if mood === 'thirsty'}
+          <path d="M-5 1L0 3L5 1 M-5 -8Q0 -10 5 -8" fill="none" stroke-width="1.9" />
+        {:else if mood === 'calm'}
           <path d="M-5 2Q0 -3 5 2" fill="none" />
         {:else if isRabbit}
           <ellipse cx="0" cy="0" rx={mood === 'curious' ? 4.2 : 3.6} ry={mood === 'curious' ? 5 : 5.8} fill="#391e2c" stroke="none" />
@@ -78,7 +80,11 @@
       <rect x="84" y="79" width="25" height="17" rx="5" fill="none" stroke-width="1.9" />
       <path d="M76 85Q80 82 84 85M51 85L44 82M109 85L116 82" fill="none" stroke-width="1.9" />
     {/if}
-    {#if mood === 'curious'}
+    {#if mood === 'thirsty'}
+      <path d="M75 106Q80 100 85 106" fill="none" stroke-width="2" />
+      <path d="M138 53C136 60 132 63 132 68A6 6 0 0 0 144 68C144 63 140 60 138 53Z" fill="#9ce4ff" stroke-width="1.8" />
+      <path d="M135 69Q136 72 139 71" fill="none" stroke="#fff8ef" stroke-width="1.4" />
+    {:else if mood === 'curious'}
       <ellipse cx="80" cy="105" rx="3" ry="3.7" fill="#d9808c" stroke-width="1.5" />
     {:else if isRabbit}
       <path d="M73 103Q76 107 80 101Q84 107 87 103" fill="none" stroke-width="1.8" />

@@ -12,7 +12,9 @@
    * Rendered only inside .diary-right-col which is ≥1280px only.
    */
   import { slide } from 'svelte/transition';
-  import { decimalInput, parseDecimal } from '../../lib/decimal-input.js';
+  import { _, locale } from 'svelte-i18n';
+  import { decimalInput } from '../../lib/decimal-input.js';
+  import { formatWater, parseWaterVolume, waterContainerLabel, waterUnitLabel } from '../../lib/water-volume.js';
 
   export let logs         = [];
   export let totalMl      = 0;
@@ -28,7 +30,6 @@
   let customInput;
 
   $: pct = goalMl > 0 ? Math.min(100, Math.round((totalMl / goalMl) * 100)) : 0;
-  $: displayTotal = formatMl(totalMl);
   $: displayGoal  = formatMl(goalMl);
 
   // Brief pulse animation on the bar when totalMl grows (new log added
@@ -39,22 +40,6 @@
   $: if (totalMl > _lastTotal) { _pulseKey++; }
   $: _lastTotal = totalMl;
 
-  function formatMl(ml) {
-    if (unit === 'oz') return `${(ml / 29.5735).toFixed(0)} fl oz`;
-    if (unit === 'L')  return `${(ml / 1000).toFixed(2)} L`;
-    if (unit === 'G')  return `${(ml / 3785.41).toFixed(3)} G`;
-    return `${ml} ml`;
-  }
-  function displayContainer(cont) {
-    if (unit === 'oz') return `+${(cont.volumeMl / 29.5735).toFixed(0)} fl oz`;
-    if (unit === 'L')  return `+${(cont.volumeMl / 1000).toFixed(2)} L`;
-    if (unit === 'G')  return `+${(cont.volumeMl / 3785.41).toFixed(3)} G`;
-    return `+${cont.volumeMl} ml`;
-  }
-  function displayLogAmount(amount) {
-    return formatMl(amount);
-  }
-
   async function openCustom() {
     customOpen = true;
     customAmt = '';
@@ -62,14 +47,9 @@
     customInput?.focus();
   }
   function commitCustom() {
-    const val = parseDecimal(customAmt);
-    if (!val || val <= 0) { customOpen = false; return; }
-    // Convert display unit back to ml
-    let ml = val;
-    if (unit === 'oz') ml = val * 29.5735;
-    else if (unit === 'L')  ml = val * 1000;
-    else if (unit === 'G')  ml = val * 3785.41;
-    onQuickAdd(Math.round(ml));
+    const ml = parseWaterVolume(customAmt, unit);
+    if (!(ml > 0)) return;
+    onQuickAdd(ml);
     customAmt = '';
     customOpen = false;
   }
@@ -82,10 +62,10 @@
 <section class="water-widget card">
   <header class="ww-header">
     <span class="material-symbols-rounded ww-icon">water_drop</span>
-    <span class="ww-title">Water</span>
-    <span class="ww-total">{displayTotal} <span class="ww-of">of {displayGoal}</span></span>
+    <span class="ww-title">{$_('water_tracking.title')}</span>
+    <span class="ww-total">{formatWater(totalMl, unit, $locale)} {#if goalMl > 0}<span class="ww-of">/ {formatWater(goalMl, unit, $locale)}</span>{/if}</span>
     {#if onOpen}
-      <button class="ww-open" on:click={onOpen} title="Open water sheet" aria-label="Open water sheet">
+      <button class="ww-open" on:click={onOpen} title={$_('water_tracking.title')} aria-label={$_('water_tracking.title')}>
         <span class="material-symbols-rounded">open_in_full</span>
       </button>
     {/if}
@@ -99,12 +79,12 @@
 
   <div class="ww-buttons">
     {#each containers as cont (cont.id ?? cont.volumeMl)}
-      <button class="ww-btn" on:click={() => onQuickAdd(cont.volumeMl)} title={cont.name}>
-        {displayContainer(cont)}
+      <button class="ww-btn" on:click={() => onQuickAdd(cont.volumeMl)} title={waterContainerLabel(cont, $_)}>
+        + {formatWater(cont.volumeMl, unit, $locale)}
       </button>
     {/each}
     <button class="ww-btn ww-btn-ghost ww-btn-full" on:click={openCustom} class:active={customOpen}>
-      + Custom
+      + {$_('diary.water.custom')}
     </button>
   </div>
 
@@ -117,10 +97,11 @@
         type="text"
         inputmode="decimal"
         use:decimalInput
-        placeholder={unit === 'ml' ? 'ml' : unit === 'oz' ? 'fl oz' : unit}
+        aria-label={$_('water_tracking.volume', { values: { unit: waterUnitLabel(unit) } })}
+        placeholder={waterUnitLabel(unit)}
         class="input ww-custom-input"
       />
-      <button class="ww-custom-save btn btn-primary" on:click={commitCustom}>Add</button>
+      <button class="ww-custom-save btn btn-primary" on:click={commitCustom}>{$_('diary.water.add')}</button>
     </div>
   {/if}
 
@@ -128,13 +109,13 @@
     <ul class="ww-logs">
       {#each logs as log, i (i + '-' + log.amount + '-' + log.time)}
         <li class="ww-log-row">
-          <span class="ww-log-amount">{displayLogAmount(log.amount)}</span>
+          <span class="ww-log-amount">{formatWater(log.amount, unit, $locale)}</span>
           <span class="ww-log-time">{log.time || ''}</span>
           <button
             class="ww-log-remove"
             on:click={() => onRemove(i)}
-            title="Remove this entry"
-            aria-label="Remove entry"
+            title={$_('water_tracking.delete_entry')}
+            aria-label={$_('water_tracking.delete_entry')}
           >
             <span class="material-symbols-rounded">close</span>
           </button>

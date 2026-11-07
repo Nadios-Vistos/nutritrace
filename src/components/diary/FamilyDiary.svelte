@@ -1,4 +1,5 @@
 <script>
+  import { onMount } from 'svelte';
   import { _, locale } from 'svelte-i18n';
   import FamilyMealPhoto from './FamilyMealPhoto.svelte';
   import FamilyMascot from './FamilyMascot.svelte';
@@ -6,6 +7,8 @@
   import Sheet from '../ui/Sheet.svelte';
   import { familyAvatar } from '../../stores/settings.js';
   import { normalizeAvatar } from '../../lib/family-avatar.js';
+  import { localDateStr } from '../../lib/db.js';
+  import { formatWater } from '../../lib/water-volume.js';
 
   export let calories = 0;
   export let budget = null;
@@ -14,19 +17,35 @@
   export let onSaveBudget;
   export let onAdd;
   export let onDetailed;
+  export let waterTotal = null;
+  export let waterGoal = 0;
+  export let waterUnit = 'ml';
+  export let onWater;
 
   let editingBudget = false;
   let draftBudget;
   let mealIndex = 0;
   let photoTarget = null;
   let editingAvatar = false;
+  let now = new Date();
+
+  onMount(() => {
+    const timer = setInterval(() => { now = new Date(); }, 60_000);
+    return () => clearInterval(timer);
+  });
 
   $: hasBudget = Number.isSafeInteger(budget) && budget > 0;
   $: consumed = Math.max(0, Math.round(calories || 0));
   $: remaining = hasBudget ? budget - consumed : 0;
   $: progress = hasBudget ? Math.min(consumed, budget) : 0;
   $: fill = hasBudget ? progress / budget : 0;
-  $: mood = fill < 0.5 ? 'smile' : fill < 0.9 ? 'curious' : 'calm';
+  $: hasWaterGoal = waterTotal != null && waterGoal > 0;
+  $: waterFill = hasWaterGoal ? Math.min(1, waterTotal / waterGoal) : 0;
+  $: thirsty = hasWaterGoal && date === localDateStr(now) && now.getHours() >= 12 && waterFill < 0.5;
+  $: calorieMood = fill < 0.5 ? 'smile' : fill < 0.9 ? 'curious' : 'calm';
+  $: mood = thirsty ? 'thirsty' : calorieMood;
+  $: waterAmount = waterTotal == null ? '' : formatWater(waterTotal, waterUnit, $locale);
+  $: waterTarget = hasWaterGoal ? formatWater(waterGoal, waterUnit, $locale) : '';
   $: format = new Intl.NumberFormat($locale || undefined);
   $: targetMeal = mealIndex < meals.length ? mealIndex : 0;
   $: avatar = normalizeAvatar($familyAvatar);
@@ -64,7 +83,8 @@
       <span aria-hidden="true">0%</span>
     </div>
     <div class="hero-summary">
-      <button type="button" class="mascot-button" aria-label={$_('family_avatar.edit')} on:click={() => editingAvatar = true}>
+      <button type="button" class="mascot-button" aria-label={$_('family_avatar.edit')}
+        aria-description={thirsty ? $_('water_tracking.thirsty_hint') : undefined} on:click={() => editingAvatar = true}>
         <span class="mascot-stage"><FamilyMascot {avatar} {mood} /></span>
         <span class="mascot-name">{$_(`family_avatar.kind.${avatar.kind}`)}
           <span class="material-symbols-rounded" aria-hidden="true">edit</span>
@@ -74,6 +94,17 @@
         <strong>{format.format(hasBudget ? Math.abs(remaining) : consumed)} <small>kcal</small></strong>
         <span>{hasBudget ? (remaining < 0 ? $_('family_diary.over_budget') : $_('family_diary.remaining')) : $_('family_diary.consumed')}</span>
       </div>
+      {#if waterTotal != null}
+        <button type="button" class="water-gauge" on:click={onWater}
+          aria-label={$_(hasWaterGoal ? 'water_tracking.open_with_goal' : 'water_tracking.open_to_add', { values: { total: waterAmount, goal: waterTarget } })}>
+          <span class="water-line">
+            <span class="water-label"><span class="material-symbols-rounded" aria-hidden="true">water_drop</span>{$_('diary_deep.water')}</span>
+            <strong>{waterAmount}{#if hasWaterGoal} / {waterTarget}{/if}</strong>
+            <span class="material-symbols-rounded water-add" aria-hidden="true">add_circle</span>
+          </span>
+          {#if hasWaterGoal}<span class="water-track" aria-hidden="true"><span style:width={`${waterFill * 100}%`}></span></span>{/if}
+        </button>
+      {/if}
     </div>
   </div>
 
@@ -167,6 +198,13 @@
   .gauge-value strong { font-size: clamp(1.6rem, 9vw, 3rem); line-height: 1.05; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
   .gauge-value small { font-size: .4em; }
   .gauge-value > span { color: #ffe0d9; font-size: .82rem; }
+  .water-gauge { display: grid; align-content: center; gap: 4px; width: 100%; min-height: 44px; margin-top: 6px; padding: 5px 7px; color: #fff3ea; border: 1px solid #d0879d; border-radius: 9px; background: #50172d; }
+  .water-line { display: flex; align-items: center; justify-content: space-between; gap: 4px; min-width: 0; font-size: .71rem; }
+  .water-line strong { min-width: 0; overflow-wrap: anywhere; }
+  .water-label { display: flex; align-items: center; gap: 2px; }
+  .water-label .material-symbols-rounded, .water-add { font-size: 15px; color: #9ce4ff; }
+  .water-track { height: 5px; border-radius: 4px; background: #a96981; overflow: hidden; }
+  .water-track > span { display: block; height: 100%; border-radius: inherit; background: #9ce4ff; transition: width var(--dur-base) ease-out; }
   .budget-totals { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
   .metric { display: grid; align-content: center; justify-items: center; gap: 2px; min-height: 53px; padding: 4px; text-align: center; border: 1px solid var(--family-border); border-radius: 12px; background: var(--family-surface); }
   .metric > span { color: var(--text-2); font-size: .74rem; }
@@ -186,7 +224,11 @@
   @media (max-height: 650px) {
     .family-card { gap: 6px; }
     .budget-hero { min-height: 164px; padding-block: 8px; }
+    .budget-hero:has(.water-gauge) { padding-block: 5px; }
+    .hero-summary:has(.water-gauge) { gap: 1px; }
     .mascot-stage { height: clamp(74px, 14dvh, 94px); }
+    .hero-summary:has(.water-gauge) .mascot-stage { height: clamp(56px, 10dvh, 70px); }
+    .water-gauge { margin-top: 0; }
     .metric { min-height: 48px; }
     .quick-button { min-height: 48px; }
   }

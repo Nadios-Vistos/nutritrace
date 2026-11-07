@@ -39,7 +39,8 @@
     "expression": {
       "smile": "{name}, smiling",
       "curious": "{name}, looking curious",
-      "calm": "{name}, looking calm"
+      "calm": "{name}, looking calm",
+      "thirsty": "{name}, looking thirsty"
     },
     "customize": "Customize features",
     "from_photo": "Create from a photo",
@@ -221,7 +222,15 @@
       "section": "Appearance",
       "theme": "Theme",
       "accent_color": "Accent Color",
-      "navigation_style": "Navigation Style"
+      "navigation_style": "Navigation Style",
+      "theme_color": "Theme & Color",
+      "theme_color_desc": "System theme and accent palette used across the app.",
+      "navigation": "Navigation",
+      "navigation_desc": "How you get around the app and where you land on open.",
+      "force_mobile": "Force Mobile Layout",
+      "force_mobile_desc": "For users who prefer the compact phone-style layout on large screens. When on, the large-screen breakpoints (Diary right rail, Settings two-pane, week strip) are all disabled at every viewport width, and drag-to-copy meals is turned off. Keep this off to use the full large-screen experience.",
+      "motion": "Motion & Chrome",
+      "motion_desc": "Animation intensity and top-of-page banner treatment."
     },
     "regional": {
       "section": "Regional & Units",
@@ -240,7 +249,10 @@
       "date_us": "MM/DD/YYYY",
       "date_eu": "DD/MM/YYYY",
       "date_iso": "YYYY-MM-DD",
-      "date_natural": "D MMM YYYY"
+      "date_natural": "D MMM YYYY",
+      "language_and_formats": "Language & Formats",
+      "language_and_formats_desc": "Interface language and how dates and times are shown.",
+      "units_desc": "Unit choices apply everywhere the value shows."
     },
     "diary": {
       "section": "Diary",
@@ -422,7 +434,24 @@
       "save_failed_status": "Save failed ({status})",
       "network_error": "network error",
       "hide": "Hide",
-      "show": "Show"
+      "show": "Show",
+      "delete_intro": "This will permanently delete the account and everything it owns. This cannot be undone.",
+      "delete_loading": "Loading data preview…",
+      "delete_empty": "No data attached to this account.",
+      "delete_hint": "Confirm button enables once the username matches exactly.",
+      "deleting": "Deleting…",
+      "delete_permanently": "Delete Permanently",
+      "delete_named": "Delete {name}?",
+      "delete_generic": "Delete user?",
+      "delete_preview_error": "Couldn't load data preview: {error}",
+      "delete_type_username": "Type {username} to confirm:",
+      "delete_count_foods": "{count, plural, one {# food} other {# foods}}",
+      "delete_count_meals": "{count, plural, one {# meal} other {# meals}}",
+      "delete_count_recipes": "{count, plural, one {# recipe} other {# recipes}}",
+      "delete_count_diary_days": "{count, plural, one {# diary day} other {# diary days}}",
+      "delete_count_activities": "{count, plural, one {# manual activity} other {# manual activities}}",
+      "delete_count_workouts": "{count, plural, one {# workout} other {# workouts}}",
+      "delete_count_wellness_data": "{count, plural, one {# wellness data point} other {# wellness data points}}"
     },
     "email": {
       "section": "Email (SMTP)"
@@ -1260,13 +1289,22 @@
     "show_in_statistics": "Show In Statistics",
     "containers_title": "Water Containers",
     "no_containers": "No containers yet",
-    "add_container": "Add Container"
+    "add_container": "Add Container",
+    "display": "Display",
+    "display_desc": "Unit shown for water values and where the water card appears.",
+    "ml": "Milliliters (ml)",
+    "oz": "Fluid ounces (fl oz)",
+    "l": "Liters (L)",
+    "gallon": "Gallons (G)",
+    "containers_desc": "Quick-add buttons shown in the Diary for logging water intake."
   },
   "settings_scanner": {
     "recipes_sort": "Recipes Sort",
     "beep_on_scan": "Beep On Successful Scan",
     "use_flashlight": "Use Flashlight While Scanning",
-    "crop_photos": "Crop Photos On Upload"
+    "crop_photos": "Crop Photos On Upload",
+    "group": "Camera & Scanning",
+    "group_desc": "Barcode scanner audio, flashlight, and photo crop preferences."
   },
   "settings_goals": {
     "calorie_goal_mode": "Calorie Goal Mode",
@@ -1294,7 +1332,16 @@
     "label": "Label",
     "custom_units": "Custom Units",
     "no_custom_units": "No custom units yet",
-    "full_name": "Full Name"
+    "full_name": "Full Name",
+    "chart_options": "Chart Options",
+    "chart_options_desc": "Default chart type and overlays applied across the Statistics page.",
+    "chart_bar": "Bar",
+    "chart_line": "Line",
+    "y_zero": "Lock Y-Axis To Zero",
+    "y_zero_desc": "Body stats (weight, HRV, RHR, etc.) always auto-fit. This toggle applies to nutrient and counted-metric charts.",
+    "include_today_desc": "For cumulative metrics (calories, water, steps, etc.) today is partial until the day ends. Off by default — the chart looks cleaner. Statistics page also has an inline toggle for one-off overrides.",
+    "show_empty_days_desc": "Keep every date in the chart's range visible even when nothing was logged that day. Lets gaps in logging show up rather than collapsing into a denser chart that hides them. Applies to both bar and line charts.",
+    "no_metrics": "No metrics available."
   },
   "settings_integrations": {
     "group": "Integrations",
@@ -1317,7 +1364,13 @@
     "bulk_share": "Bulk Share",
     "vis_private": "Private",
     "vis_group": "Everyone",
-    "vis_specific": "Specific People"
+    "vis_specific": "Specific People",
+    "sharing_server_desc": "Server-wide sharing switch. When off, group members can't share items with each other.",
+    "sharing_enable_desc": "Allow group members to share foods, meals, and recipes with each other",
+    "auto_share": "Auto Share",
+    "auto_share_desc": "Applied automatically to new foods, meals, and recipes you create. Existing items are left alone; use Bulk Share below to update those.",
+    "visibility": "Visibility",
+    "bulk_share_desc": "Set who can see your existing items. Each category has its own visibility, so changing one doesn't affect the others."
   },
   "settings_diagnostics": {
     "diag_mode": "Diagnostic Mode",
@@ -1338,7 +1391,12 @@
     "server_license": "(AGPL-3.0)",
     "family_line_prefix": "Part of the ",
     "family_line_suffix": " family",
-    "translations_from": "Translations powered by"
+    "translations_from": "Translations powered by",
+    "disclaimer_title": "Disclaimer.",
+    "disclaimer": "NutriTrace is not medical, health, or nutrition-professional software. It does not provide medical advice, diagnosis, treatment, or personalized nutrition prescriptions. Food entries, calorie and macro tracking, Trace AI suggestions, Smart Log parsing, Scan Label output, Goal Insights, Adaptive TDEE recommendations, wellness scores (readiness, stress, sleep quality), and any analytical output are for informational and self-tracking purposes only. Nutrition decisions can interact with medical conditions (diabetes, eating disorders, food allergies, pregnancy, breastfeeding, pediatric needs, kidney or liver disease, metabolic disorders) in ways this app cannot assess. Consult a qualified healthcare professional, registered dietitian, or licensed nutritionist before starting a new eating plan, calorie target, or making significant dietary changes. Trace AI answers can be incorrect or incomplete; treat them as a starting point, not a substitute for human judgment or professional advice. Food nutrition data from Open Food Facts is community-curated and may contain inaccuracies. Use at your own risk.",
+    "self_hosted": "Self-hosted — your data, your server",
+    "platforms": "Native Android app with offline support, plus a PWA for any browser",
+    "privacy": "No tracking, no ads, no third-party analytics"
   },
   "settings_support": {
     "lead": "NutriTrace is free and always will be. Support is optional and never unlocks anything.",
@@ -1356,13 +1414,32 @@
     "download": "Download Server to Phone",
     "merge": "Merge Both",
     "cancel": "Cancel",
-    "continue": "Continue"
+    "continue": "Continue",
+    "question": "You have data on this phone. How should it be handled when connecting?",
+    "on_phone": "On this phone:",
+    "upload_desc": "Send this phone's foods, diary, and settings to the server. Existing server data stays.",
+    "download_desc": "Replace this phone's data with everything from the server. Local data is discarded.",
+    "merge_desc": "Upload phone data to the server AND download server data. Nothing is lost, but duplicates are possible.",
+    "uploaded": "Uploaded to server:",
+    "errors_first_five": "(showing first 5)",
+    "disconnect_local": "Disconnect & Use Locally",
+    "preparing": "Preparing…",
+    "upload_complete": "Upload complete",
+    "upload_partial": "Upload finished with issues",
+    "summary": "{success} of {total, plural, one {# item} other {# items}} uploaded successfully.",
+    "errors": "{count, plural, one {# error} other {# errors}}",
+    "count_foods": "{count, plural, one {# food} other {# foods}}",
+    "count_meals": "{count, plural, one {# meal} other {# meals}}",
+    "count_recipes": "{count, plural, one {# recipe} other {# recipes}}",
+    "count_diary": "{count, plural, one {# diary day} other {# diary days}}",
+    "count_settings": "{count, plural, one {# setting} other {# settings}}"
   },
   "settings_color": {
     "saturation": "Saturation",
     "lightness": "Lightness",
     "hex_code": "Hex Code",
-    "apply_color": "Apply Color"
+    "apply_color": "Apply Color",
+    "hue": "Hue"
   },
   "time_picker": {
     "hour": "Hour",
@@ -1527,7 +1604,10 @@
   },
   "settings_custom_nutrient": {
     "name": "Nutrient Name",
-    "add": "Add Nutrient"
+    "add": "Add Nutrient",
+    "visible": "Visible Nutrients",
+    "visible_desc": "Drag to reorder. Toggle off any nutrient you don't want shown in the diary and food editor.",
+    "custom_desc": "Track nutrients not covered by the built-in list (e.g. Omega-3)."
   },
   "settings_foods_picker": {
     "show_thumbnails": "Show Thumbnails",
@@ -1544,7 +1624,16 @@
     "meals_sort": "Meals Sort",
     "opt_recent": "Recently Used",
     "opt_most": "Most Used",
-    "opt_alpha": "Alphabetical"
+    "opt_alpha": "Alphabetical",
+    "group_display": "Food Row Display",
+    "group_display_desc": "Fields shown on each row in the Foods, Meals, and Recipes tabs.",
+    "show_yesterday": "Show Yesterday's Meals",
+    "show_yesterday_desc": "Pin yesterday's meals as quick-add cards in the Meals tab. Tap the info icon to see what's in each one.",
+    "group_sort": "Sort & Source",
+    "group_sort_desc": "Default source when searching, and ordering on each list.",
+    "foods_sort_desc": "How items are ordered in the Foods tab. Favorites are always pinned at the top regardless of sort.",
+    "meals_sort_desc": "How items are ordered in the Meals tab.",
+    "recipes_sort_desc": "How items are ordered in the Recipes tab."
   },
   "barcode_scanner": {
     "toast": {
@@ -2158,7 +2247,9 @@
     },
     "sections": {
       "import": "Import",
-      "export": "Export"
+      "export": "Export",
+      "import_desc": "Pull data in: bulk-add foods by barcode list, or restore a NutriTrace JSON export.",
+      "export_desc": "Portable JSON snapshot or CSV of your diary or activity log."
     },
     "actions": {
       "bulk_import": "Bulk Import Foods",
@@ -2289,7 +2380,10 @@
     },
     "sections": {
       "full_backup": "Full Backup",
-      "danger_zone": "Danger Zone"
+      "danger_zone": "Danger Zone",
+      "server_desc": "Full server backup (SQLite + uploads) with optional scheduled runs. Admin only.",
+      "local_desc": "On-device backup zip saved to Documents/nutritrace-backups. Manual or scheduled.",
+      "danger_desc": "Irreversible actions. Wipe logged data or reset every setting to defaults."
     },
     "full_backup": {
       "desc_server": "A complete snapshot of everything: all user data, diary, foods, meals, recipes, settings, and uploaded images. Saved on the server and available to download or restore at any time.",
@@ -2360,7 +2454,10 @@
     "sections": {
       "delivery": "Delivery",
       "scheduled_reminders": "Scheduled Reminders",
-      "alerts_summaries": "Alerts & Summaries"
+      "alerts_summaries": "Alerts & Summaries",
+      "delivery_desc": "How notifications reach you: on-device pop-ups and optional third-party push service.",
+      "reminders_desc": "Recurring reminders at set times of day: water, meals, weigh-in, bedtime.",
+      "alerts_desc": "Milestone alerts and periodic summary reports."
     },
     "push": {
       "configured": "Configured",
@@ -2623,5 +2720,32 @@
     "wl_spo2": "SpO₂",
     "wl_muscle": "Muscle Mass",
     "water": "Water"
+  },
+  "water_tracking": {
+    "title": "Hydration",
+    "open_with_goal": "Hydration, {total} of {goal}. Add water.",
+    "open_to_add": "Hydration, {total} logged. Add water.",
+    "thirsty_hint": "The mascot is thirsty. Less than half the daily water goal has been logged.",
+    "drunk": "Water logged",
+    "daily_goal": "Daily goal",
+    "edit_goal": "Edit hydration goal",
+    "goal_input": "Goal ({unit})",
+    "goal_help": "Enter 0 to track water without a goal.",
+    "no_goal": "No goal",
+    "remaining": "{amount} to go",
+    "goal_reached": "Goal reached",
+    "add": "Add water",
+    "volume": "Amount ({unit})",
+    "history": "Water log",
+    "empty": "No water logged for this day.",
+    "edit_entry": "Edit water entry",
+    "delete_entry": "Delete water entry",
+    "invalid_amount": "Enter an amount greater than zero.",
+    "invalid_goal": "Enter a valid goal or 0 to remove it.",
+    "invalid_container": "Enter a name and an amount greater than zero.",
+    "save_error": "Could not save the change. Try again.",
+    "container_small": "Small bottle",
+    "container_standard": "Standard bottle",
+    "container_large": "Large bottle"
   }
 }

@@ -124,21 +124,21 @@
 <div class="section-body">
 
   <!-- Group: Chart Options -->
-  <p class="settings-group-heading">Chart Options</p>
-  <p class="settings-group-sub">Default chart type and overlays applied across the Statistics page.</p>
+  <p class="settings-group-heading">{$_('settings_stats.chart_options')}</p>
+  <p class="settings-group-sub">{$_('settings_stats.chart_options_desc')}</p>
   <div class="card settings-card">
     <div class="setting-row">
       <span class="setting-label">{$_('settings_stats.default_chart')}</span>
       <div class="select-wrap" style="width:110px">
         <select class="select sel-sm" bind:value={statsChartType}>
-          <option value="bar">Bar</option>
-          <option value="line">Line</option>
+          <option value="bar">{$_('settings_stats.chart_bar')}</option>
+          <option value="line">{$_('settings_stats.chart_line')}</option>
         </select>
       </div>
     </div>
     <div class="setting-divider"></div>
     <div class="setting-row">
-      <div><span class="setting-label">Lock Y-Axis To Zero</span><div class="setting-desc">Body stats (weight, HRV, RHR, etc.) always auto-fit. This toggle applies to nutrient and counted-metric charts.</div></div>
+      <div><span class="setting-label">{$_('settings_stats.y_zero')}</span><div class="setting-desc">{$_('settings_stats.y_zero_desc')}</div></div>
       <Toggle checked={statsYZero} on:change={e => { statsYZero = e.detail; set('statsYZero', e.detail); }} />
     </div>
     <div class="setting-divider"></div>
@@ -151,7 +151,7 @@
     <div class="setting-row">
       <div>
         <span class="setting-label">{$_('settings_stats.include_today')}</span>
-        <div class="setting-desc">For cumulative metrics (calories, water, steps, etc.) today is partial until the day ends. Off by default — the chart looks cleaner. Statistics page also has an inline toggle for one-off overrides.</div>
+        <div class="setting-desc">{$_('settings_stats.include_today_desc')}</div>
       </div>
       <Toggle checked={statsIncludeTodayLocal} on:change={e => { statsIncludeTodayLocal = e.detail; set('statsIncludeToday', e.detail); }} />
     </div>
@@ -159,7 +159,7 @@
     <div class="setting-row">
       <div>
         <span class="setting-label">{$_('settings_stats.show_empty_days')}</span>
-        <div class="setting-desc">Keep every date in the chart's range visible even when nothing was logged that day. Lets gaps in logging show up rather than collapsing into a denser chart that hides them. Applies to both bar and line charts.</div>
+        <div class="setting-desc">{$_('settings_stats.show_empty_days_desc')}</div>
       </div>
       <Toggle checked={statsShowEmptyDaysLocal} on:change={e => { statsShowEmptyDaysLocal = e.detail; set('statsShowEmptyDays', e.detail); }} />
     </div>
@@ -190,7 +190,7 @@
       </div>
     {/each}
     {#if orderedStatsMetrics.length === 0}
-      <div class="setting-row"><span class="text-3 text-sm">No metrics available.</span></div>
+      <div class="setting-row"><span class="text-3 text-sm">{$_('settings_stats.no_metrics')}</span></div>
     {/if}
   </div>
 </div>

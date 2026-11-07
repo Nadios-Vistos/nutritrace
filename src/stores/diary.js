@@ -252,7 +252,7 @@ async function _save(entry) {
 
   // Check goals after every save (only for today)
   const today = new Date().toLocaleDateString('sv-SE');
-  if (entry.date === today && result.items?.length) {
+  if (entry.date === today && (result?.items?.length || result?.water?.length)) {
     try {
       const { Nutrition } = await import('../lib/nutrition.js');
       const { checkGoals } = await import('../lib/notifications.js');
@@ -752,6 +752,8 @@ export async function copyMealToDate(fromMealIdx, targetDate, targetMealIdx) {
 }
 
 export async function addWaterLog(amountMl, date) {
+  const amount = Math.round(amountMl);
+  if (!Number.isSafeInteger(amount) || amount <= 0) return;
   const todayStr = () => new Date().toLocaleDateString('sv-SE');
   let viewDate = null;
   currentDate.subscribe(v => viewDate = v)();
@@ -760,8 +762,8 @@ export async function addWaterLog(amountMl, date) {
   const use24 = DB.getSetting('timeFormat', '12h') === '24h';
   const log = {
     uuid: _newUuid(),
-    amount: Math.round(amountMl),
-    time: new Date().toLocaleTimeString([], { hour: 'numeric', minute: '2-digit', hour12: !use24 }),
+    amount,
+    time: new Date().toLocaleTimeString(DB.getSetting('language', undefined) || undefined, { hour: 'numeric', minute: '2-digit', hour12: !use24 }),
   };
 
   await _refetchAndSave(targetDate, (entry) => ({
