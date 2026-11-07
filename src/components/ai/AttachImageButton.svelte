@@ -18,6 +18,8 @@
   /** Let the user pick several photos at once from the gallery. */
   export let multiple = false;
   export let disabled = false;
+  /** Keep the choices in the normal layout when used inside a scrollable sheet. */
+  export let inlineChoices = false;
   /** Tooltip and accessible name, from the parent's own translations. */
   export let title = '';
 
@@ -89,7 +91,17 @@
 
 <svelte:window on:pointerdown={onWindowPointer} on:keydown={onWindowKey} />
 
-<div class="attach" bind:this={wrap}>
+<div class="attach" class:inline-choices={inlineChoices} bind:this={wrap}>
+  {#if inlineChoices}
+    <button type="button" class="btn btn-secondary" on:click={() => choose(true)} {disabled}>
+      <span class="material-symbols-rounded" aria-hidden="true">photo_camera</span>
+      {$_('attach_image.camera')}
+    </button>
+    <button type="button" class="btn btn-secondary" on:click={() => choose(false)} {disabled}>
+      <span class="material-symbols-rounded" aria-hidden="true">photo_library</span>
+      {$_('attach_image.gallery')}
+    </button>
+  {:else}
   <button type="button" class="attach-image-btn" on:click={onButton} {disabled}
     {title} aria-label={title} aria-haspopup={touch ? 'menu' : undefined} aria-expanded={touch ? menuOpen : undefined}>
     <span class="material-symbols-rounded" aria-hidden="true">add_photo_alternate</span>
@@ -106,12 +118,14 @@
       </button>
     </div>
   {/if}
+  {/if}
   <input bind:this={fileInput} type="file" accept="image/*" {multiple} hidden on:change={onPicked} />
   <input bind:this={cameraInput} type="file" accept="image/*" capture="environment" hidden on:change={onPicked} />
 </div>
 
 <style>
   .attach { position: relative; flex-shrink: 0; }
+  .inline-choices { display: flex; flex-wrap: wrap; gap: 8px; }
   .attach-image-btn {
     width: 40px; height: 40px;
     border-radius: 50%;

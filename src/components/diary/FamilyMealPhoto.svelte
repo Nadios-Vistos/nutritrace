@@ -112,10 +112,8 @@
       <p>{$_('meal_photo.setup')}</p>
       <a class="btn btn-secondary" href="#/settings/ai" on:click={onClose}>{$_('meal_photo.settings')}</a>
     {:else}
-      <div class="photo-picker">
-        <AttachImageButton title={$_('meal_photo.choose')} disabled={preparing || analysing || saving} on:files={pickPhoto} />
-        <span>{$_('meal_photo.choose')}</span>
-      </div>
+      <p>{$_('meal_photo.choose')}</p>
+      <AttachImageButton inlineChoices disabled={preparing || analysing || saving} on:files={pickPhoto} />
       {#if photo}
         <img class="meal-preview" src={photo} alt="" />
         {#if !reviewed}
@@ -179,7 +177,7 @@
   .meal-photo, .review, .food-review, .food-review label { display: grid; gap: 10px; }
   .meal-photo { padding-block: 8px; }
   .meal-photo p { margin: 0; color: var(--text-2); }
-  .photo-picker, .review-actions { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+  .review-actions { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
   .meal-preview { max-height: 170px; max-width: 100%; margin-inline: auto; border-radius: var(--radius-md); }
   .food-review { min-width: 0; margin: 0; padding: 10px; border: 1px solid var(--border); border-radius: var(--radius-md); }
   .food-review .select { width: 100%; text-overflow: ellipsis; }

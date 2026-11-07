@@ -1,4 +1,9 @@
 {
+  "attach_image": {
+    "button": "Joindre une image",
+    "camera": "Appareil photo",
+    "gallery": "Galerie"
+  },
   "meal_photo": {
     "open": "Photographier mon repas",
     "choose": "Prendre ou choisir une photo",
