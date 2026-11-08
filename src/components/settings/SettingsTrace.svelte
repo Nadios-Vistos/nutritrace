@@ -3,11 +3,13 @@
   import { _ } from 'svelte-i18n';
   import Toggle from './Toggle.svelte';
   import ConnectionStatus from './ConnectionStatus.svelte';
+  import { NtApi } from '../../lib/api.js';
+  import { currentUser } from '../../stores/auth.js';
   import { showSuccess, showError } from '../../stores/toast.js';
   import {
     aiEnabled, aiProvider, aiApiKey, aiModel, aiBaseUrl, aiAssistantName,
     aiKeyVerified, quickLogEnabled, aiGoalInsights, smartLogVoiceLang,
-    activityAutoEstimate, diaryShowActivity,
+    activityAutoEstimate, diaryShowActivity, envLocks as serverEnvLocks,
   } from '../../stores/settings.js';
 
   // Smart Log voice-input language options. 'auto' uses navigator.language
@@ -46,6 +48,22 @@
   import { isNative, getServerUrl } from '../../lib/platform.js';
 
   export let envLocks = { ai: false, ai_enabled: false };
+  let familyBusy = false;
+  let familyError = false;
+
+  async function setFamilyAi(enabled) {
+    if (familyBusy) return;
+    familyBusy = true;
+    familyError = false;
+    try {
+      const flags = await NtApi.put('/api/ai/family', { enabled });
+      serverEnvLocks.update(locks => ({ ...locks, ...flags }));
+    } catch {
+      familyError = true;
+    } finally {
+      familyBusy = false;
+    }
+  }
 
   function set(key, value) { DB.setSetting(key, value); scheduleSave(key, value); }
 
@@ -226,7 +244,21 @@
   {#if envLocks.ai}
     <div class="env-lock-banner">
       <span class="material-symbols-rounded">lock</span>
-      {$_('settings_trace.env_lock_banner')}
+      {$_(envLocks.ai_shared ? 'settings_trace.family.active' : 'settings_trace.env_lock_banner')}
+    </div>
+  {/if}
+  {#if $currentUser?.id != null && $currentUser.role === 'admin' && (!envLocks.ai || envLocks.ai_shared)}
+    <div class="card settings-card">
+      <div class="setting-row">
+        <div>
+          <span class="setting-label">{$_('settings_trace.family.title')}</span>
+          <div class="setting-desc">{$_('settings_trace.family.description')}</div>
+        </div>
+        <button type="button" class="btn btn-secondary" on:click={() => setFamilyAi(!envLocks.ai_shared)} disabled={familyBusy}>
+          {$_(envLocks.ai_shared ? 'settings_trace.family.disable' : 'settings_trace.family.enable')}
+        </button>
+      </div>
+      {#if familyError}<p class="setting-desc" role="alert" style="padding:0 14px 10px">{$_('settings_trace.family.error')}</p>{/if}
     </div>
   {/if}
   <div class="card settings-card">

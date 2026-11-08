@@ -4,7 +4,7 @@ import db from '../db.js';
 import { wrap } from '../logger.js';
 import { requireAuth, requireAdmin, userMgmtActive } from '../middleware/auth.js';
 import { testSmtp, isSmtpEnvLocked } from '../email.js';
-import { isAiEnvLocked } from '../ai.js';
+import { FAMILY_AI_KEY, isAiEnvLocked, isFamilyAiEnabled } from '../ai.js';
 
 const router = Router();
 
@@ -33,9 +33,11 @@ router.get('/env-locks', requireAuth, wrap(async (req, res) => {
   // the client can disable the toggle but has no way to know whether the
   // env operator wanted AI ON or OFF — the toggle just sticks at the
   // per-user setting, which is OFF by default. Fixes #36.
-  const aiLocked = isAiEnvLocked();
+  const aiEnv = isAiEnvLocked();
+  const aiShared = !aiEnv && isFamilyAiEnabled();
+  const aiLocked = aiEnv || aiShared;
   let ai_enabled = false;
-  if (aiLocked) {
+  if (aiEnv) {
     const row = db.prepare(`SELECT value FROM app_config WHERE key = 'ai_enabled'`).get();
     ai_enabled = row?.value === 'true';
   }
@@ -75,7 +77,8 @@ router.get('/env-locks', requireAuth, wrap(async (req, res) => {
   res.json({
     smtp: isSmtpEnvLocked(),
     ai: aiLocked,
-    ai_enabled,
+    ai_enabled: ai_enabled || aiShared,
+    ai_shared: aiShared,
     off_local,
     off_local_only,
     oidc_provider_ids: getEnvLockedProviderIds(),
@@ -131,7 +134,7 @@ router.get('/', requireAuth, requireAdmin, wrap((req, res) => {
   const rows = db.prepare('SELECT key, value FROM app_config').all();
   const out = {};
   for (const { key, value } of rows) {
-    if (key === 'mealie_mirror_config') continue;
+    if (key === 'mealie_mirror_config' || key === FAMILY_AI_KEY) continue;
     const redacted = key === 'smtp_pass' || key === 'ai_api_key' || key === 'fitbit_client_secret' || key === 'withings_client_secret';
     out[key] = redacted ? (value ? '••••••••' : '') : (value || '');
   }

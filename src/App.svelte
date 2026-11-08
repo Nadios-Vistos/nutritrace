@@ -688,7 +688,10 @@
     if (!isNative && $userMgmtActive && $currentUser) {
       const _refreshSettings = () => import('./stores/settings.js').then(({ loadServerSettings }) => loadServerSettings());
       document.addEventListener('visibilitychange', () => {
-        if (document.visibilityState === 'visible') _refreshSettings();
+        if (document.visibilityState === 'visible') {
+          _refreshSettings();
+          if ($currentUser) loadEnvLocks();
+        }
       });
       setInterval(_refreshSettings, 30000); // every 30 seconds
     }

@@ -2321,6 +2321,14 @@
     }
   },
   "settings_trace": {
+    "family": {
+      "title": "AI for the family",
+      "description": "Use this administrator’s saved AI configuration for every account. The server keeps the key and everyone shares the provider’s quota.",
+      "enable": "Enable for everyone",
+      "disable": "Disable sharing",
+      "active": "AI is shared by this NutriTrace server.",
+      "error": "Could not change sharing. Check that your personal AI configuration is complete and saved."
+    },
     "toast": {
       "connected": "Trace AI connected, assistant is ready",
       "test_failed": "Test failed",

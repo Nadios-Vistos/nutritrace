@@ -1631,6 +1631,14 @@
     }
   },
   "settings_trace": {
+    "family": {
+      "title": "IA pour la famille",
+      "description": "Utilise la configuration IA enregistrée sur ce compte administrateur pour tous les profils. Le NAS garde la clé et les profils partagent le quota du fournisseur.",
+      "enable": "Activer pour tous",
+      "disable": "Désactiver le partage",
+      "active": "L’IA est partagée par ce serveur NutriTrace.",
+      "error": "Impossible de modifier le partage. Vérifie que ta configuration IA personnelle est complète et enregistrée."
+    },
     "toast": {
       "connected": "Trace est connecté. L’assistant est prêt.",
       "test_failed": "Échec du test de connexion",

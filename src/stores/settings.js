@@ -1035,7 +1035,7 @@ export const ntfyToken            = createSettingStore('ntfyToken',            '
 // AND the effective enabled state for env-controlled features. Fixes #36
 // where AI_ENABLED=true in compose locked the toggle in its OFF state
 // because the per-user `aiEnabled` was never flipped.
-export const envLocks = writable({ smtp: false, ai: false, ai_enabled: false, off_local: false, off_local_only: false, oidc_provider_ids: [], lifttrace_connected: false });
+export const envLocks = writable({ smtp: false, ai: false, ai_enabled: false, ai_shared: false, off_local: false, off_local_only: false, oidc_provider_ids: [], lifttrace_connected: false });
 // Derived: AI Assistant is effectively enabled when either the per-user
 // toggle is on, OR an operator set AI_ENABLED=true in env and env-locked it.
 // Use this instead of $aiEnabled wherever the FAB / chat / Smart Log

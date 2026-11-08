@@ -1,13 +1,24 @@
 import { Router } from 'express';
-import { requireAuth, userMgmtActive } from '../middleware/auth.js';
+import { requireAdmin, requireAuth, userMgmtActive } from '../middleware/auth.js';
 import { wrap } from '../logger.js';
-import { getAiConfig } from '../ai.js';
+import { getAiConfig, isAiEnvLocked, setFamilyAiFromUser } from '../ai.js';
+import { fetchChecked, readBody } from '../lib/ssrf-guard.js';
 import { makeRateLimiter } from '../middleware/rate-limit.js';
 import { getOpenAIChatParams } from '../lib/openai-chat-params.js';
 import { toolMessagesForOpenAI, toolNameFor, rememberToolCalls } from '../lib/tool-messages.js';
 import db from '../db.js';
 
 const router = Router();
+
+router.put('/family', requireAuth, requireAdmin, wrap((req, res) => {
+  if (!req.user) return res.status(401).json({ error: 'Sign in required' });
+  if (isAiEnvLocked()) return res.status(409).json({ error: 'AI is managed by the server environment' });
+  const { enabled } = req.body ?? {};
+  if (typeof enabled !== 'boolean' || !setFamilyAiFromUser(req.user.id, enabled)) {
+    return res.status(400).json({ error: 'Incomplete personal AI settings' });
+  }
+  res.json({ ai: enabled, ai_shared: enabled, ai_enabled: enabled });
+}));
 const aiChatLimit = makeRateLimiter({ max: 30, windowMs: 60_000, label: 'ai' });
 
 const uid = req => userMgmtActive() ? req.user.id : null;
@@ -213,7 +224,7 @@ router.post('/chat', requireAuth, aiChatLimit, wrap(async (req, res) => {
     case 'claude':     result = await _callClaude(apiKey, model, messages, systemPrompt, toolsArr); break;
     case 'openai':     result = await _callOpenAI(apiKey, renamedModel(model), messages, systemPrompt, toolsArr, 'https://api.openai.com'); break;
     case 'gemini':     result = await _callGemini(apiKey, model, messages, systemPrompt, toolsArr); break;
-    case 'oai-compat': result = await _callOpenAI(apiKey || 'no-key', model, messages, systemPrompt, toolsArr, baseUrl.replace(/\/+$/, '')); break;
+    case 'oai-compat': result = await _callOpenAI(apiKey || 'no-key', model, messages, systemPrompt, toolsArr, baseUrl.replace(/\/+$/, ''), cfg.familyManaged); break;
     default: return res.status(400).json({ error: `Unknown provider: ${provider}` });
   }
   res.json(result);
@@ -284,7 +295,7 @@ async function _callClaude(apiKey, model, messages, systemPrompt, tools) {
   return { assistantMessage, toolCalls };
 }
 
-async function _callOpenAI(apiKey, model, messages, systemPrompt, tools, baseUrl = 'https://api.openai.com') {
+async function _callOpenAI(apiKey, model, messages, systemPrompt, tools, baseUrl = 'https://api.openai.com', familyManaged = false) {
   const openaiTools = (tools || []).map(t => ({
     type: 'function',
     function: { name: t.name, description: t.description, parameters: t.parameters },
@@ -301,7 +312,8 @@ async function _callOpenAI(apiKey, model, messages, systemPrompt, tools, baseUrl
   };
   if (openaiTools.length) body.tools = openaiTools;
 
-  const res = await fetch(`${baseUrl}/v1/chat/completions`, {
+  const endpoint = `${baseUrl}/v1/chat/completions`;
+  const options = {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -309,8 +321,11 @@ async function _callOpenAI(apiKey, model, messages, systemPrompt, tools, baseUrl
       'Authorization': `Bearer ${apiKey}`,
     },
     body: JSON.stringify(body),
-  });
-  const data = await res.json();
+  };
+  const res = familyManaged
+    ? await fetchChecked(endpoint, { ...options, signal: AbortSignal.timeout(90000) }, { allowPrivate: true })
+    : await fetch(endpoint, options);
+  const data = familyManaged ? JSON.parse((await readBody(res, 5 * 1024 * 1024)).toString('utf8')) : await res.json();
   if (!res.ok) throw new Error(data.error?.message || `OpenAI API error ${res.status}`);
 
   const msg = data.choices?.[0]?.message || {};
