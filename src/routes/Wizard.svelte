@@ -296,6 +296,10 @@
             umLoading = false;
             return;
           }
+          if (get(currentUser)?.onboarding_status === 'pending') {
+            await push('/');
+            return;
+          }
         } catch(e) {
           umError = 'Could not connect to server';
           umLoading = false;

@@ -140,7 +140,25 @@
 }
 
 /* --- Accent color palettes (data-accent attribute) --- */
-/* mint = default, no override needed */
+[data-accent="bordeaux"] {
+  --accent: #ffc2d0;
+  --accent-2: #e985a6;
+  --accent-dim: #542637;
+  --accent-text: #37101f;
+}
+[data-theme="light"][data-accent="bordeaux"] {
+  --accent: #781d3d;
+  --accent-2: #9b3555;
+  --accent-dim: #f3dce4;
+  --accent-text: #fff5ef;
+}
+
+[data-accent="bordeaux"] {
+  --banner-accent: #58162f;
+  --banner-accent-2: #842846;
+  --banner-weight: 85%;
+  --banner-weight-2: 75%;
+}
 
 [data-accent="blue"] {
   --accent:      #4FC3F7;

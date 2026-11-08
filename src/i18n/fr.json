@@ -135,6 +135,8 @@
     }
   },
   "common": {
+    "name_required_label": "Nom *",
+    "load_image": "Charger l’image",
     "sign_out": "Déconnexion",
     "log_out": "Se déconnecter",
     "signing_out": "Déconnexion…",
@@ -836,6 +838,11 @@
     }
   },
   "foods": {
+    "empty_foods": "Aucun aliment enregistré",
+    "empty_meals": "Aucun repas enregistré",
+    "empty_recipes": "Aucune recette enregistrée",
+    "add_meal": "Créer un repas",
+    "add_recipe": "Créer une recette",
     "search_placeholder": "Rechercher des aliments ou scanner un code-barres...",
     "scan_barcode": "Scanner un code-barres",
     "add_new": "Ajouter nouveau",
@@ -982,6 +989,8 @@
     }
   },
   "food_editor": {
+    "add_title": "Ajouter un aliment",
+    "edit_title": "Modifier l’aliment",
     "name_placeholder": "Nom de l'aliment",
     "brand_placeholder": "Marque (optionnelle)",
     "saved": "Enregistré",
@@ -1045,6 +1054,19 @@
     }
   },
   "meal_editor": {
+    "new_meal": "Nouveau repas",
+    "edit_meal": "Modifier le repas",
+    "new_recipe": "Nouvelle recette",
+    "edit_recipe": "Modifier la recette",
+    "shared_by": "Partagé par {name}",
+    "no_ingredients": "Aucun ingrédient. Appuyez sur + pour en ajouter.",
+    "foods_and_recipes": "Aliments et recettes",
+    "picker_search_source": "Recherchez dans {source}.",
+    "picker_no_source_results": "Aucun résultat pour « {query} » dans {source}.",
+    "picker_no_shared": "Aucun aliment ne vous a été partagé.",
+    "picker_no_items": "Ajoutez d’abord des éléments dans l’onglet Aliments.",
+    "add_ingredients_count": "{count, plural, one {Ajouter # ingrédient} other {Ajouter # ingrédients}}",
+    "set_portion": "Définir la portion",
     "meal_name_placeholder": "Nom du repas",
     "recipe_name_placeholder": "Nom de la recette",
     "servings": {
@@ -1141,6 +1163,12 @@
     "anim_aurora": "Aurore"
   },
   "diary_deep": {
+    "macro_energy_share": "Répartition de l’énergie",
+    "energy_eaten": "Énergie consommée ({unit})",
+    "toggle_totals": "Afficher les quantités consommées ou restantes",
+    "add_food_to": "Ajouter un aliment à {meal}",
+    "remove_description": "Cette entrée sera supprimée de votre journal.",
+    "macro_no_goal": "Aucun objectif défini",
     "meal_fallback": "Repas",
     "overview": "Vue d’ensemble",
     "has_notes": "Contient des notes",
@@ -1221,7 +1249,64 @@
       "denied": "Accès à l’appareil photo refusé."
     }
   },
+  "family_onboarding": {
+    "step": "Étape {step} sur {total}",
+    "welcome": "Trouvons ton point de départ",
+    "intro": "Quelques réponses suffisent pour estimer ton budget calorique quotidien. Tu pourras le vérifier avant de l’appliquer.",
+    "adult_only": "Ce calcul est réservé aux adultes de 18 ans ou plus, hors grossesse et allaitement.",
+    "start": "Je remplis ces conditions",
+    "skip": "Continuer sans calcul",
+    "profile": "Quelques repères sur toi",
+    "sex": "Sexe utilisé pour le calcul",
+    "female": "Femme",
+    "male": "Homme",
+    "age": "Âge (ans)",
+    "height": "Taille (cm)",
+    "next": "Continuer",
+    "routine": "Ton objectif et ton rythme",
+    "weight": "Poids actuel (kg)",
+    "target": "Poids souhaité (kg)",
+    "weight_goal": "Poids souhaité",
+    "target_hint": "Laisse le poids souhaité vide pour garder ton poids actuel.",
+    "activity": "Quel est ton niveau d’activité sur une semaine habituelle ?",
+    "level": {
+      "sedentary": "Sédentaire",
+      "light": "Peu actif",
+      "moderate": "Modérément actif",
+      "active": "Actif",
+      "very_active": "Très actif"
+    },
+    "level_hint": {
+      "sedentary": "Journées surtout assises, peu de sport",
+      "light": "Marche ou activité douce quelques fois par semaine",
+      "moderate": "Activité modérée trois à cinq fois par semaine",
+      "active": "Sport fréquent ou travail physique",
+      "very_active": "Entraînement intense presque tous les jours, souvent avec un travail physique"
+    },
+    "see_result": "Voir mon estimation",
+    "result": "Ton point de départ",
+    "budget": "Budget calorique quotidien",
+    "kcal_day": "kcal/jour",
+    "maintenance": "Maintien estimé",
+    "bmi": "IMC indicatif",
+    "maintain": "Ton budget de départ correspond au maintien estimé.",
+    "lose": "Ton budget de départ est légèrement inférieur au maintien estimé.",
+    "gain": "Ton budget de départ est légèrement supérieur au maintien estimé.",
+    "indicative": "Le budget calorique et l’IMC sont des estimations. Tu peux ajuster le budget depuis ton journal.",
+    "invalid": "Vérifie les informations saisies.",
+    "low_bmi": "Ton poids actuel ou souhaité est trop bas pour ce calcul automatique. Tu peux modifier tes réponses ou continuer sans calcul.",
+    "low_energy": "Cette estimation est trop basse pour définir un budget automatiquement. Tu peux modifier tes réponses ou continuer sans calcul.",
+    "apply": "Appliquer ce budget",
+    "save_error": "Impossible d’enregistrer tes choix. Vérifie ta connexion puis réessaie.",
+    "advanced": "Options avancées",
+    "hide_advanced": "Masquer les options avancées"
+  },
   "statistics_page": {
+    "base_goal": "Objectif de base",
+    "include_today": "Inclure aujourd’hui (journée en cours)",
+    "empty_alternatives": "Autres indicateurs à consulter",
+    "open_wellness_date": "Ouvrir le suivi bien-être du {date}",
+    "open_diary_date": "Ouvrir le journal du {date}",
     "range": {
       "last_7d": "7 derniers jours",
       "last_30d": "30 derniers jours",
@@ -1658,7 +1743,7 @@
     "chart_line": "Courbe",
     "y_zero": "Faire partir l’axe vertical de zéro",
     "y_zero_desc": "S’applique aux nutriments et aux indicateurs cumulés. L’échelle des mesures corporelles reste automatique.",
-    "include_today_desc": "Les valeurs cumulées d’aujourd’hui (calories, eau, pas…) restent partielles jusqu’à la fin de la journée. Vous pouvez aussi modifier ce réglage temporairement dans Statistiques.",
+    "include_today_desc": "Les valeurs cumulées d’aujourd’hui (calories, eau, pas…) restent partielles jusqu’à la fin de la journée. Vous pouvez exclure la journée en cours directement depuis Statistiques.",
     "show_empty_days_desc": "Conserve les dates sans saisie sur les graphiques en barres et les courbes pour faire apparaître les interruptions dans le suivi.",
     "no_metrics": "Aucun indicateur disponible."
   },

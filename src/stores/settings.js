@@ -344,13 +344,16 @@ async function _mirrorServerSettings(serverSettings, forUser) {
 
 export async function loadServerSettings() {
   if (!_shouldSyncToServer()) return;
+  const account = localStorage.getItem('wl:userId');
   if (await _serverRequestDeferred()) return;
+  if (localStorage.getItem('wl:userId') !== account) return;
   try {
     const res = await fetch(_settingsUrl(), { credentials: 'include', headers: _authHeaders(), signal: AbortSignal.timeout(8000) });
     if (!res.ok) return;
     const serverSettings = await res.json();
-    const forUser = Number(localStorage.getItem('wl:userId'));
+    const forUser = Number(account);
     const unsent = isNative ? await _unsentSettingKeys(forUser) : new Set();
+    if (localStorage.getItem('wl:userId') !== account) return;
     _suppressSync = true; // Don't push these back to server
 
     // Write all to localStorage (PWA + native JS layer). Pass force=true so
@@ -394,7 +397,7 @@ export async function loadServerSettings() {
     // values whether or not Svelte's reactive system fires.
     try {
       if (typeof window !== 'undefined') {
-        const accent = DB.getSetting('accentColor', 'mint');
+        const accent = DB.getSetting('accentColor', 'bordeaux');
         const appearanceVal = DB.getSetting('appearance', 'system');
         applyAccentColor(accent);
         applyAppearance(appearanceVal);
@@ -513,7 +516,7 @@ function createSettingStore(key, defaultValue) {
 }
 
 export const appearance       = createSettingStore('appearance',       'system');
-export const language          = createSettingStore('language',          'en');
+export const language          = createSettingStore('language', /^fr(?:-|$)/i.test(globalThis.navigator?.language) ? 'fr' : 'en');
 export const energyUnit        = createSettingStore('energyUnit',       'kcal');
 export const mealNames         = createSettingStore('mealNames',        ['Breakfast','Lunch','Dinner','Snacks']);
 export const goals             = createSettingStore('goals',            {});
@@ -668,7 +671,7 @@ export const offSearchCountry       = createSettingStore('offSearchCountry',    
 export const offUploadCountry       = createSettingStore('offUploadCountry',       'Auto');
 export const offImportPortion       = createSettingStore('offImportPortion',       'per100g');
 
-export const accentColor = createSettingStore('accentColor', 'mint');
+export const accentColor = createSettingStore('accentColor', 'bordeaux');
 
 /** Apply accent color — supports named presets and custom hex (#rrggbb) */
 // Track what's currently applied so periodic re-applies (every 30s settings
@@ -686,9 +689,7 @@ export function applyAccentColor(value) {
   // Clear any previously injected custom vars
   ['--accent','--accent-2','--accent-dim','--accent-text'].forEach(v =>
     document.documentElement.style.removeProperty(v));
-  if (value === 'mint') {
-    document.documentElement.removeAttribute('data-accent');
-  } else if (isHex) {
+  if (isHex) {
     // Custom hex: remove data-accent and inject CSS vars directly
     document.documentElement.removeAttribute('data-accent');
     const r = parseInt(value.slice(1,3), 16);
@@ -700,7 +701,7 @@ export function applyAccentColor(value) {
     document.documentElement.style.setProperty('--accent-dim',  `rgba(${r},${g},${b},0.15)`);
     document.documentElement.style.setProperty('--accent-text', lum > 0.55 ? '#0A0B0F' : '#FFFFFF');
   } else {
-    document.documentElement.setAttribute('data-accent', value);
+    document.documentElement.setAttribute('data-accent', value === 'mint' ? 'bordeaux' : value);
   }
   // Tint the browser-chrome tab bar to match the accent. Chromium
   // reads <meta name="theme-color"> and paints the address-bar strip
@@ -719,7 +720,7 @@ function _accentToHex(value) {
   // Names match ACCENT_COLORS in Settings.svelte's picker; both files
   // must stay in sync when accents are added.
   const NAMED = {
-    mint:   '#4FFFB0', blue:  '#4FC3F7', red:    '#FF7070',
+    mint: '#681b38', bordeaux: '#681b38', blue: '#4FC3F7', red: '#FF7070',
     purple: '#CE93D8', orange:'#FFB547', teal:   '#4DD0E1',
     pink:   '#F48FB1', yellow:'#FFF176', indigo: '#9FA8DA',
     lime:   '#C5E1A5', rose:  '#FF80AB', cyan:   '#80DEEA',
@@ -773,7 +774,7 @@ export const statsYZero     = createSettingStore('statsYZero',     true);
 export const statsAvgLine   = createSettingStore('statsAvgLine',   true);
 export const statsGoalLine  = createSettingStore('statsGoalLine',  true);
 export const statsTrendLine = createSettingStore('statsTrendLine', true);
-export const statsIncludeToday = createSettingStore('statsIncludeToday', false);
+export const statsIncludeToday = createSettingStore('statsIncludeToday', true);
 // Show every date in the chart's range, even days with no logged value.
 // Default ON: an empty day is more honest than a hidden one — gaps in logging
 // are visible and the chart can't accidentally make a sparse week look full.

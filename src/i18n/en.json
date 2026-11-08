@@ -130,6 +130,8 @@
     }
   },
   "common": {
+    "name_required_label": "Name *",
+    "load_image": "Load image",
     "sign_out": "Sign Out",
     "log_out": "Log Out",
     "signing_out": "Signing out…",
@@ -935,6 +937,11 @@
     }
   },
   "foods": {
+    "empty_foods": "No foods saved",
+    "empty_meals": "No meals saved",
+    "empty_recipes": "No recipes saved",
+    "add_meal": "Create a meal",
+    "add_recipe": "Create a recipe",
     "off_no_values_listed": "No values listed",
     "off_skipped": "Left out, since Open Food Facts has no values \"as sold\" for them: {names}. Add them under Foods with the values from the label.",
     "category_all": "All",
@@ -1339,7 +1346,7 @@
     "chart_line": "Line",
     "y_zero": "Lock Y-Axis To Zero",
     "y_zero_desc": "Body stats (weight, HRV, RHR, etc.) always auto-fit. This toggle applies to nutrient and counted-metric charts.",
-    "include_today_desc": "For cumulative metrics (calories, water, steps, etc.) today is partial until the day ends. Off by default — the chart looks cleaner. Statistics page also has an inline toggle for one-off overrides.",
+    "include_today_desc": "For cumulative metrics (calories, water, steps, etc.) today is partial until the day ends. You can exclude today from the chart on the Statistics page.",
     "show_empty_days_desc": "Keep every date in the chart's range visible even when nothing was logged that day. Lets gaps in logging show up rather than collapsing into a denser chart that hides them. Applies to both bar and line charts.",
     "no_metrics": "No metrics available."
   },
@@ -1541,6 +1548,12 @@
     "peak_hr": "Peak HR"
   },
   "diary_deep": {
+    "macro_energy_share": "Energy breakdown",
+    "energy_eaten": "Energy consumed ({unit})",
+    "toggle_totals": "Show consumed or remaining totals",
+    "add_food_to": "Add food to {meal}",
+    "remove_description": "This will remove the entry from your diary.",
+    "macro_no_goal": "No goal set",
     "day_notes": "Day Notes",
     "consumed": "Consumed",
     "remaining": "Remaining",
@@ -1661,6 +1674,8 @@
     }
   },
   "food_editor": {
+    "add_title": "Add food",
+    "edit_title": "Edit food",
     "off_prepared": {
       "only_prepared": "Open Food Facts only lists this product \"as prepared\": {kcal} kcal per 100 {unit}. That is how it is served (made up, drained or cooked), which may not be how you weigh it.",
       "use": "Use These Values",
@@ -1724,6 +1739,19 @@
     }
   },
   "meal_editor": {
+    "new_meal": "New meal",
+    "edit_meal": "Edit meal",
+    "new_recipe": "New recipe",
+    "edit_recipe": "Edit recipe",
+    "shared_by": "Shared by {name}",
+    "no_ingredients": "No ingredients. Tap + to add some.",
+    "foods_and_recipes": "Foods and recipes",
+    "picker_search_source": "Search {source}.",
+    "picker_no_source_results": "No results for “{query}” in {source}.",
+    "picker_no_shared": "No foods have been shared with you.",
+    "picker_no_items": "Add items in the Foods tab first.",
+    "add_ingredients_count": "{count, plural, one {Add # ingredient} other {Add # ingredients}}",
+    "set_portion": "Set portion",
     "meal_name_placeholder": "Meal name",
     "recipe_name_placeholder": "Recipe name",
     "card_photo": "Photo",
@@ -2594,7 +2622,64 @@
       "tap_sync": "Tap Sync to pull the latest data from your connected device."
     }
   },
+  "family_onboarding": {
+    "step": "Step {step} of {total}",
+    "welcome": "Let’s find your starting point",
+    "intro": "A few answers are enough to estimate your daily calorie budget. You can review it before using it.",
+    "adult_only": "This estimate is for adults aged 18 or over, outside pregnancy and breastfeeding.",
+    "start": "I meet these conditions",
+    "skip": "Continue without an estimate",
+    "profile": "A little about you",
+    "sex": "Sex used for the estimate",
+    "female": "Female",
+    "male": "Male",
+    "age": "Age (years)",
+    "height": "Height (cm)",
+    "next": "Continue",
+    "routine": "Your goal and your routine",
+    "weight": "Current weight (kg)",
+    "target": "Goal weight (kg)",
+    "weight_goal": "Goal weight",
+    "target_hint": "Leave the goal weight blank to maintain your current weight.",
+    "activity": "How active is your typical week?",
+    "level": {
+      "sedentary": "Sedentary",
+      "light": "Lightly active",
+      "moderate": "Moderately active",
+      "active": "Active",
+      "very_active": "Very active"
+    },
+    "level_hint": {
+      "sedentary": "Mostly sitting, with little exercise",
+      "light": "Walking or light activity a few times a week",
+      "moderate": "Moderate exercise three to five times a week",
+      "active": "Frequent training or a physically demanding job",
+      "very_active": "Intense training most days, often with a physical job"
+    },
+    "see_result": "See my estimate",
+    "result": "Your starting point",
+    "budget": "Daily calorie budget",
+    "kcal_day": "kcal/day",
+    "maintenance": "Estimated maintenance",
+    "bmi": "Indicative BMI",
+    "maintain": "Your starting budget is based on estimated maintenance.",
+    "lose": "Your starting budget is slightly below estimated maintenance.",
+    "gain": "Your starting budget is slightly above estimated maintenance.",
+    "indicative": "The calorie budget and BMI are estimates. You can adjust the budget in your diary.",
+    "invalid": "Check the information you entered.",
+    "low_bmi": "Your current or target weight is too low for this automatic calculation. You can edit your answers or continue without an estimate.",
+    "low_energy": "This estimate is too low to set a budget automatically. You can edit your answers or continue without an estimate.",
+    "apply": "Use this budget",
+    "save_error": "Could not save your choices. Check your connection and try again.",
+    "advanced": "Advanced options",
+    "hide_advanced": "Hide advanced options"
+  },
   "statistics_page": {
+    "base_goal": "Base goal",
+    "include_today": "Include today (day in progress)",
+    "empty_alternatives": "Other metrics to explore",
+    "open_wellness_date": "Open Wellness for {date}",
+    "open_diary_date": "Open Diary for {date}",
     "range": {
       "last_7d": "Last 7d",
       "last_30d": "Last 30d",

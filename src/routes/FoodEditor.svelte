@@ -851,7 +851,7 @@
     <button class="btn-icon" on:click={pop} aria-label={$_('common.back')} title={$_('common.back')}>
       <span class="material-symbols-rounded">arrow_back</span>
     </button>
-    <h2 class="editor-title">{_readOnly ? `Shared by ${food._shared_by}` : (food.id ? 'Edit Food' : 'Add Food')}</h2>
+    <h2 class="editor-title">{_readOnly ? $_('meal_editor.shared_by', { values: { name: food._shared_by } }) : $_(food.id ? 'food_editor.edit_title' : 'food_editor.add_title')}</h2>
     {#if food.id && !_readOnly}
       <button class="btn-icon fav-btn" class:on={!!food.favorite}
         on:click={() => { food.favorite = food.favorite ? 0 : 1; food = food; }}
@@ -868,7 +868,7 @@
     {:else}
       <button class="btn btn-primary" style="height:36px;padding:0 16px;font-size:13px"
         on:click={save} disabled={saving}>
-        {saving ? 'Saving…' : 'Save'}
+        {$_(saving ? 'common.saving' : 'common.save')}
       </button>
     {/if}
   </header>
@@ -909,11 +909,11 @@
       <div class="photo-btn-row">
         <button class="btn btn-ghost photo-action-btn" on:click={openCamera}>
           <span class="material-symbols-rounded">camera_alt</span>
-          Camera
+          {$_('attach_image.camera')}
         </button>
         <button class="btn btn-ghost photo-action-btn" on:click={openGallery}>
           <span class="material-symbols-rounded">photo_library</span>
-          Upload
+          {$_('attach_image.gallery')}
         </button>
         <button class="btn btn-ghost photo-action-btn" on:click={() => { showUrlInput = !showUrlInput; photoUrl = ''; }}>
           <span class="material-symbols-rounded">link</span>
@@ -924,7 +924,7 @@
         <div class="photo-url-row">
           <input class="input photo-url-input" placeholder="https://..." bind:value={photoUrl}
             on:keydown={e => e.key === 'Enter' && applyPhotoUrl()} />
-          <button class="btn btn-primary" on:click={applyPhotoUrl}>Get</button>
+          <button class="btn btn-primary" on:click={applyPhotoUrl}>{$_('common.load_image')}</button>
         </div>
       {/if}
       <input bind:this={fileInput} type="file" accept="image/*" style="display:none" on:change={onFileChange} />
@@ -986,7 +986,7 @@
     <div class="card editor-card">
       <div class="editor-card-title">{$_('food_editor.card_basic')}</div>
       <div class="form-group">
-        <label class="form-label">Name *</label>
+        <label class="form-label">{$_('common.name_required_label')}</label>
         <input class="input" placeholder={$_('food_editor.name_placeholder')} bind:value={food.name} />
       </div>
       <div class="form-group">

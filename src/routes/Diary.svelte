@@ -8,6 +8,7 @@
   import DateInput  from '../components/ui/DateInput.svelte';
   import { resolveAssetUrl, isNative, getServerUrl } from '../lib/platform.js';
   import { resolveGoalFor } from '../lib/goal-resolver.js';
+  import { currentUser } from '../stores/auth.js';
   import { fade, slide, fly } from 'svelte/transition';
   import { tweened } from 'svelte/motion';
   import { cubicOut } from 'svelte/easing';
@@ -458,6 +459,22 @@
   // weekday" turned on. See src/lib/goal-resolver.js for the full
   // rationale and the shared behavior with Statistics.
   $: _fixedGoal = resolveGoalFor($goals?.calories, $currentDate) ?? 2000;
+  $: _guidedBudget = $currentUser?.onboarding_status === 'complete';
+  $: _familyBudget = _guidedBudget ? resolveGoalFor($goals?.calories, $currentDate) : $familyCalorieBudget;
+
+  function saveFamilyBudget(budget) {
+    if (!_guidedBudget) {
+      familyCalorieBudget.set(budget);
+      return;
+    }
+    goals.update(current => ({
+      ...current,
+      calories: {
+        ...current?.calories, max: budget, sharedGoal: true, isMin: false,
+        days: Array(7).fill(budget),
+      },
+    }));
+  }
   $: caloriesGoal =
        ($calorieGoalMode === 'dynamic' && _dynamicCaloriesOut != null)
          ? Math.round(_dynamicCaloriesOut * $calorieGoalFactor)
@@ -500,6 +517,8 @@
   let barExpanded = false;
   let showWaterQuickAdd = false;
   $: _mp = Nutrition.macroPercents(totals);
+  $: macroNumber = new Intl.NumberFormat($locale || undefined, { maximumFractionDigits: 1 });
+  $: macroPercent = new Intl.NumberFormat($locale || undefined, { style: 'percent' });
 
   // Meal visual identity (icon + accent color per meal slot)
   // Icons are now computed per meal name via mealIcon(); colors cycle for any number of meals
@@ -867,7 +886,7 @@
   }
   $: _prevWaterPct = _waterPct;
   $: _barExpandedExtra = barExpanded
-    ? (52 + 48 + ($diaryShowNutritionBar && nutritionBarItems.length > 0 ? 8 + nutritionBarItems.length * 28 : 0) + 8 + ($waterShowInDiary ? 40 : 0))
+    ? (52 + 64 + ($diaryShowNutritionBar && nutritionBarItems.length > 0 ? 8 + nutritionBarItems.length * 28 : 0) + 8 + ($waterShowInDiary ? 40 : 0))
     : 0;
   $: _barBaseH = 46 + ($waterShowInDiary ? 8 : 0);
   $: bottomSpace = _barBaseH + _barExpandedExtra + 12;
@@ -1994,10 +2013,10 @@
     {#if $familyDiaryMode}
       <FamilyDiary
         calories={$currentEntry?.date === $currentDate ? totals.calories : 0}
-        budget={$familyCalorieBudget}
+        budget={_familyBudget}
         {meals}
         date={$currentDate}
-        onSaveBudget={(budget) => familyCalorieBudget.set(budget)}
+        onSaveBudget={saveFamilyBudget}
         onAdd={openAddFood}
         waterTotal={$waterShowInDiary ? _waterTotal : null}
         waterGoal={$waterGoalMl}
@@ -2078,13 +2097,13 @@
               <span class="material-symbols-rounded">bolt</span>
             </button>
           {/if}
-          <button class="btn-icon accent" on:click={() => openAddFood(mealIdx)} aria-label="Add food to {meal}" title="Add food to {meal}">
+          <button class="btn-icon accent" on:click={() => openAddFood(mealIdx)} aria-label={$_('diary_deep.add_food_to', { values: { meal } })} title={$_('diary_deep.add_food_to', { values: { meal } })}>
             <span class="material-symbols-rounded">add</span>
           </button>
         </div>
 
         {#if items.length === 0}
-          <button type="button" class="meal-empty" on:click={() => openAddFood(mealIdx)} aria-label="Add food to {meal}">
+          <button type="button" class="meal-empty" on:click={() => openAddFood(mealIdx)} aria-label={$_('diary_deep.add_food_to', { values: { meal } })}>
             <span class="material-symbols-rounded meal-empty-icon" style="color:{mealColor(mealIdx)}">add_circle</span>
             <span class="meal-empty-text">{$_('diary.empty.tap_to_add_food')}</span>
           </button>
@@ -2276,11 +2295,19 @@
             <button type="button" class="meal-macro-footer" on:click={() => mealTotalsIdx = mealIdx}
               aria-label="Show {meal} nutrition totals" title="Show nutrition totals">
               <div class="meal-macro-bar">
-                <div class="mmb-p" style="width:{mt.p}%" title="Protein {mt.p}%"></div>
-                <div class="mmb-c" style="width:{mt.c}%" title="Carbs {mt.c}%"></div>
-                <div class="mmb-f" style="width:{mt.f}%" title="Fat {mt.f}%"></div>
+                <div class="mmb-p" style="width:{mt.p}%" title={$_('diary_deep.protein')}></div>
+                <div class="mmb-c" style="width:{mt.c}%" title={$_('diary_deep.carbs')}></div>
+                <div class="mmb-f" style="width:{mt.f}%" title={$_('diary_deep.fat')}></div>
               </div>
-              <span class="meal-macro-text text-3 text-sm"><span style="color:var(--macro-protein)">{mt.p}% P</span> · <span style="color:var(--macro-carbs)">{mt.c}% C</span> · <span style="color:var(--macro-fat)">{mt.f}% F</span> · <span style="color:var(--macro-calories)">{_mtEnergy.value.toLocaleString()} {_mtEnergy.unit}</span></span>
+              <span class="meal-macro-text text-3 text-sm">
+                <strong>{_mtEnergy.value.toLocaleString($locale || undefined)} {_mtEnergy.unit}</strong>
+                <span>{$_('diary_deep.macro_energy_share')}</span>
+                <span class="meal-macro-legend">
+                  <span style="color:var(--macro-protein)">{$_('diary_deep.protein')} {macroPercent.format(mt.p / 100)}</span>
+                  <span style="color:var(--macro-carbs)">{$_('diary_deep.carbs')} {macroPercent.format(mt.c / 100)}</span>
+                  <span style="color:var(--macro-fat)">{$_('diary_deep.fat')} {macroPercent.format(mt.f / 100)}</span>
+                </span>
+              </span>
             </button>
           {/if}
         {/if}
@@ -2492,9 +2519,9 @@
   <!-- Macro proportion bar — outside button so title tooltips work on hover -->
   <!-- svelte-ignore a11y-click-events-have-key-events a11y-no-static-element-interactions -->
   <div class="dbb-macro-bar" on:click={() => barExpanded = !barExpanded}>
-    <div class="dbb-mb-p" style="width:{_barsMounted ? _mp.protein : 0}%" title="Protein {_mp.protein}%"></div>
-    <div class="dbb-mb-c" style="width:{_barsMounted ? _mp.carbs : 0}%"   title="Carbs {_mp.carbs}%"></div>
-    <div class="dbb-mb-f" style="width:{_barsMounted ? _mp.fat : 0}%"     title="Fat {_mp.fat}%"></div>
+    <div class="dbb-mb-p" style="width:{_barsMounted ? _mp.protein : 0}%" title={$_('diary_deep.protein')}></div>
+    <div class="dbb-mb-c" style="width:{_barsMounted ? _mp.carbs : 0}%"   title={$_('diary_deep.carbs')}></div>
+    <div class="dbb-mb-f" style="width:{_barsMounted ? _mp.fat : 0}%"     title={$_('diary_deep.fat')}></div>
   </div>
   <!-- Water progress strip (collapsed, always visible) -->
   {#if $waterShowInDiary}
@@ -2510,7 +2537,7 @@
   <!-- Text summary row — taps to expand/collapse -->
   <button class="dbb-summary-row" on:click={() => barExpanded = !barExpanded}
     aria-label="{barExpanded ? 'Collapse' : 'Expand'} nutrition panel">
-    <span class="dbb-summary-text"><span style="color:var(--macro-protein)">{_mp.protein}% P</span> · <span style="color:var(--macro-carbs)">{_mp.carbs}% C</span> · <span style="color:var(--macro-fat)">{_mp.fat}% F</span> · <span style="color:var(--macro-calories)">{_sumEnergy.value.toLocaleString()} {_sumEnergy.unit}</span>{#if $waterShowInDiary} · <span style="color:var(--water-blue)"><span class="material-symbols-rounded" style="font-size:14px;vertical-align:middle">water_drop</span> {waterDisplay(_waterTotal)}</span>{/if}</span>
+    <span class="dbb-summary-text"><span style="color:var(--macro-calories)">{_sumEnergy.value.toLocaleString()} {_sumEnergy.unit}</span>{#if $waterShowInDiary} · <span style="color:var(--water-blue)"><span class="material-symbols-rounded" style="font-size:14px;vertical-align:middle">water_drop</span> {waterDisplay(_waterTotal)}</span>{/if}</span>
     <span class="dbb-chevron material-symbols-rounded">{barExpanded ? 'expand_more' : 'expand_less'}</span>
   </button>
 
@@ -2520,7 +2547,7 @@
       <!-- Consumed / Remaining toggle -->
       <div class="dbb-toggle-row">
         <button class="dbb-toggle-pill" on:click|stopPropagation={toggleTotalsMode}
-          aria-label="Toggle consumed/remaining">
+          aria-label={$_('diary_deep.toggle_totals')}>
           <span class="dbb-tp-opt" class:dbb-tp-active={_totalsMode === 'consumed'}>{$_('diary_deep.consumed')}</span>
           <span class="dbb-tp-opt" class:dbb-tp-active={_totalsMode === 'remaining'}>{$_('diary_deep.remaining')}</span>
         </button>
@@ -2535,21 +2562,21 @@
           {:else}
             {@const _eatEnergy = Nutrition.displayEnergy($_calTween, $energyUnit)}
             <span class="dbb-num">{_eatEnergy.value.toLocaleString()}</span>
-            <span class="dbb-unit">{#if $calorieGoalMode === 'dynamic' && _dynamicCaloriesOut != null}⚡ {:else if $calorieGoalMode === 'adaptive' && _adaptiveTdee != null}📈 {/if}{_eatEnergy.unit} eaten</span>
+            <span class="dbb-unit">{#if $calorieGoalMode === 'dynamic' && _dynamicCaloriesOut != null}⚡ {:else if $calorieGoalMode === 'adaptive' && _adaptiveTdee != null}📈 {/if}{$_('diary_deep.energy_eaten', { values: { unit: _eatEnergy.unit } })}</span>
           {/if}
         </div>
         <div class="dbb-macros">
           <span class="dbb-macro" style="color:var(--macro-protein)">
-            {#if _totalsMode === 'remaining' && protGoal != null}{Math.round((protGoal - $_protTween)*10)/10}{:else}{Math.round($_protTween*10)/10}{/if}
-            <span class="dbb-mlabel">g Protein</span>
+            <strong title={_totalsMode === 'remaining' && protGoal == null ? $_('diary_deep.macro_no_goal') : undefined}>{_totalsMode === 'remaining' && protGoal == null ? '—' : macroNumber.format(_totalsMode === 'remaining' ? protGoal - $_protTween : $_protTween) + ' g'}</strong>
+            <span class="dbb-mlabel">{$_('diary_deep.protein')}</span>
           </span>
           <span class="dbb-macro" style="color:var(--macro-carbs)">
-            {#if _totalsMode === 'remaining' && carbGoal != null}{Math.round((carbGoal - $_carbTween)*10)/10}{:else}{Math.round($_carbTween*10)/10}{/if}
-            <span class="dbb-mlabel">g Carbs</span>
+            <strong title={_totalsMode === 'remaining' && carbGoal == null ? $_('diary_deep.macro_no_goal') : undefined}>{_totalsMode === 'remaining' && carbGoal == null ? '—' : macroNumber.format(_totalsMode === 'remaining' ? carbGoal - $_carbTween : $_carbTween) + ' g'}</strong>
+            <span class="dbb-mlabel">{$_('diary_deep.carbs')}</span>
           </span>
           <span class="dbb-macro" style="color:var(--macro-fat)">
-            {#if _totalsMode === 'remaining' && fatGoal != null}{Math.round((fatGoal - $_fatTween)*10)/10}{:else}{Math.round($_fatTween*10)/10}{/if}
-            <span class="dbb-mlabel">g Fat</span>
+            <strong title={_totalsMode === 'remaining' && fatGoal == null ? $_('diary_deep.macro_no_goal') : undefined}>{_totalsMode === 'remaining' && fatGoal == null ? '—' : macroNumber.format(_totalsMode === 'remaining' ? fatGoal - $_fatTween : $_fatTween) + ' g'}</strong>
+            <span class="dbb-mlabel">{$_('diary_deep.fat')}</span>
           </span>
         </div>
       </div>
@@ -2717,15 +2744,15 @@
         </div>
         <div class="edit-macro-pill" style="background:var(--macro-protein-dim)">
           <span class="edit-macro-val" style="color:var(--macro-protein)">{Math.round((editCalc.proteins || 0) * 10)/10}g</span>
-          <span class="edit-macro-label">protein</span>
+          <span class="edit-macro-label">{$_('diary_deep.protein')}</span>
         </div>
         <div class="edit-macro-pill" style="background:var(--macro-carbs-dim)">
           <span class="edit-macro-val" style="color:var(--macro-carbs)">{Math.round((editCalc.carbohydrates || 0) * 10)/10}g</span>
-          <span class="edit-macro-label">carbs</span>
+          <span class="edit-macro-label">{$_('diary_deep.carbs')}</span>
         </div>
         <div class="edit-macro-pill" style="background:var(--macro-fat-dim)">
           <span class="edit-macro-val" style="color:var(--macro-fat)">{Math.round((editCalc.fat || 0) * 10)/10}g</span>
-          <span class="edit-macro-label">fat</span>
+          <span class="edit-macro-label">{$_('diary_deep.fat')}</span>
         </div>
       </div>
       <button class="btn btn-primary w-full" style="margin-top:16px" on:click={saveEditItem}>{$_('diary.edit_item.save')}</button>
@@ -2741,8 +2768,8 @@
 <Dialog
   bind:open={showDeleteDialog}
   title={$_('diary.confirm.remove_item', { values: { name: actionItem?.name || $_('diary.confirm.remove_fallback') } })}
-  message="This will remove it from your diary."
-  confirmText="Remove"
+  message={$_('diary_deep.remove_description')}
+  confirmText={$_('common.delete')}
   dangerous
   on:confirm={doDelete}
 />
@@ -4419,7 +4446,8 @@
   .mmb-p { background: linear-gradient(90deg, #BA68C8, var(--macro-protein)); }
   .mmb-c { background: linear-gradient(90deg, #00E676, var(--macro-carbs)); }
   .mmb-f { background: linear-gradient(90deg, var(--macro-fat), #E65100); }
-  .meal-macro-text { display: block; }
+  .meal-macro-text { display: grid; gap: 3px; text-align: left; }
+  .meal-macro-legend { display: flex; flex-wrap: wrap; gap: 4px 10px; }
 
   /* Nutrition bar (inside bottom bar) */
   .dbb-nutrient-bars { padding: 0 12px 4px; display: flex; flex-direction: column; gap: 6px; }
@@ -4515,12 +4543,14 @@
   }
   .dbb-macro {
     display: flex;
-    align-items: baseline;
+    flex-direction: column;
+    align-items: flex-start;
+    min-width: 0;
     gap: 2px;
     font-size: 15px;
     font-weight: 700;
   }
-  .dbb-mlabel { font-size: 10px; font-weight: 400; color: var(--text-3); margin-left: 1px; }
+  .dbb-mlabel { font-size: 11px; font-weight: 500; color: var(--text-2); }
 
   /* Expanded panel */
   .dbb-panel {

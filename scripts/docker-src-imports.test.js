@@ -27,6 +27,7 @@ function* jsFiles(dir) {
 }
 
 const IMPORT = /(?:from\s+|import\(\s*)['"](\.{1,2}\/[^'"]+)['"]/g;
+const repoPath = path => relative(root, path).replaceAll('\\', '/');
 
 /** Every src/ file the server loads, following src/ files' own relative imports. */
 function srcFilesReachedFromServer() {
@@ -35,12 +36,12 @@ function srcFilesReachedFromServer() {
   for (const file of jsFiles(join(root, 'server'))) {
     for (const [, spec] of readFileSync(file, 'utf8').matchAll(IMPORT)) {
       const target = resolve(dirname(file), spec);
-      if (relative(root, target).startsWith('src/')) queue.push([target, relative(root, file)]);
+      if (repoPath(target).startsWith('src/')) queue.push([target, repoPath(file)]);
     }
   }
   while (queue.length) {
     const [target, via] = queue.shift();
-    const rel = relative(root, target);
+    const rel = repoPath(target);
     if (found.has(rel)) continue;
     found.set(rel, via);
     for (const [, spec] of readFileSync(target, 'utf8').matchAll(IMPORT)) {
@@ -59,8 +60,9 @@ test('every src/ file the server imports is copied into the image at the same re
   }
 });
 
-test('the scan sees both known server -> src imports', () => {
+test('the scan sees the shared nutrition, onboarding and sleep modules', () => {
   const reached = srcFilesReachedFromServer();
   assert.ok(reached.has('src/lib/nutrition.js'));
+  assert.ok(reached.has('src/lib/family-onboarding.js'));
   assert.ok(reached.has('src/lib/sleep-quality.js'));
 });

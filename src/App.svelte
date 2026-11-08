@@ -207,6 +207,7 @@
   import Goals      from './routes/Goals.svelte';
   import Settings   from './routes/Settings.svelte';
   import Wizard     from './routes/Wizard.svelte';
+  import FamilyOnboarding from './routes/FamilyOnboarding.svelte';
   import Login          from './routes/Login.svelte';
   import Profile        from './routes/Profile.svelte';
   import ForgotPassword from './routes/ForgotPassword.svelte';
@@ -875,6 +876,8 @@
       </div>
     </div>
   {/if}
+{:else if $currentUser?.onboarding_status === 'pending' && !AUTH_BYPASS.includes($location)}
+  {#key $currentUser.id}<FamilyOnboarding />{/key}
 {:else}
 
 <!-- Sidebar (hamburger menu) -->
@@ -983,7 +986,8 @@
 {/key}
 
 <Toast />
-<Trace hideLauncher={$familyDiaryMode && $location.split('?')[0] === '/'} />
+<Trace hideLauncher={($familyDiaryMode && $location.split('?')[0] === '/') ||
+  EDITOR_ROUTES.some(path => $location === path || $location.startsWith(path + '/') || $location.startsWith(path + '?'))} />
 
 {/if}
 

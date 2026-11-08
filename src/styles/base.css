@@ -156,8 +156,8 @@ input, select, textarea { font-family: inherit; }
       rgba(255, 255, 255, 0.28) 0%,
       rgba(255, 255, 255, 0)   60%),
     linear-gradient(135deg,
-      color-mix(in srgb, var(--accent)   65%, transparent) 0%,
-      color-mix(in srgb, var(--accent-2) 55%, transparent) 100%),
+      color-mix(in srgb, var(--banner-accent, var(--accent)) var(--banner-weight, 65%), transparent) 0%,
+      color-mix(in srgb, var(--banner-accent-2, var(--accent-2)) var(--banner-weight-2, 55%), transparent) 100%),
     var(--glass-surface);
   backdrop-filter: blur(8px) saturate(140%);
   -webkit-backdrop-filter: blur(8px) saturate(140%);
@@ -185,8 +185,8 @@ input, select, textarea { font-family: inherit; }
       rgba(255, 255, 255, 0.28) 0%,
       rgba(255, 255, 255, 0)   60%),
     linear-gradient(135deg,
-      color-mix(in srgb, var(--accent)   65%, transparent) 0%,
-      color-mix(in srgb, var(--accent-2) 55%, transparent) 100%),
+      color-mix(in srgb, var(--banner-accent, var(--accent)) var(--banner-weight, 65%), transparent) 0%,
+      color-mix(in srgb, var(--banner-accent-2, var(--accent-2)) var(--banner-weight-2, 55%), transparent) 100%),
     var(--glass-surface);
   backdrop-filter: blur(8px) saturate(140%);
   -webkit-backdrop-filter: blur(8px) saturate(140%);

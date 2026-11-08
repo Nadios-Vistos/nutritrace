@@ -28,7 +28,7 @@
     // iPhone or iPad (iPadOS Safari reports itself as a Mac, so check for touch): see html.ios in base.css (#212).
     if (/iPhone|iPad|iPod/.test(navigator.userAgent) || (/Macintosh/.test(navigator.userAgent) && navigator.maxTouchPoints > 1)) document.documentElement.classList.add('ios');
   </script>
-  <meta name="theme-color" content="#0A0B0F" id="theme-color-meta" />
+  <meta name="theme-color" content="#681b38" id="theme-color-meta" />
   <!-- Fonts served by this instance, never from a CDN. See public/fonts/fonts.css. -->
   <link rel="stylesheet" href="/fonts/fonts.css" />
   <title>NutriTrace</title>
@@ -60,8 +60,7 @@
       var prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
       var dark = appearance === 'dark' || (appearance === 'system' && prefersDark);
       document.documentElement.setAttribute('data-theme', dark ? 'dark' : 'light');
-      var meta = document.getElementById('theme-color-meta');
-      if (meta) meta.content = dark ? '#0A0B0F' : '#F5F7FA';
+      document.documentElement.setAttribute('data-accent', 'bordeaux');
     })();
   </script>
 

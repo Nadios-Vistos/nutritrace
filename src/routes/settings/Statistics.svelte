@@ -14,7 +14,7 @@
 
   let statsChartType = DB.getSetting('statsChartType', 'bar');
   let statsYZero     = DB.getSetting('statsYZero',     true);
-  let statsIncludeTodayLocal = DB.getSetting('statsIncludeToday', false);
+  let statsIncludeTodayLocal = DB.getSetting('statsIncludeToday', true);
   let statsShowEmptyDaysLocal = DB.getSetting('statsShowEmptyDays', true);
   let statsAvgLine   = DB.getSetting('statsAvgLine',   true);
   let statsGoalLine  = DB.getSetting('statsGoalLine',  true);

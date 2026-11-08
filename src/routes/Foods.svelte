@@ -50,9 +50,9 @@
   $: pickDate  = params.date;
 
   $: TABS = [
-    { label: $_('nav.foods'),   value: 'foodList' },
-    { label: $_('foods.tabs.meals'),   value: 'meals' },
-    { label: $_('foods.tabs.recipes'), value: 'recipes' },
+    { label: $_('nav.foods'), value: 'foodList', empty: $_('foods.empty_foods'), add: $_('diary.add_food') },
+    { label: $_('foods.tabs.meals'), value: 'meals', empty: $_('foods.empty_meals'), add: $_('foods.add_meal') },
+    { label: $_('foods.tabs.recipes'), value: 'recipes', empty: $_('foods.empty_recipes'), add: $_('foods.add_recipe') },
   ];
   let activeTab = 0;
   // Reset source + category filter when switching tabs (not when searchSource itself changes)
@@ -2424,18 +2424,18 @@
           <span class="material-symbols-rounded empty-icon">
             {activeTab === 0 ? 'restaurant' : activeTab === 1 ? 'dinner_dining' : 'book'}
           </span>
-          <p>No {TABS[activeTab].label.toLowerCase()} yet</p>
+          <p>{TABS[activeTab].empty}</p>
           <button class="btn btn-primary" on:click={() => {
             if (activeTab === 0) openEditor(null);
             else openMealEditor(null, activeTab === 2);
           }}>
-            Add {TABS[activeTab].label.slice(0,-1)}
+            {TABS[activeTab].add}
           </button>
         </div>
       {:else if filteredList.length === 0 && search}
         <div class="empty-state">
           <span class="material-symbols-rounded empty-icon">search_off</span>
-          <p>No matches for "{search}"</p>
+          <p>{$_('foods.all_mode.no_matches', { values: { q: search } })}</p>
           {#if _sourcesOffline}
             <p class="empty-state-hint">{$_('foods.offline.search_hint')}</p>
           {:else if activeTab === 0}

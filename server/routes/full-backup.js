@@ -204,10 +204,10 @@ function restoreFromZip(zip) {
     db.prepare('DELETE FROM users').run();
 
     const insUser = db.prepare(`
-      INSERT OR IGNORE INTO users (id, username, password_hash, full_name, nickname, email, birthday, gender, avatar_url, role, created_at)
-      VALUES (@id, @username, @password_hash, @full_name, @nickname, @email, @birthday, @gender, @avatar_url, @role, @created_at)
+      INSERT OR IGNORE INTO users (id, username, password_hash, full_name, nickname, email, birthday, gender, avatar_url, role, created_at, onboarding_status)
+      VALUES (@id, @username, @password_hash, @full_name, @nickname, @email, @birthday, @gender, @avatar_url, @role, @created_at, @onboarding_status)
     `);
-    for (const u of data.users || []) insUser.run(u);
+    for (const u of data.users || []) insUser.run({ onboarding_status: null, ...u });
 
     // COALESCE updated_at to NOW: backups from before the column existed
     // (or rows missing it) would otherwise restore with NULL, which the

@@ -13,7 +13,7 @@
   function set(key, value) { DB.setSetting(key, value); scheduleSave(key, value); }
 
   const ACCENT_COLORS = [
-    { value: 'mint',   label: 'Mint',   dark: '#4FFFB0', light: '#00C47A' },
+    { value: 'bordeaux', label: 'Bordeaux', dark: '#ffc2d0', light: '#781d3d' },
     { value: 'blue',   label: 'Blue',   dark: '#4FC3F7', light: '#0277BD' },
     { value: 'red',    label: 'Red',    dark: '#FF7070', light: '#D93025' },
     { value: 'purple', label: 'Purple', dark: '#CE93D8', light: '#8E24AA' },
@@ -172,12 +172,12 @@
         {#each ACCENT_COLORS as c}
           <button
             class="accent-swatch"
-            class:active={$accentColor === c.value}
+            class:active={($accentColor === 'mint' ? 'bordeaux' : $accentColor) === c.value}
             style="background:{isDark ? c.dark : c.light}"
             title={c.label}
             on:click={() => applyAccentColor(c.value)}
           >
-            {#if $accentColor === c.value}
+            {#if ($accentColor === 'mint' ? 'bordeaux' : $accentColor) === c.value}
               <span class="material-symbols-rounded" style="font-size:16px;color:rgba(255,255,255,0.95);text-shadow:0 1px 3px rgba(0,0,0,0.4)">check</span>
             {/if}
           </button>

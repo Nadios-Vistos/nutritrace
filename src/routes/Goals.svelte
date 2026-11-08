@@ -2,9 +2,11 @@
   import { closeOnBack } from '../lib/back-stack.js';
   import { onMount, tick } from 'svelte';
   import { slide } from 'svelte/transition';
-  import { _ } from 'svelte-i18n';
+  import { _, locale } from 'svelte-i18n';
   import { push } from 'svelte-spa-router';
   import { DB, localDateStr } from '../lib/db.js';
+  import { currentUser } from '../stores/auth.js';
+  import { resolveGoalFor } from '../lib/goal-resolver.js';
   import { NtApi } from '../lib/api.js';
   import { portal } from '../lib/portal.js';
   import { goals, goalTemplates, energyUnit, weightUnit, heightUnit, lengthUnit, visibleNutriments, hiddenBodyStats, waterGoalMl, waterUnit, pageBanners, bannerStyle, wellnessEnabled, fitbitEnabled, garminEnabled, googleHealthEnabled, healthConnectEnabled, fitbitFamilyEnabled, calorieGoalMode, calorieGoalFactor } from '../stores/settings.js';
@@ -92,6 +94,8 @@
   $: hasAnyGoal = configuredBodyStats.length > 0 || configuredNutrients.length > 0 || configuredWellness.length > 0;
 
   let activeTab = 'yours'; // 'yours' | 'all' | 'templates'
+  let showAdvanced = false;
+  $: guidedGoals = $currentUser?.onboarding_status === 'complete';
 
   // ── Goal templates ─────────────────────────────────────────────────────────
   let showSaveSheet    = false;
@@ -166,6 +170,8 @@
     return new Date(iso).toLocaleDateString(undefined, { year:'numeric', month:'short', day:'numeric' });
   }
   let today = localDateStr();
+  $: guidedBudget = resolveGoalFor($goals?.calories, today);
+  $: guidedWeight = resolveGoalFor($goals?.weight, today);
   let todayTotals = {};
   let todayBodyStats = {};
   // Most-recent body-stat readings within the last 30 days, used as a
@@ -691,6 +697,27 @@
     <h1>{$_('routes.goals.title')}</h1>
   </header>
 
+  {#if guidedGoals}
+    <div class="page-content">
+      <section class="card guided-goals">
+        <div>
+          <div class="text-2">{$_('family_onboarding.budget')}</div>
+          <strong>{guidedBudget == null ? '—' : guidedBudget.toLocaleString($locale || undefined) + ' ' + $_('family_onboarding.kcal_day')}</strong>
+        </div>
+        {#if guidedWeight != null}
+          <div>
+            <div class="text-2">{$_('family_onboarding.weight_goal')}</div>
+            <strong>{guidedWeight.toLocaleString($locale || undefined)} {$weightUnit}</strong>
+          </div>
+        {/if}
+        <button type="button" class="btn btn-secondary" aria-expanded={showAdvanced} on:click={() => showAdvanced = !showAdvanced}>
+          {$_(showAdvanced ? 'family_onboarding.hide_advanced' : 'family_onboarding.advanced')}
+        </button>
+      </section>
+    </div>
+  {/if}
+
+  {#if !guidedGoals || showAdvanced}
   <!-- Tabs -->
   <div class="tab-bar">
     <button class="tab-btn" class:active={activeTab==='yours'} on:click={() => activeTab='yours'}>
@@ -1271,6 +1298,7 @@
 
   </div><!-- /.goals-body -->
   </div>
+  {/if}
 </div>
 
 <!-- ── Goal editor sheet ── -->
@@ -1445,6 +1473,8 @@
 {/if}
 
 <style>
+  .guided-goals { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; justify-content: space-between; padding: 16px; }
+  .guided-goals strong { font-size: 1.25rem; color: var(--accent); }
 
   .tab-bar {
     display: flex; border-bottom: 1px solid var(--border);

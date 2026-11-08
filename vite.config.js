@@ -106,7 +106,7 @@ export default defineConfig({
         name: 'NutriTrace',
         short_name: 'NutriTrace',
         description: 'Trace Every Bite — Personal Nutrition Tracker',
-        theme_color: '#0A0B0F',
+        theme_color: '#681b38',
         background_color: '#0A0B0F',
         display: 'standalone',
         orientation: 'portrait-primary',

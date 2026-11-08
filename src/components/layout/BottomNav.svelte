@@ -87,7 +87,7 @@
     left: 0; /* overridden by inline style */
     /* width overridden by inline style */
     height: calc(100% - 12px - var(--safe-bottom));
-    background: linear-gradient(135deg, var(--accent-dim), rgba(79,255,176,0.22));
+    background: linear-gradient(135deg, var(--accent-dim), color-mix(in srgb, var(--accent) 22%, transparent));
     border-radius: var(--radius-md);
     box-shadow: 0 0 16px var(--accent-dim);
     transition: left var(--dur-base) var(--ease-inout);

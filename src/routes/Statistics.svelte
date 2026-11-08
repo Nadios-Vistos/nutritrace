@@ -1,8 +1,8 @@
 <script>
   import { closeOnBack } from '../lib/back-stack.js';
-  import { onMount, onDestroy } from 'svelte';
+  import { onMount, onDestroy, tick } from 'svelte';
   import { slide } from 'svelte/transition';
-  import { _ } from 'svelte-i18n';
+  import { _, locale } from 'svelte-i18n';
   import { push } from 'svelte-spa-router';
   import { portal } from '../lib/portal.js';
   import { dragScroll } from '../lib/drag-scroll.js';
@@ -255,7 +255,8 @@
     if (isWellness) {
       // Load from wellness API
       const wlMeta = WELLNESS_METRICS.find(m => m.value === metric);
-      if (!wlMeta || ver !== _loadVer) { loading = false; return; }
+      if (ver !== _loadVer) return;
+      if (!wlMeta) { loading = false; return; }
 
       if (wlMeta.apiSource === 'fitgarm') {
         let fitbitData = {}, garminData = {}, hcData = {};
@@ -318,12 +319,12 @@
         }
       }
 
-      if (ver !== _loadVer) { loading = false; return; }
+      if (ver !== _loadVer) return;
       const allEntries = await NtApi.getAllDiary();
       entryMap = Object.fromEntries(allEntries.map(e => [e.date, e]));
 
       for (const date of dates) {
-        if (ver !== _loadVer) { loading = false; return; }
+        if (ver !== _loadVer) return;
         let val = null;
 
         if (isBodyDevice) {
@@ -384,8 +385,7 @@
 
     if (ver !== _loadVer) return; // stale — don't commit
 
-    // Drop today from cumulative-metric charts by default — until end of day,
-    // today's value misrepresents the trend (a partial day looks like a dip).
+    // Let users exclude today's partial values from cumulative trends.
     // Point-in-time metrics (sleep_score, weight, HRV, RHR, etc.) are left
     // alone — those are "what was measured", not "what accumulated".
     if (isCumulative(metric) && !$statsIncludeToday) {
@@ -447,8 +447,10 @@
       completedDatesSet = new Set();
     }
 
+    if (ver !== _loadVer) return;
     loading = false;
-    renderChart();
+    await tick();
+    if (ver === _loadVer) renderChart();
   }
 
   function linearRegression(pts) {
@@ -466,11 +468,14 @@
   function renderChart() {
     if (!canvasEl) return;
     if (chart) { chart.destroy(); chart = null; }
+    if (!summary) return;
 
     const isDark      = document.documentElement.getAttribute('data-theme') !== 'light';
     const gridColor   = isDark ? 'rgba(255,255,255,0.07)' : 'rgba(0,0,0,0.07)';
     const textColor   = isDark ? 'rgba(240,242,248,0.55)' : 'rgba(13,15,20,0.55)';
-    const accentColor = isDark ? '#4FFFB0' : '#00C47A';
+    const palette = getComputedStyle(document.documentElement);
+    const accentColor = palette.getPropertyValue('--accent').trim();
+    const accentFill = palette.getPropertyValue('--accent-dim').trim();
 
     const isBar = $statsChartType === 'bar';
     // statsShowEmptyDays controls whether dates without a logged value stay
@@ -484,19 +489,17 @@
       : data.filter(d => Number.isFinite(d.val));
     const labels = displayData.map(d => {
       const dt = new Date(d.date + 'T12:00:00');
-      return dt.toLocaleDateString(undefined, { month:'short', day:'numeric' });
+      return dt.toLocaleDateString($locale || undefined, { month:'short', day:'numeric' });
     });
     const values = displayData.map(d => d.val);
     const datasets = [{
       label: getMetricLabel(),
       data: values,
       borderColor: accentColor,
-      backgroundColor: isBar
-        ? (isDark ? 'rgba(79,255,176,0.7)' : 'rgba(0,196,122,0.7)')
-        : (isDark ? 'rgba(79,255,176,0.08)' : 'rgba(0,196,122,0.08)'),
+      backgroundColor: isBar ? accentColor : accentFill,
       borderWidth: isBar ? 0 : 2.5,
       pointBackgroundColor: accentColor,
-      pointRadius: displayData.length > 60 ? 0 : (isBar ? 0 : 3),
+      pointRadius: isBar || summary.daysWithData > 60 ? 0 : 3,
       pointHoverRadius: isBar ? 0 : 5,
       tension: 0.35,
       fill: !isBar,
@@ -507,7 +510,7 @@
     if ($statsAvgLine && summary) {
       datasets.push({
         type: 'line',
-        label: 'Average',
+        label: $_('statistics_page.summary.average'),
         data: displayData.map(() => summary.avg),
         borderColor: isDark ? 'rgba(255,193,7,0.7)' : 'rgba(217,119,6,0.7)',
         borderWidth: 1.5,
@@ -546,7 +549,7 @@
       const isAdaptiveOrDynamic = metric === 'calories' && ($calorieGoalMode === 'dynamic' || $calorieGoalMode === 'adaptive');
       datasets.push({
         type: 'line',
-        label: isAdaptiveOrDynamic ? 'Base Goal' : 'Goal',
+        label: $_(isAdaptiveOrDynamic ? 'statistics_page.base_goal' : 'statistics_page.goal'),
         data: displayData.map(() => _goalVal),
         borderColor: isDark ? 'rgba(129,140,248,0.8)' : 'rgba(99,102,241,0.8)',
         borderWidth: 1.5,
@@ -570,7 +573,7 @@
         });
         datasets.push({
           type: 'line',
-          label: 'Trend',
+          label: $_('statistics_page.trend'),
           data: trendData,
           borderColor: isDark ? 'rgba(251,146,60,0.8)' : 'rgba(234,88,12,0.8)',
           borderWidth: 2,
@@ -656,7 +659,7 @@
               label: ctx => {
                 const y = ctx.parsed?.y;
                 if (y == null) return '';
-                return `${ctx.dataset.label || ''}: ${y.toLocaleString()} ${getMetricUnit()}`.trim();
+                return `${ctx.dataset.label || ''}: ${y.toLocaleString($locale || undefined)} ${getMetricUnit()}`.trim();
               }
             }
           }
@@ -668,7 +671,7 @@
           },
           y: {
             grid: { color: gridColor },
-            ticks: { color: textColor, callback: v => v.toLocaleString() },
+            ticks: { color: textColor, callback: v => v.toLocaleString($locale || undefined) },
             // Force smart-range (auto-fit to data) for body stats + resting
             // vitals where 0 isn't a meaningful baseline; respect the global
             // toggle for nutrients + counted metrics where 0 is valid. See
@@ -833,7 +836,7 @@
   // per metric). Keeping it to metrics the user has enabled makes the
   // suggestion honest for the vast majority of setups.
   $: _emptyAlternatives = (() => {
-    if (data.length > 0) return [];
+    if (summary) return [];
     const cands = ['calories', 'weight', 'wl_steps'];
     return cands
       .filter(c => c !== metric)
@@ -885,7 +888,7 @@
   $: { metric; range; customStart; customEnd; $statsIncludeToday; $statsShowEmptyDays; $statsChartType; $statsYZero; $statsAvgLine; $statsGoalLine; $statsTrendLine;
        if (canvasEl) loadData(); }
 
-  onDestroy(() => { if (chart) chart.destroy(); });
+  onDestroy(() => { _loadVer++; if (chart) chart.destroy(); });
 
   // ── Custom range calendar ──────────────────────────────────────────────────
   let showCalFor   = null; // 'start' | 'end' | null
@@ -1077,9 +1080,17 @@
       </div>
     {/if}
 
+    {#if isCumulative(metric)}
+      <label class="stats-today-option">
+        <input type="checkbox" checked={$statsIncludeToday}
+          on:change={event => statsIncludeToday.set(event.currentTarget.checked)} />
+        {$_('statistics_page.include_today')}
+      </label>
+    {/if}
+
     <!-- Chart -->
     <div class="chart-card card">
-      {#if data.length > 0}
+      {#if summary}
         <!-- CSV export lives on the chart itself so mobile and large-screen
              both get it. Was previously desktop-rail-only. -->
         <button class="chart-csv" type="button" on:click={_exportCsv}
@@ -1091,7 +1102,7 @@
         <div class="chart-loading">
           <span class="material-symbols-rounded spin">refresh</span>
         </div>
-      {:else if data.length === 0}
+      {:else if !summary}
         <div class="chart-loading" style="background:transparent">
           <div style="text-align:center;opacity:0.45;padding:8px 24px">
             <span class="material-symbols-rounded" style="font-size:36px">show_chart</span>
@@ -1111,23 +1122,22 @@
                    the current metric — the loader re-runs via the metric
                    reactive at line ~647. -->
               <div class="stats-empty-alts text-3 text-sm">
-                Try
+                {$_('statistics_page.empty_alternatives')}
                 {#each _emptyAlternatives as alt, i}
-                  <button class="stats-empty-alt-link" type="button" on:click={() => metric = alt}>{_altLabel(alt)}</button>{#if i < _emptyAlternatives.length - 2}, {:else if i === _emptyAlternatives.length - 2} or {/if}
+                  <button class="stats-empty-alt-link" type="button" on:click={() => metric = alt}>{_altLabel(alt)}</button>{#if i < _emptyAlternatives.length - 1} · {/if}
                 {/each}
-                . You may have data there.
               </div>
             {/if}
           </div>
         </div>
       {/if}
-      <div class="chart-wrap">
+      <div class="chart-wrap" hidden={!summary}>
         <canvas bind:this={canvasEl}></canvas>
       </div>
     </div>
 
     <!-- Timeline list -->
-    {#if data.length > 0}
+    {#if summary}
       <div class="timeline-section">
         <div class="section-title">{$_('statistics_page.history_heading')}</div>
         <div class="timeline-list card">
@@ -1148,8 +1158,7 @@
                   <div class="timeline-row">
                     <button class="timeline-date-link" type="button"
                       on:click={() => _drillIntoDate(row.date)}
-                      title={metric.startsWith('wl_') ? 'Open this day in Wellness' : 'Open this day in Diary'}
-                      aria-label={metric.startsWith('wl_') ? `Open Wellness for ${row.date}` : `Open Diary for ${row.date}`}>
+                      aria-label={$_(metric.startsWith('wl_') ? 'statistics_page.open_wellness_date' : 'statistics_page.open_diary_date', { values: { date: row.date } })}>
                       {(() => {
                         const dt = new Date(row.date + 'T12:00:00');
                         const fmt = $dateFormat || 'ISO';
@@ -1159,7 +1168,7 @@
                         return row.date;
                       })()}
                     </button>
-                    <span class="timeline-val accent-text">{row.val.toLocaleString()} {_metricUnit}</span>
+                    <span class="timeline-val accent-text">{row.val.toLocaleString($locale || undefined)} {_metricUnit}</span>
                   </div>
                 {/each}
               {/if}
@@ -1170,8 +1179,7 @@
                 <div class="timeline-row">
                   <button class="timeline-date-link" type="button"
                     on:click={() => _drillIntoDate(row.date)}
-                    title={metric.startsWith('wl_') ? 'Open this day in Wellness' : 'Open this day in Diary'}
-                    aria-label={metric.startsWith('wl_') ? `Open Wellness for ${row.date}` : `Open Diary for ${row.date}`}>
+                    aria-label={$_(metric.startsWith('wl_') ? 'statistics_page.open_wellness_date' : 'statistics_page.open_diary_date', { values: { date: row.date } })}>
                     {(() => {
                       const dt = new Date(row.date + 'T12:00:00');
                       const fmt = $dateFormat || 'ISO';
@@ -1181,7 +1189,7 @@
                       return row.date;
                     })()}
                   </button>
-                  <span class="timeline-val accent-text">{row.val.toLocaleString()} {_metricUnit}</span>
+                  <span class="timeline-val accent-text">{row.val.toLocaleString($locale || undefined)} {_metricUnit}</span>
                 </div>
               {/if}
             {/each}
@@ -1516,6 +1524,8 @@
     background: rgba(var(--surface-1-rgb, 18,20,26), 0.7);
   }
   .chart-wrap { height: 220px; position: relative; }
+  .stats-today-option { display: flex; align-items: center; gap: 8px; padding: 2px 0 8px; color: var(--text-2); font-size: .85rem; }
+  .stats-today-option input { accent-color: var(--accent); }
 
   /* Summary */
   .summary-card { padding: 16px 12px; }

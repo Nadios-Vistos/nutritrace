@@ -273,8 +273,8 @@ export function resolveUser(provider, claims) {
     const fullName = claims.name || [claims.given_name, claims.family_name].filter(Boolean).join(' ') || null;
 
     const result = db.prepare(
-      `INSERT INTO users (username, password_hash, full_name, role, email)
-       VALUES (?, NULL, ?, 'user', ?)`
+      `INSERT INTO users (username, password_hash, full_name, role, email, onboarding_status)
+       VALUES (?, NULL, ?, 'user', ?, 'pending')`
     ).run(username, fullName, emailVal);
 
     const newUser = db.prepare(`SELECT * FROM users WHERE id = ?`).get(result.lastInsertRowid);

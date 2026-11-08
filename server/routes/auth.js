@@ -11,6 +11,7 @@ import { sendPasswordReset, sendInvite, isEmailConfigured } from '../email.js';
 import { estimate as estimatePasswordStrength, STRONG_MIN_SCORE } from '../lib/password-strength.js';
 import { claimAnonymousData, purgeUnreferencedUserData, purgeUserRows } from '../lib/claim-anonymous-data.js';
 import { ownerOrOptIn } from '../lib/outbound-policy.js';
+import { estimateFamilyGoals } from '../../src/lib/family-onboarding.js';
 
 const router = Router();
 
@@ -172,6 +173,52 @@ router.get('/me', wrap((req, res) => {
   res.json({ user: user ? safeUser(user) : null, csrf: req.user.csrf || null, features });
 }));
 
+router.put('/onboarding', requireAuth, wrap((req, res) => {
+  if (!req.user) return res.status(401).json({ error: 'Sign in required' });
+  const id = req.user.id;
+  const body = req.body ?? {};
+  if (body.account !== id) return res.status(409).json({ error: 'Account changed' });
+  const getUser = db.prepare('SELECT * FROM users WHERE id = ?');
+  const user = db.transaction(() => {
+    const current = getUser.get(id);
+    if (current?.onboarding_status !== 'pending') return current;
+    const profile = {
+      gender: body.gender, age: body.age, height_cm: body.height_cm,
+      weight_kg: body.weight_kg, target_weight: body.target_weight, activity: body.activity,
+    };
+    if (body.skip !== true) {
+      const estimate = estimateFamilyGoals(profile);
+      if (body.adult !== true || estimate.error) return null;
+      const row = db.prepare(`SELECT value FROM user_settings
+        WHERE user_id = ? AND key = 'goals' AND deleted_at IS NULL`).get(id);
+      let goals = {};
+      try { goals = JSON.parse(row?.value ?? '{}') ?? {}; } catch {}
+      const { calories, maintenance } = estimate;
+      const target = profile.target_weight;
+      const gaining = estimate.direction > 0;
+      const settings = {
+        gender: profile.gender, height_cm: profile.height_cm, weight_kg: profile.weight_kg,
+        target_weight: target, activity: profile.activity, tdee: maintenance, weightUnit: 'kg',
+        familyDiaryMode: true, familyCalorieBudget: null, calorieGoalMode: 'fixed', energyUnit: 'kcal',
+        goals: {
+          ...goals,
+          calories: { max: calories, sharedGoal: true, isMin: false, showInDiary: true, showInStats: true, days: Array(7).fill(calories) },
+          weight: { [gaining ? 'min' : 'max']: target, sharedGoal: true, isMin: gaining, showInDiary: false, showInStats: true, days: Array(7).fill(target) },
+        },
+      };
+      const upsert = db.prepare(`INSERT INTO user_settings (user_id, key, value, updated_at)
+        VALUES (?, ?, ?, datetime('now')) ON CONFLICT(user_id, key) DO UPDATE
+        SET value = excluded.value, updated_at = datetime('now'), deleted_at = NULL`);
+      for (const [key, value] of Object.entries(settings)) upsert.run(id, key, JSON.stringify(value));
+    }
+    db.prepare('UPDATE users SET onboarding_status = ? WHERE id = ?')
+      .run(body.skip === true ? 'skipped' : 'complete', id);
+    return getUser.get(id);
+  }).immediate();
+  if (!user) return res.status(400).json({ error: 'Invalid onboarding profile' });
+  res.json({ user: safeUser(user) });
+}));
+
 // ── Login ──────────────────────────────────────────────────────────────────
 router.post('/login', rateLimitLogin, wrap((req, res) => {
   if (!isPasswordLoginEnabled()) {
@@ -215,8 +262,8 @@ router.post('/register', wrap((req, res) => {
   const assignedRole = isFirst ? 'admin' : (role === 'admin' ? 'admin' : 'user');
 
   const result = db.prepare(
-    `INSERT INTO users (username, password_hash, full_name, nickname, birthday, gender, role, email)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?)`
+    `INSERT INTO users (username, password_hash, full_name, nickname, birthday, gender, role, email, onboarding_status)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'pending')`
   ).run(
     username.trim().toLowerCase(), hash,
     full_name || null, nickname || null, birthday || null, gender || null, assignedRole,
@@ -554,8 +601,8 @@ router.post('/accept-invite', wrap((req, res) => {
 
   const hash = bcrypt.hashSync(password, 12);
   const result = db.prepare(
-    `INSERT INTO users (username, password_hash, full_name, role, email)
-     VALUES (?, ?, ?, ?, ?)`
+    `INSERT INTO users (username, password_hash, full_name, role, email, onboarding_status)
+     VALUES (?, ?, ?, ?, ?, 'pending')`
   ).run(
     username.trim().toLowerCase(), hash,
     full_name || null, invite.role,

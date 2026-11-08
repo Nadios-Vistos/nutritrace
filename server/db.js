@@ -434,6 +434,10 @@ if (!columnExists('users', 'email')) {
   db.exec(`ALTER TABLE users ADD COLUMN email TEXT`);
 }
 
+if (!columnExists('users', 'onboarding_status')) {
+  db.exec(`ALTER TABLE users ADD COLUMN onboarding_status TEXT`);
+}
+
 if (!columnExists('foods', 'user_id')) {
   db.exec(`ALTER TABLE foods ADD COLUMN user_id INTEGER REFERENCES users(id) ON DELETE CASCADE`);
 }
