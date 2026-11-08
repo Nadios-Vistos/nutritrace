@@ -2649,6 +2649,12 @@
     }
   },
   "family_onboarding": {
+    "adaptive_budget": "Adaptive budget",
+    "adaptive_pending": "{available}/{required} usable days. Your fixed budget applies in the meantime.",
+    "adaptive_unavailable": "An adaptive budget is unavailable right now. Your fixed budget applies.",
+    "recalculate": "Recalculate my budget",
+    "recalculate_intro": "Review your measurements and activity to calculate a new daily budget. Your diary and weigh-ins are kept.",
+    "recalculate_fixed": "Applying this estimate activates the fixed budget. You can turn the adaptive budget back on in Goals.",
     "step": "Step {step} of {total}",
     "welcome": "Let’s find your starting point",
     "intro": "A few answers are enough to estimate your daily calorie budget. You can review it before using it.",

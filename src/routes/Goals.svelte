@@ -7,10 +7,12 @@
   import { DB, localDateStr } from '../lib/db.js';
   import { currentUser } from '../stores/auth.js';
   import { resolveGoalFor } from '../lib/goal-resolver.js';
+  import { adaptiveFamilyBudget } from '../lib/family-onboarding.js';
   import { NtApi } from '../lib/api.js';
   import { portal } from '../lib/portal.js';
   import { goals, goalTemplates, energyUnit, weightUnit, heightUnit, lengthUnit, visibleNutriments, hiddenBodyStats, waterGoalMl, waterUnit, pageBanners, bannerStyle, wellnessEnabled, fitbitEnabled, garminEnabled, googleHealthEnabled, healthConnectEnabled, fitbitFamilyEnabled, calorieGoalMode, calorieGoalFactor } from '../stores/settings.js';
   import { NUTRIMENTS, Nutrition, hydrationTotal } from '../lib/nutrition.js';
+  import { familyCalorieBudget, familyDiaryMode } from '../stores/settings.js';
   import { readBodyStat } from '../lib/body-stats-unit.js';
   import { decimalInput, parseDecimal } from '../lib/decimal-input.js';
   import { macroGoalGrams, percentGoalToGrams, gramsGoalToPercent } from '../lib/goal-resolver.js';
@@ -170,7 +172,11 @@
     return new Date(iso).toLocaleDateString(undefined, { year:'numeric', month:'short', day:'numeric' });
   }
   let today = localDateStr();
-  $: guidedBudget = resolveGoalFor($goals?.calories, today);
+  $: guidedFixedBudget = !guidedGoals && $familyDiaryMode && $familyCalorieBudget != null
+    ? $familyCalorieBudget
+    : resolveGoalFor($goals?.calories, today);
+  $: guidedAdaptiveBudget = _adaptive?.ready ? adaptiveFamilyBudget(_adaptive.tdee, $calorieGoalFactor) : null;
+  $: guidedBudget = ($calorieGoalMode === 'adaptive' ? guidedAdaptiveBudget : null) ?? guidedFixedBudget;
   $: guidedWeight = resolveGoalFor($goals?.weight, today);
   let todayTotals = {};
   let todayBodyStats = {};
@@ -194,6 +200,16 @@
   let _adaptive = null; // { ready, daysAvailable, daysRequired, tdee, trendKgPerWeek, confidence, weightSource }
   let _adaptiveLoaded = false;
   let _showAdaptiveHelp = false;
+
+  function setFamilyAdaptive(enabled) {
+    if (enabled && DB.getSetting('calorieGoalFactor', null) == null) {
+      const maintenance = Number(DB.getSetting('tdee', 0));
+      if (maintenance > 0 && guidedFixedBudget > 0 && Math.abs(guidedFixedBudget - maintenance) > 12.5) {
+        calorieGoalFactor.set(Math.min(1.1, Math.max(0.9, Math.round(guidedFixedBudget / maintenance * 1000) / 1000)));
+      }
+    }
+    calorieGoalMode.set(enabled ? 'adaptive' : 'fixed');
+  }
   $: _fixedGoal = $goals.calories?.max ?? $goals.calories?.min ?? 2000;
   $: _effectiveCalGoal =
        ($calorieGoalMode === 'dynamic' && _dynamicCaloriesOut != null)
@@ -704,20 +720,40 @@
     <h1>{$_('routes.goals.title')}</h1>
   </header>
 
-  {#if guidedGoals}
+  {#if $currentUser?.id != null}
     <div class="page-content">
       <section class="card guided-goals">
         <div>
-          <div class="text-2">{$_('family_onboarding.budget')}</div>
+          <div class="text-2">{$_($calorieGoalMode === 'adaptive' && guidedAdaptiveBudget != null ? 'family_onboarding.adaptive_budget' : 'family_onboarding.budget')}</div>
           <strong>{guidedBudget == null ? '—' : guidedBudget.toLocaleString($locale || undefined) + ' ' + $_('family_onboarding.kcal_day')}</strong>
         </div>
+        {#if guidedGoals}
         <button type="button" class="guided-weight" on:click={() => openEdit(bodyStatsWithUnit.find(stat => stat.id === 'weight'), true)}>
           <span class="text-2">{$_('family_onboarding.weight_goal')} <span class="material-symbols-rounded" aria-hidden="true">edit</span></span>
           <strong>{guidedWeight == null ? '—' : guidedWeight.toLocaleString($locale || undefined) + ' ' + wUnit}</strong>
         </button>
+        {/if}
+        <div class="guided-budget-actions">
+          <label class="guided-adaptive-toggle">
+            <input type="checkbox" checked={$calorieGoalMode === 'adaptive'} on:change={event => setFamilyAdaptive(event.currentTarget.checked)} />
+            {$_('family_onboarding.adaptive_budget')}
+          </label>
+          {#if $calorieGoalMode === 'adaptive' && _adaptiveLoaded && guidedAdaptiveBudget == null}
+            <p class="text-2">
+              {#if _adaptive && !_adaptive.ready}
+                {$_('family_onboarding.adaptive_pending', { values: { available: _adaptive.daysAvailable, required: _adaptive.daysRequired } })}
+              {:else}
+                {$_('family_onboarding.adaptive_unavailable')}
+              {/if}
+            </p>
+          {/if}
+        </div>
+        <button type="button" class="btn btn-secondary" on:click={() => push('/recalculate-budget')}>{$_('family_onboarding.recalculate')}</button>
+        {#if guidedGoals}
         <button type="button" class="btn btn-secondary" aria-expanded={showAdvanced} on:click={() => showAdvanced = !showAdvanced}>
           {$_(showAdvanced ? 'family_onboarding.hide_advanced' : 'family_onboarding.advanced')}
         </button>
+        {/if}
       </section>
     </div>
   {/if}
@@ -1484,6 +1520,10 @@
   .guided-goals strong { font-size: 1.25rem; color: var(--accent); }
   .guided-weight { display: grid; text-align: start; border: 1px solid var(--border); border-radius: var(--radius-md); padding: 6px 10px; }
   .guided-weight .material-symbols-rounded { font-size: 14px; vertical-align: middle; }
+  .guided-budget-actions { flex-basis: 100%; }
+  .guided-budget-actions p { margin: 4px 0 0; font-size: .85rem; }
+  .guided-adaptive-toggle { display: flex; align-items: center; gap: 8px; }
+  .guided-adaptive-toggle input { accent-color: var(--accent); }
 
   .tab-bar {
     display: flex; border-bottom: 1px solid var(--border);

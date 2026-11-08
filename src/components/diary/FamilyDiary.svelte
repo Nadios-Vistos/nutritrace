@@ -12,6 +12,7 @@
 
   export let calories = 0;
   export let budget = null;
+  export let adaptiveBudget = false;
   export let meals = [];
   export let date;
   export let onSaveBudget;
@@ -110,11 +111,15 @@
 
   <div class="budget-totals">
     <div class="metric"><span>{$_('family_diary.consumed')}</span><strong>{format.format(consumed)} kcal</strong></div>
-    <button type="button" class="metric budget-edit" on:click={editBudget}
-      aria-label={hasBudget ? $_('family_diary.edit_budget') : $_('family_diary.set_budget')}>
-      <span>{$_('family_diary.budget')} <span class="material-symbols-rounded" aria-hidden="true">edit</span></span>
-      <strong>{hasBudget ? `${format.format(budget)} kcal` : $_('family_diary.set_budget')}</strong>
-    </button>
+    {#if adaptiveBudget}
+      <div class="metric"><span>{$_('family_onboarding.adaptive_budget')}</span><strong>{format.format(budget)} kcal</strong></div>
+    {:else}
+      <button type="button" class="metric budget-edit" on:click={editBudget}
+        aria-label={hasBudget ? $_('family_diary.edit_budget') : $_('family_diary.set_budget')}>
+        <span>{$_('family_diary.budget')} <span class="material-symbols-rounded" aria-hidden="true">edit</span></span>
+        <strong>{hasBudget ? `${format.format(budget)} kcal` : $_('family_diary.set_budget')}</strong>
+      </button>
+    {/if}
   </div>
 
   <Sheet bind:open={editingBudget} title={$_('family_diary.daily_budget')}>

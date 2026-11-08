@@ -87,7 +87,7 @@ function _linReg(points) {
 export async function computeAdaptiveTdeeLocal(opts = {}) {
   const windowDays = opts.windowDays || DEFAULT_WINDOW_DAYS;
   const minValid   = opts.minValidDays || MIN_VALID_DAYS;
-  const startDate  = _isoDaysAgo(windowDays - 1);
+  const startDate  = _isoDaysAgo(windowDays);
   const endDate    = _isoDaysAgo(0);
 
   const db = await getDb();
@@ -128,9 +128,9 @@ export async function computeAdaptiveTdeeLocal(opts = {}) {
 
   const series = [];
   let usedWellness = false, usedManual = false;
-  for (let i = 0; i < windowDays; i++) {
-    const date = _isoDaysAgo(windowDays - 1 - i);
-    const intake = intakeByDate.get(date) ?? null;
+  for (let i = 0; i <= windowDays; i++) {
+    const date = _isoDaysAgo(windowDays - i);
+    const intake = date === endDate ? null : intakeByDate.get(date) ?? null;
     let weight = null, weightSource = null;
     const wellness = wellnessByDate.get(date);
     if (wellness) { weight = wellness.value; weightSource = 'wellness'; usedWellness = true; }
@@ -172,7 +172,8 @@ export async function computeAdaptiveTdeeLocal(opts = {}) {
     };
   }
 
-  const points = valid.map((s, i) => [i, s.weight]);
+  const start = Date.parse(startDate);
+  const points = valid.map(s => [(Date.parse(s.date) - start) / 86400000, s.weight]);
   const { slope, r2 } = _linReg(points);
   const slopeKgPerDay = slope;
   const dailyEnergyBalance = slopeKgPerDay * KCAL_PER_KG;

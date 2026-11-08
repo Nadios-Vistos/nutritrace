@@ -49,7 +49,7 @@ export const USER_PREFS = new Set([
   'statsMetricOrder','statsHiddenMetrics',
   // User profile (collected by Wizard, used for goal calculation; sync so multi-device
   // users see the same body profile)
-  'gender','dob','height_cm','weight_kg','target_weight','activity','tdee',
+  'gender','dob','height_cm','weight_kg','familyProfileAge','target_weight','activity','tdee',
   // Native local-mode profile fields (no auth → no users table; these stand in for
   // the server's full_name / nickname / avatar_url). In USER_PREFS so they're
   // captured by the local full-backup ZIP. In server mode they're unused.

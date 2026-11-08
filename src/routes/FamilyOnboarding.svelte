@@ -1,13 +1,19 @@
 <script>
   import { _, locale } from 'svelte-i18n';
   import { get } from 'svelte/store';
-  import { tick } from 'svelte';
+  import { onMount, tick } from 'svelte';
+  import { push } from 'svelte-spa-router';
   import { NtApi } from '../lib/api.js';
   import FamilyMascot from '../components/diary/FamilyMascot.svelte';
   import { decimalInput } from '../lib/decimal-input.js';
   import { ACTIVITY_LEVELS, estimateFamilyGoals } from '../lib/family-onboarding.js';
   import { currentUser } from '../stores/auth.js';
-  import { loadServerSettings } from '../stores/settings.js';
+  import { goals, loadServerSettings, weightUnit } from '../stores/settings.js';
+  import { DB, localDateStr } from '../lib/db.js';
+  import { readBodyStat } from '../lib/body-stats-unit.js';
+  import { resolveGoalFor } from '../lib/goal-resolver.js';
+
+  export let recalculating = false;
 
   const steps = ['welcome', 'profile', 'routine', 'result'];
   const icons = ['', 'person', 'directions_walk', ''];
@@ -21,6 +27,42 @@
   let weight = '';
   let target = '';
   let activity = '';
+
+  onMount(async () => {
+    if (!recalculating) return;
+    gender = DB.getSetting('gender', $currentUser?.gender || '');
+    age = String(DB.getSetting('familyProfileAge', '') ?? '');
+    const birthday = $currentUser?.birthday || DB.getSetting('dob', '');
+    if (birthday) {
+      const dob = new Date(birthday + 'T12:00:00');
+      const today = new Date();
+      if (Number.isFinite(dob.getTime())) {
+        const beforeBirthday = today.getMonth() < dob.getMonth() ||
+          (today.getMonth() === dob.getMonth() && today.getDate() < dob.getDate());
+        age = String(today.getFullYear() - dob.getFullYear() - Number(beforeBirthday));
+      }
+    }
+    height = String(DB.getSetting('height_cm', '') ?? '');
+    weight = String(DB.getSetting('weight_kg', '') ?? '');
+    activity = DB.getSetting('activity', '');
+    const kg = value => readBodyStat({ weight: value, weight_unit: $weightUnit }, 'weight', 'kg');
+    const goal = resolveGoalFor($goals?.weight, localDateStr());
+    target = String((goal != null ? kg(goal) : DB.getSetting('target_weight', '')) ?? '');
+    const initialWeight = weight;
+    try {
+      const today = localDateStr();
+      const days = await NtApi.getAllDiary();
+      for (const day of [...days].sort((a, b) => b.date.localeCompare(a.date))) {
+        if (day.date > today) continue;
+        const stats = day.body_stats || day.bodyStats;
+        const value = readBodyStat({ weight_unit: $weightUnit, ...stats }, 'weight', 'kg');
+        if (value > 0) {
+          if (weight === initialWeight && step <= 2) weight = String(value);
+          break;
+        }
+      }
+    } catch { /* The profile weight is available when the journal cannot be loaded. */ }
+  });
 
   function number(value) {
     const trimmed = value.trim();
@@ -52,13 +94,14 @@
     saveError = false;
     try {
       const { user } = await NtApi.put('/api/auth/onboarding', {
-        ...(!skip && { ...profile, adult: true }), skip, account,
+        ...(!skip && { ...profile, adult: true }), skip, account, recalculate: recalculating,
       });
       if (get(currentUser)?.id !== user.id) return;
       await loadServerSettings();
       if (get(currentUser)?.id !== user.id) return;
       localStorage.setItem('nt:cachedUser', JSON.stringify(user));
       currentUser.set(user);
+      if (recalculating) await push('/goals');
     } catch {
       saveError = true;
     } finally {
@@ -84,10 +127,10 @@
       <div class="onboarding-mascot"><FamilyMascot decorative mood={step === 0 ? 'smile' : 'curious'} /></div>
     {/if}
     <p class="step-count">{$_('family_onboarding.step', { values: { step: step + 1, total: steps.length } })}</p>
-    <h1 id="onboarding-title" tabindex="-1" bind:this={heading}>{$_('family_onboarding.' + steps[step])}</h1>
+    <h1 id="onboarding-title" tabindex="-1" bind:this={heading}>{$_(recalculating && step === 0 ? 'family_onboarding.recalculate' : 'family_onboarding.' + steps[step])}</h1>
     <form on:submit|preventDefault={advance}>
       {#if step === 0}
-        <p>{$_('family_onboarding.intro')}</p>
+        <p>{$_(recalculating ? 'family_onboarding.recalculate_intro' : 'family_onboarding.intro')}</p>
         <p class="text-2">{$_('family_onboarding.adult_only')}</p>
       {:else if step === 1}
         <fieldset>
@@ -131,7 +174,7 @@
             <div><dt>{$_('family_onboarding.bmi')}</dt><dd>{numbers.format(estimate.bmi)}</dd></div>
           </dl>
           <p>{$_('family_onboarding.' + (estimate.direction === 0 ? 'maintain' : estimate.direction < 0 ? 'lose' : 'gain'))}</p>
-          <p class="text-2">{$_('family_onboarding.indicative')}</p>
+          <p class="text-2">{$_(recalculating ? 'family_onboarding.recalculate_fixed' : 'family_onboarding.indicative')}</p>
         {/if}
       {/if}
       {#if saveError}<p role="alert">{$_('family_onboarding.save_error')}</p>{/if}
@@ -147,7 +190,9 @@
           <button class="btn btn-primary" type="submit" disabled={saving}>{$_(saving ? 'common.saving' : 'family_onboarding.apply')}</button>
         {/if}
       </div>
-      {#if step === 0 || (step === 1 && age && profile.age < 18) || (step === 3 && estimate.error)}
+      {#if recalculating}
+        <button class="btn btn-ghost skip" type="button" disabled={saving} on:click={() => push('/goals')}>{$_('common.cancel')}</button>
+      {:else if step === 0 || (step === 1 && age && profile.age < 18) || (step === 3 && estimate.error)}
         <button class="btn btn-ghost skip" type="button" disabled={saving} on:click={() => save(true)}>{$_('family_onboarding.skip')}</button>
       {/if}
     </form>

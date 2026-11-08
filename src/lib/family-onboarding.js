@@ -1,6 +1,12 @@
 import { Nutrition } from './nutrition.js';
 
 export const ACTIVITY_LEVELS = ['sedentary', 'light', 'moderate', 'active', 'very_active'];
+const MIN_AUTOMATIC_BUDGET = 1200;
+
+export function adaptiveFamilyBudget(tdee, factor) {
+  const budget = Math.round(tdee * factor);
+  return Number.isFinite(budget) && budget >= MIN_AUTOMATIC_BUDGET ? budget : null;
+}
 
 export function estimateFamilyGoals({ gender, age, height_cm, weight_kg, target_weight, activity }) {
   if (!Number.isInteger(age) || age < 18 || age > 120 ||
@@ -21,7 +27,7 @@ export function estimateFamilyGoals({ gender, age, height_cm, weight_kg, target_
   // A starting budget, without a deadline or an assumed rate of weight change.
   const adjustment = Math.min(250, maintenance * 0.10, Math.abs(difference) * 50);
   const calories = Math.round((maintenance + direction * adjustment) / 25) * 25;
-  if (calories < 1200) return { error: 'low_energy', bmi };
+  if (calories < MIN_AUTOMATIC_BUDGET) return { error: 'low_energy', bmi };
 
   return { bmi, maintenance, calories, direction };
 }

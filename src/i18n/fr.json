@@ -1276,6 +1276,12 @@
     }
   },
   "family_onboarding": {
+    "adaptive_budget": "Budget adaptatif",
+    "adaptive_pending": "{available}/{required} jours exploitables. Le budget fixe s’applique en attendant.",
+    "adaptive_unavailable": "Le budget adaptatif est indisponible pour le moment. Le budget fixe s’applique.",
+    "recalculate": "Recalculer mon budget",
+    "recalculate_intro": "Vérifie tes mesures et ton activité pour calculer un nouveau budget quotidien. Ton journal et tes pesées sont conservés.",
+    "recalculate_fixed": "Appliquer cette estimation active le budget fixe. Tu peux réactiver le budget adaptatif dans Objectifs.",
     "step": "Étape {step} sur {total}",
     "welcome": "Trouvons ton point de départ",
     "intro": "Quelques réponses suffisent pour estimer ton budget calorique quotidien. Tu pourras le vérifier avant de l’appliquer.",

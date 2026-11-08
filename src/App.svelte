@@ -878,6 +878,8 @@
   {/if}
 {:else if $currentUser?.onboarding_status === 'pending' && !AUTH_BYPASS.includes($location)}
   {#key $currentUser.id}<FamilyOnboarding />{/key}
+{:else if $currentUser?.id != null && $location === '/recalculate-budget'}
+  {#key $currentUser.id}<FamilyOnboarding recalculating />{/key}
 {:else}
 
 <!-- Sidebar (hamburger menu) -->

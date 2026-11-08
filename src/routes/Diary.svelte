@@ -16,6 +16,7 @@
   import MacroRing    from '../components/diary/MacroRing.svelte';
   import DaySummaryWidget from '../components/diary/DaySummaryWidget.svelte';
   import FamilyDiary from '../components/diary/FamilyDiary.svelte';
+  import { adaptiveFamilyBudget } from '../lib/family-onboarding.js';
   import WaterWidget       from '../components/diary/WaterWidget.svelte';
   import BodyStatsWidget   from '../components/diary/BodyStatsWidget.svelte';
   import ActivityImpactWidget from '../components/diary/ActivityImpactWidget.svelte';
@@ -479,14 +480,21 @@
   // Dynamic calorie goal — fetch yesterday's calories_out when mode = 'dynamic'
   let _dynamicCaloriesOut = null;   // raw burn from device (yesterday)
   let _dynamicGoalDate    = null;   // which diary date we fetched for
-  // Adaptive TDEE — server-computed; cached once per page load
+  // Adaptive TDEE — recheck after a diary entry changes.
   let _adaptiveTdee = null;
+  let _adaptiveRefreshTimer;
+  let _adaptiveRequest = 0;
   // #203: resolve per-weekday when the user has "different target per
   // weekday" turned on. See src/lib/goal-resolver.js for the full
   // rationale and the shared behavior with Statistics.
   $: _fixedGoal = resolveGoalFor($goals?.calories, $currentDate) ?? 2000;
   $: _guidedBudget = $currentUser?.onboarding_status === 'complete';
-  $: _familyBudget = _guidedBudget ? resolveGoalFor($goals?.calories, $currentDate) : $familyCalorieBudget;
+  $: _familyAdaptive = $calorieGoalMode === 'adaptive' && $currentDate === localDateStr()
+    ? adaptiveFamilyBudget(_adaptiveTdee, $calorieGoalFactor)
+    : null;
+  $: _familyBudget = _familyAdaptive ?? (_guidedBudget
+    ? resolveGoalFor($goals?.calories, $currentDate)
+    : $familyCalorieBudget);
 
   function saveFamilyBudget(budget) {
     if (!_guidedBudget) {
@@ -516,15 +524,26 @@
       _dynamicCaloriesOut = r.calories_out;
     } catch { _dynamicCaloriesOut = null; }
   }
-  async function _loadAdaptiveTdee() {
+  async function _loadAdaptiveTdee(request) {
     try {
       const r = await NtApi.get('/api/goals/adaptive-tdee');
-      _adaptiveTdee = r?.ready ? r.tdee : null;
-    } catch { _adaptiveTdee = null; }
+      if (request === _adaptiveRequest) _adaptiveTdee = r?.ready ? r.tdee : null;
+    } catch {
+      if (request === _adaptiveRequest) _adaptiveTdee = null;
+    }
   }
 
   $: if ($calorieGoalMode === 'dynamic' && $currentDate) _loadDynamicGoal($currentDate);
-  $: if ($calorieGoalMode === 'adaptive' && _adaptiveTdee == null) _loadAdaptiveTdee();
+  $: {
+    $currentEntry;
+    clearTimeout(_adaptiveRefreshTimer);
+    const request = ++_adaptiveRequest;
+    if ($calorieGoalMode === 'adaptive') {
+      _adaptiveRefreshTimer = setTimeout(() => _loadAdaptiveTdee(request), 350);
+    } else {
+      _adaptiveTdee = null;
+    }
+  }
 
   // Activity offset — load whenever date changes (gated on the toggle)
   $: if ($diaryShowActivity && $currentDate) loadActivity($currentDate);
@@ -1118,6 +1137,8 @@
     document.body.classList.toggle('has-day-status', !!$diaryShowCompletion && !$familyDiaryMode);
   }
   onDestroy(() => {
+    clearTimeout(_adaptiveRefreshTimer);
+    _adaptiveRequest++;
     if (typeof document !== 'undefined') document.body.classList.remove('has-day-status');
   });
 
@@ -2046,6 +2067,7 @@
       <FamilyDiary
         calories={$currentEntry?.date === $currentDate ? totals.calories : 0}
         budget={_familyBudget}
+        adaptiveBudget={_familyAdaptive != null}
         {meals}
         date={$currentDate}
         onSaveBudget={saveFamilyBudget}

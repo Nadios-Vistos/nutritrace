@@ -181,7 +181,10 @@ router.put('/onboarding', requireAuth, wrap((req, res) => {
   const getUser = db.prepare('SELECT * FROM users WHERE id = ?');
   const user = db.transaction(() => {
     const current = getUser.get(id);
-    if (current?.onboarding_status !== 'pending') return current;
+    if (!current) return null;
+    const recalculating = body.recalculate === true;
+    if (current.onboarding_status !== 'pending' && !recalculating) return current;
+    if (recalculating && (body.skip === true || current.onboarding_status === 'pending')) return null;
     const profile = {
       gender: body.gender, age: body.age, height_cm: body.height_cm,
       weight_kg: body.weight_kg, target_weight: body.target_weight, activity: body.activity,
@@ -196,14 +199,25 @@ router.put('/onboarding', requireAuth, wrap((req, res) => {
       const { calories, maintenance } = estimate;
       const target = profile.target_weight;
       const gaining = estimate.direction > 0;
+      const weightUnit = recalculating
+        ? db.prepare(`SELECT value FROM user_settings
+            WHERE user_id = ? AND key = 'weightUnit' AND deleted_at IS NULL`).get(id)?.value
+        : null;
+      const goalWeight = recalculating && (weightUnit == null || weightUnit === '"lb"' || weightUnit === 'lb')
+        ? Math.round(target * 2.20462 * 10) / 10
+        : target;
       const settings = {
         gender: profile.gender, height_cm: profile.height_cm, weight_kg: profile.weight_kg,
-        target_weight: target, activity: profile.activity, tdee: maintenance, weightUnit: 'kg',
-        familyDiaryMode: true, familyCalorieBudget: null, calorieGoalMode: 'fixed', energyUnit: 'kcal',
+        familyProfileAge: profile.age, target_weight: target, activity: profile.activity, tdee: maintenance,
+        ...(!recalculating && { familyDiaryMode: true, weightUnit: 'kg', energyUnit: 'kcal' }),
+        familyCalorieBudget: null, calorieGoalMode: 'fixed',
+        calorieGoalFactor: estimate.direction === 0
+          ? 1
+          : Math.min(1.1, Math.max(0.9, Math.round(calories / maintenance * 1000) / 1000)),
         goals: {
           ...goals,
           calories: { max: calories, sharedGoal: true, isMin: false, showInDiary: true, showInStats: true, days: Array(7).fill(calories) },
-          weight: { [gaining ? 'min' : 'max']: target, sharedGoal: true, isMin: gaining, showInDiary: false, showInStats: true, days: Array(7).fill(target) },
+          weight: { [gaining ? 'min' : 'max']: goalWeight, sharedGoal: true, isMin: gaining, showInDiary: false, showInStats: true, days: Array(7).fill(goalWeight) },
         },
       };
       const upsert = db.prepare(`INSERT INTO user_settings (user_id, key, value, updated_at)

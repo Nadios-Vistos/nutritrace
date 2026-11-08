@@ -108,7 +108,7 @@ function _linReg(points) {
 export function computeAdaptiveTdee(userId, opts = {}) {
   const windowDays = opts.windowDays || DEFAULT_WINDOW_DAYS;
   const minValid   = opts.minValidDays || MIN_VALID_DAYS;
-  const startDate  = _isoDaysAgo(windowDays - 1);
+  const startDate  = _isoDaysAgo(windowDays);
   const endDate    = _isoDaysAgo(0);
 
   // --- Diary: intake + manual weight ---
@@ -138,7 +138,7 @@ export function computeAdaptiveTdee(userId, opts = {}) {
     }
   }
 
-  // --- Build dense series, day-by-day, from windowDays ago to today ---
+  // Include today's weigh-in to anchor interpolation, but its intake is still partial.
   const intakeByDate = new Map();
   const manualByDate = new Map();
   for (const r of diaryRows) {
@@ -150,9 +150,9 @@ export function computeAdaptiveTdee(userId, opts = {}) {
 
   const series = []; // [{ date, intake, weight, weightSource }]
   let usedWellness = false, usedManual = false;
-  for (let i = 0; i < windowDays; i++) {
-    const date = _isoDaysAgo(windowDays - 1 - i);
-    const intake = intakeByDate.get(date) ?? null;
+  for (let i = 0; i <= windowDays; i++) {
+    const date = _isoDaysAgo(windowDays - i);
+    const intake = date === endDate ? null : intakeByDate.get(date) ?? null;
     let weight = null, weightSource = null;
     const wellness = wellnessByDate.get(date);
     if (wellness) { weight = wellness.value; weightSource = 'wellness'; usedWellness = true; }
@@ -197,7 +197,8 @@ export function computeAdaptiveTdee(userId, opts = {}) {
   }
 
   // --- Linear regression on weight ---
-  const points = valid.map((s, i) => [i, s.weight]);
+  const start = Date.parse(startDate);
+  const points = valid.map(s => [(Date.parse(s.date) - start) / 86400000, s.weight]);
   const { slope, r2 } = _linReg(points);
   const slopeKgPerDay = slope;
   const dailyEnergyBalance = slopeKgPerDay * KCAL_PER_KG;
