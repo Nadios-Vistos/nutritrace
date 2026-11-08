@@ -1570,6 +1570,10 @@
     "peak_hr": "Peak HR"
   },
   "diary_deep": {
+    "log_weight": "Log weight",
+    "weight_save_error": "Could not save this weigh-in.",
+    "weight_not_logged": "Weight not logged",
+    "no_measurements_logged": "No measurements logged for this date",
     "macro_energy_share": "Energy breakdown",
     "energy_eaten": "Energy consumed ({unit})",
     "toggle_totals": "Show consumed or remaining totals",

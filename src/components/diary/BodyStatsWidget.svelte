@@ -12,6 +12,7 @@
    *   Log Stats CTA   — opens the full Body Stats sheet
    */
   import { slide } from 'svelte/transition';
+  import { _, locale } from 'svelte-i18n';
   import { decimalInput, parseDecimal } from '../../lib/decimal-input.js';
 
   export let currentWeight = null;
@@ -21,19 +22,10 @@
   export let onSaveWeight  = async (_val) => {};
   export let onOpen        = () => {};
 
-  const ROWS = [
-    { key: 'waist',  label: 'Waist'  },
-    { key: 'hips',   label: 'Hips'   },
-    { key: 'chest',  label: 'Chest'  },
-    { key: 'neck',   label: 'Neck'   },
-    { key: 'thighs', label: 'Thighs' },
-    { key: 'biceps', label: 'Biceps' },
-    { key: 'calves', label: 'Calves' },
-  ];
+  const ROWS = ['waist', 'hips', 'chest', 'neck', 'thighs', 'biceps', 'calves'];
 
   $: measurementRows = ROWS
-    .filter(r => stats[r.key] != null && stats[r.key] !== '')
-    .map(r => ({ ...r, value: stats[r.key] }));
+    .filter(key => stats[key] != null && stats[key] !== '');
   $: hasMeasurements = measurementRows.length > 0;
 
   let editing = false;
@@ -77,8 +69,8 @@
 <section class="bs-widget card">
   <header class="bs-header">
     <span class="material-symbols-rounded bs-icon">monitor_weight</span>
-    <span class="bs-title">Body Stats</span>
-    <button class="bs-open" on:click={onOpen} title="Open Body Stats sheet">
+    <span class="bs-title">{$_('diary_deep.body_stats')}</span>
+    <button class="bs-open" on:click={onOpen} aria-label={$_('diary.actions.body_stats_long')} title={$_('diary.actions.body_stats_long')}>
       <span class="material-symbols-rounded">open_in_full</span>
     </button>
   </header>
@@ -88,15 +80,15 @@
     {#if !editing}
       {#if currentWeight != null}
         <div class="bs-weight-value">
-          <span class="bs-w-num">{currentWeight}</span>
+          <span class="bs-w-num">{Number(currentWeight).toLocaleString($locale || undefined)}</span>
           <span class="bs-w-unit">{weightUnit}</span>
         </div>
-        <button class="bs-edit-inline" on:click={startEditWeight} title="Edit today's weight">
+        <button class="bs-edit-inline" on:click={startEditWeight} aria-label={$_('diary_deep.log_weight')} title={$_('diary_deep.log_weight')}>
           <span class="material-symbols-rounded">edit</span>
         </button>
       {:else}
-        <span class="bs-weight-empty">Weight not logged</span>
-        <button class="bs-quick-log" on:click={startEditWeight}>Log</button>
+        <span class="bs-weight-empty">{$_('diary_deep.weight_not_logged')}</span>
+        <button class="bs-quick-log" on:click={startEditWeight}>{$_('diary_deep.log_weight')}</button>
       {/if}
     {:else}
       <div class="bs-edit-form" transition:slide={{ duration: 160 }}>
@@ -108,14 +100,15 @@
           inputmode="decimal"
           use:decimalInput
           placeholder={weightUnit}
+          aria-label={$_('metric_names.weight') + ' (' + weightUnit + ')'}
           class="input bs-edit-input"
           disabled={saving}
         />
         <button class="btn btn-primary bs-save" on:click={commitWeight} disabled={saving}>
-          {saving ? '…' : 'Save'}
+          {$_(saving ? 'common.saving' : 'common.save')}
         </button>
         <button class="btn btn-ghost bs-cancel" on:click={cancelWeight} disabled={saving}>
-          Cancel
+          {$_('common.cancel')}
         </button>
       </div>
     {/if}
@@ -126,19 +119,19 @@
   <!-- Measurements section -->
   {#if hasMeasurements}
     <ul class="bs-list">
-      {#each measurementRows as row (row.key)}
+      {#each measurementRows as key (key)}
         <li class="bs-row">
-          <span class="bs-label">{row.label}</span>
-          <span class="bs-value">{row.value} <span class="bs-unit">{lengthUnit}</span></span>
+          <span class="bs-label">{$_('metric_names.' + key)}</span>
+          <span class="bs-value">{Number(stats[key]).toLocaleString($locale || undefined)} <span class="bs-unit">{lengthUnit}</span></span>
         </li>
       {/each}
     </ul>
   {:else}
-    <div class="bs-empty">No measurements logged today</div>
+    <div class="bs-empty">{$_('diary_deep.no_measurements_logged')}</div>
   {/if}
 
   <button class="btn btn-primary bs-log-btn" on:click={onOpen}>
-    Log Stats
+    {$_('diary.actions.body_stats')}
   </button>
 </section>
 

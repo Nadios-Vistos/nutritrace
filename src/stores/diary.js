@@ -1,4 +1,4 @@
-import { writable, derived } from 'svelte/store';
+import { writable, derived, get } from 'svelte/store';
 import { NtApi } from '../lib/api.js';
 import { Nutrition, hydrationTotal } from '../lib/nutrition.js';
 import { localDateStr, DB } from '../lib/db.js';
@@ -783,9 +783,7 @@ export async function saveDiaryNote(notes) {
   });
 }
 
-export async function saveBodyStats(stats) {
-  let viewDate = null;
-  currentDate.subscribe(v => viewDate = v)();
+export async function saveBodyStats(stats, viewDate = get(currentDate)) {
   if (!viewDate) return;
   await _refetchAndSave(viewDate, (entry) => ({
     ...entry,

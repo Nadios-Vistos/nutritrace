@@ -185,6 +185,32 @@
   // after a unit toggle; on save, we re-tag with the current unit.
   let bodyStatsData = {};
   let weightInput;            // focus target when the sheet opens
+  let quickWeightOpen = false;
+  let quickWeightDate = '';
+  let quickWeightValue = '';
+  let quickWeightSaving = false;
+  const measurementKeys = ['body_fat', 'body_water', ...LENGTH_KEYS];
+
+  function openQuickWeight() {
+    quickWeightDate = $currentDate;
+    quickWeightValue = _widgetWeight == null ? '' : String(_widgetWeight);
+    quickWeightOpen = true;
+  }
+
+  async function saveQuickWeight() {
+    const value = parseDecimal(quickWeightValue);
+    if (quickWeightSaving || !Number.isFinite(value) || value <= 0) return;
+    quickWeightSaving = true;
+    try {
+      await _widgetSaveWeight(value, quickWeightDate);
+      quickWeightOpen = false;
+    } catch {
+      showError($_('diary_deep.weight_save_error'));
+    } finally {
+      quickWeightSaving = false;
+    }
+  }
+
   function openBodyStats() {
     const raw = entry.bodyStats || {};
     const wu = $weightUnit || 'kg';
@@ -229,11 +255,11 @@
   // aren't touched. val === null means the user cleared the field, which
   // saveBodyStats propagates as weight=null; readBodyStat then filters it
   // out on display so the rail card and sheet both show "Not logged" (#168).
-  async function _widgetSaveWeight(val) {
+  async function _widgetSaveWeight(val, date) {
     const stats = val == null
       ? { weight: null }
       : tagBodyStats({ weight: val }, $weightUnit || 'kg', $lengthUnit || 'in');
-    await saveBodyStats(stats);
+    await saveBodyStats(stats, date);
     showSuccess($_('diary.toast.body_stats_saved'));
   }
 
@@ -1854,6 +1880,12 @@
       <h1 class="select-mode-title">{selectedItems.size} selected</h1>
     {:else}
       <h1>{$_('routes.diary.title')}</h1>
+      {#if $familyDiaryMode && !($hiddenBodyStats || []).includes('weight')}
+        <button class="btn diary-quick-weight" type="button" on:click={openQuickWeight}>
+          <span class="material-symbols-rounded" aria-hidden="true">scale</span>
+          {$_('metric_names.weight')}
+        </button>
+      {/if}
     {/if}
   </header>
 
@@ -2923,6 +2955,21 @@
   </div>
 {/if}
 
+<Sheet bind:open={quickWeightOpen} title={$_('diary_deep.log_weight')}>
+  <form class="quick-weight-form" on:submit|preventDefault={saveQuickWeight}>
+    {#if quickWeightDate}
+      <p class="text-2">{new Date(quickWeightDate + 'T12:00:00').toLocaleDateString($locale || undefined, { dateStyle: 'long' })}</p>
+    {/if}
+    <label>
+      {$_('metric_names.weight')} ({$weightUnit || 'kg'})
+      <input class="input" type="text" inputmode="decimal" use:decimalInput bind:value={quickWeightValue} disabled={quickWeightSaving} />
+    </label>
+    <button class="btn btn-primary" type="submit" disabled={quickWeightSaving || !(parseDecimal(quickWeightValue) > 0)}>
+      {$_(quickWeightSaving ? 'common.saving' : 'common.save')}
+    </button>
+  </form>
+</Sheet>
+
 <!-- Body Stats Sheet -->
 {#if $diaryShowBodyStats}
   <div use:portal class="sheet-backdrop" role="dialog" aria-modal="true"
@@ -2939,45 +2986,19 @@
       <div class="bs-sheet-body">
         <div class="bs-grid">
           {#if !($hiddenBodyStats||[]).includes('weight')}
-          <div><label class="form-label">Weight ({$weightUnit||'kg'})</label>
-            <input class="input" type="text" inputmode="decimal" use:decimalInput bind:value={bodyStatsData.weight} bind:this={weightInput} /></div>
+            <div>
+              <label class="form-label" for="body-stat-weight">{$_('metric_names.weight')} ({$weightUnit || 'kg'})</label>
+              <input id="body-stat-weight" class="input" type="text" inputmode="decimal" use:decimalInput bind:value={bodyStatsData.weight} bind:this={weightInput} />
+            </div>
           {/if}
-          {#if !($hiddenBodyStats||[]).includes('body_fat')}
-          <div><label class="form-label">Body Fat %</label>
-            <input class="input" type="text" inputmode="decimal" use:decimalInput max="100" bind:value={bodyStatsData.body_fat} /></div>
-          {/if}
-          {#if !($hiddenBodyStats||[]).includes('body_water')}
-          <div><label class="form-label">Body Water %</label>
-            <input class="input" type="text" inputmode="decimal" use:decimalInput max="100" bind:value={bodyStatsData.body_water} /></div>
-          {/if}
-          {#if !($hiddenBodyStats||[]).includes('neck')}
-          <div><label class="form-label">Neck ({$lengthUnit||'in'})</label>
-            <input class="input" type="text" inputmode="decimal" use:decimalInput bind:value={bodyStatsData.neck} /></div>
-          {/if}
-          {#if !($hiddenBodyStats||[]).includes('waist')}
-          <div><label class="form-label">Waist ({$lengthUnit||'in'})</label>
-            <input class="input" type="text" inputmode="decimal" use:decimalInput bind:value={bodyStatsData.waist} /></div>
-          {/if}
-          {#if !($hiddenBodyStats||[]).includes('hips')}
-          <div><label class="form-label">Hips ({$lengthUnit||'in'})</label>
-            <input class="input" type="text" inputmode="decimal" use:decimalInput bind:value={bodyStatsData.hips} /></div>
-          {/if}
-          {#if !($hiddenBodyStats||[]).includes('chest')}
-          <div><label class="form-label">Chest ({$lengthUnit||'in'})</label>
-            <input class="input" type="text" inputmode="decimal" use:decimalInput bind:value={bodyStatsData.chest} /></div>
-          {/if}
-          {#if !($hiddenBodyStats||[]).includes('thighs')}
-          <div><label class="form-label">Thighs ({$lengthUnit||'in'})</label>
-            <input class="input" type="text" inputmode="decimal" use:decimalInput bind:value={bodyStatsData.thighs} /></div>
-          {/if}
-          {#if !($hiddenBodyStats||[]).includes('biceps')}
-          <div><label class="form-label">Biceps ({$lengthUnit||'in'})</label>
-            <input class="input" type="text" inputmode="decimal" use:decimalInput bind:value={bodyStatsData.biceps} /></div>
-          {/if}
-          {#if !($hiddenBodyStats||[]).includes('calves')}
-          <div><label class="form-label">Calves ({$lengthUnit||'in'})</label>
-            <input class="input" type="text" inputmode="decimal" use:decimalInput bind:value={bodyStatsData.calves} /></div>
-          {/if}
+          {#each measurementKeys as key}
+            {#if !($hiddenBodyStats || []).includes(key)}
+              <div>
+                <label class="form-label" for={'body-stat-' + key}>{$_('metric_names.' + key)} ({LENGTH_KEYS.includes(key) ? $lengthUnit || 'in' : '%'})</label>
+                <input id={'body-stat-' + key} class="input" type="text" inputmode="decimal" use:decimalInput bind:value={bodyStatsData[key]} />
+              </div>
+            {/if}
+          {/each}
         </div>
       </div>
       <div class="bs-sheet-footer">
@@ -3180,6 +3201,11 @@
     background: none;
     -webkit-text-fill-color: currentColor;
   }
+  .diary-quick-weight { min-height: 32px; padding: 4px 10px; gap: 6px; color: inherit; border: 1px solid #ffffff48; background: #350b1c60; }
+  .diary-quick-weight .material-symbols-rounded { font-size: 19px; }
+  .quick-weight-form { display: grid; gap: 12px; padding-block: 6px; }
+  .quick-weight-form p { margin: 0; }
+  .quick-weight-form .input { display: block; width: 100%; margin-top: 5px; }
   .day-status-anchor { display: contents; }
   .family-page .diary-date-bar {
     background: var(--family-surface);

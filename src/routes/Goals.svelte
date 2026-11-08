@@ -392,10 +392,12 @@
     const id = _statsIdForGoal(stat);
     if (id) push('#/statistics?metric=' + id + '&range=1M');
   }
-  function openEdit(stat) {
+  let quickWeightGoal = false;
+  function openEdit(stat, quick = false) {
     editStat = stat;
     const storageId = _goalStorageId(stat.id);
     const g = $goals[storageId];
+    quickWeightGoal = quick && g?.sharedGoal !== false;
     const kj = (stat.id === 'kilojoules') ||
                (stat.id === 'calories_out' && $energyUnit === 'kJ');
     const toDisp = (v) => kj && v != null && v !== '' ? Math.round(Nutrition.kcalToKj(parseFloat(v))) : v;
@@ -430,6 +432,11 @@
                (editStat.id === 'calories_out' && $energyUnit === 'kJ');
     const toStore = (n) => kj && n != null ? n / 4.184 : n;
     const val = toStore(parseDecimal(editVal0) || null);
+    if (quickWeightGoal) {
+      if (!Number.isFinite(val) || val <= 0) return;
+      const currentWeight = getTodayValue(editStat);
+      if (Number.isFinite(currentWeight)) editIsMin = val > currentWeight;
+    }
     const dayArr = editShared
       ? Array(7).fill(val)
       : editDayVals.map(v => toStore(parseDecimal(v) || null));
@@ -704,12 +711,10 @@
           <div class="text-2">{$_('family_onboarding.budget')}</div>
           <strong>{guidedBudget == null ? '—' : guidedBudget.toLocaleString($locale || undefined) + ' ' + $_('family_onboarding.kcal_day')}</strong>
         </div>
-        {#if guidedWeight != null}
-          <div>
-            <div class="text-2">{$_('family_onboarding.weight_goal')}</div>
-            <strong>{guidedWeight.toLocaleString($locale || undefined)} {$weightUnit}</strong>
-          </div>
-        {/if}
+        <button type="button" class="guided-weight" on:click={() => openEdit(bodyStatsWithUnit.find(stat => stat.id === 'weight'), true)}>
+          <span class="text-2">{$_('family_onboarding.weight_goal')} <span class="material-symbols-rounded" aria-hidden="true">edit</span></span>
+          <strong>{guidedWeight == null ? '—' : guidedWeight.toLocaleString($locale || undefined) + ' ' + wUnit}</strong>
+        </button>
         <button type="button" class="btn btn-secondary" aria-expanded={showAdvanced} on:click={() => showAdvanced = !showAdvanced}>
           {$_(showAdvanced ? 'family_onboarding.hide_advanced' : 'family_onboarding.advanced')}
         </button>
@@ -1316,10 +1321,11 @@
     <div class="sheet-panel" on:click|stopPropagation on:keydown={() => {}}>
       <div class="sheet-handle"></div>
       <div class="sheet-header">
-        <h3 class="sheet-title">{$_((editStat.isBody ? 'metric_names.' : 'nutrient_names.') + editStat.id, { default: editStat.label })} {_editUnit ? '('+_editUnit+')' : ''}</h3>
+        <h3 class="sheet-title">{$_(quickWeightGoal ? 'family_onboarding.weight_goal' : (editStat.isBody ? 'metric_names.' : 'nutrient_names.') + editStat.id, { default: editStat.label })} {_editUnit ? '('+_editUnit+')' : ''}</h3>
       </div>
       <div class="sheet-body" bind:this={_editGoalSheetEl} on:keydown={_onEditGoalKey}>
 
+        {#if !quickWeightGoal}
         <!-- Display options -->
         {#if !editStat?.isWellness}
           <p class="goal-section-label">{$_('goals_page.editor.display')}</p>
@@ -1385,12 +1391,13 @@
         </div>
 
         <div class="divider" style="margin:12px 0 8px"></div>
+        {/if}
 
         <!-- Goal value(s) -->
         <p class="goal-section-label">{editShared ? $_('goals_page.editor.target') : $_('goals_page.editor.targets_per_day')}</p>
         {#if editShared}
-          <label class="form-label">{$_('goals_page.editor.value_label', { values: { unit: editIsPercent ? $_('goals_page.editor.value_percent_of_cal') : (_editUnit || '') } })}</label>
-          <input class="input" type="text" inputmode="decimal" use:decimalInput
+          <label class="form-label" for="goal-value">{$_('goals_page.editor.value_label', { values: { unit: editIsPercent ? $_('goals_page.editor.value_percent_of_cal') : (_editUnit || '') } })}</label>
+          <input id="goal-value" class="input" type="text" inputmode="decimal" use:decimalInput
             placeholder="0" bind:value={editVal0} />
         {:else}
           {#each DAYS as day, i}
@@ -1401,12 +1408,12 @@
         {/if}
       </div>
       <div class="sheet-footer">
-        {#if $goals[editStat?.id]}
+        {#if !quickWeightGoal && $goals[editStat?.id]}
           <button class="btn btn-danger w-full" style="margin-bottom:8px" on:click={deleteGoal}>
             {$_('goals_page.editor.remove_goal')}
           </button>
         {/if}
-        <button class="btn btn-primary w-full" on:click={saveGoal}>{$_('goals.save_goal')}</button>
+        <button class="btn btn-primary w-full" on:click={saveGoal} disabled={quickWeightGoal && !(parseDecimal(editVal0) > 0)}>{$_('goals.save_goal')}</button>
       </div>
     </div>
   </div>
@@ -1475,6 +1482,8 @@
 <style>
   .guided-goals { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; justify-content: space-between; padding: 16px; }
   .guided-goals strong { font-size: 1.25rem; color: var(--accent); }
+  .guided-weight { display: grid; text-align: start; border: 1px solid var(--border); border-radius: var(--radius-md); padding: 6px 10px; }
+  .guided-weight .material-symbols-rounded { font-size: 14px; vertical-align: middle; }
 
   .tab-bar {
     display: flex; border-bottom: 1px solid var(--border);

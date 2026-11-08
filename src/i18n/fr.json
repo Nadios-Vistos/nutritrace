@@ -1185,6 +1185,10 @@
     "anim_aurora": "Aurore"
   },
   "diary_deep": {
+    "log_weight": "Enregistrer une pesée",
+    "weight_save_error": "Impossible d’enregistrer cette pesée.",
+    "weight_not_logged": "Poids non renseigné",
+    "no_measurements_logged": "Aucune mesure renseignée pour cette date",
     "macro_energy_share": "Répartition de l’énergie",
     "energy_eaten": "Énergie consommée ({unit})",
     "toggle_totals": "Afficher les quantités consommées ou restantes",
