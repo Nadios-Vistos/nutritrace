@@ -722,6 +722,14 @@
       // Object.entries(item.nutrition) on the nested path so any key
       // written here flows through calculations without further changes.
       const _nutrition = {};
+      if (food.beverage_ml != null) {
+        const volume = Number(String(food.beverage_ml).trim().replace(',', '.'));
+        if (!Number.isFinite(volume) || volume <= 0) {
+          showError($_('water_tracking.invalid_amount'));
+          return;
+        }
+        _nutrition.beverage_ml = volume;
+      }
       for (const _n of [...NUTRIMENTS, ...($customNutriments || [])]) {
         const _v = food[_n.id];
         if (_v !== undefined && _v !== '' && _v !== null && !isNaN(parseDecimal(_v))) {
@@ -999,6 +1007,18 @@
           on:click={() => { linked = !linked; if (linked) takeSnapshot(); }}>
           <span class="material-symbols-rounded" style="font-size:20px">{linked ? 'link' : 'link_off'}</span>
         </button>
+      </div>
+
+      <div class="form-group">
+        <label>
+          <input type="checkbox" checked={food.beverage_ml != null}
+            on:change={event => food.beverage_ml = event.currentTarget.checked ? (food.unit === 'ml' ? food.portion : '') : null} />
+          {$_('water_tracking.count_beverage')}
+        </label>
+        {#if food.beverage_ml != null}
+          <label class="form-label" for="beverage-volume">{$_('water_tracking.beverage_serving')}</label>
+          <input id="beverage-volume" class="input" type="text" inputmode="decimal" use:decimalInput bind:value={food.beverage_ml} />
+        {/if}
       </div>
 
       <!-- Issues #69 + #70: nutrition_basis + alt_units + density editor.

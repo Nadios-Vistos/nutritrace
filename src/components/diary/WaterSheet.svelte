@@ -2,10 +2,12 @@
   import { _, locale } from 'svelte-i18n';
   import Sheet from '../ui/Sheet.svelte';
   import { decimalInput } from '../../lib/decimal-input.js';
+  import { beverageVolume } from '../../lib/nutrition.js';
   import { formatWater, parseWaterVolume, waterInputValue, waterContainerLabel, waterUnitLabel } from '../../lib/water-volume.js';
 
   export let dateLabel;
   export let logs = [];
+  export let items = [];
   export let total = 0;
   export let goal = 0;
   export let unit = 'ml';
@@ -19,6 +21,7 @@
   const fallback = [250, 500, 1000].map(volumeMl => ({ id: volumeMl, volumeMl }));
   $: shortcuts = containers.length ? containers : fallback;
   $: orderedLogs = logs.map((log, index) => ({ log, index })).reverse();
+  $: beverages = items.map(item => ({ name: item.name, volume: beverageVolume(item) })).filter(item => item.volume > 0);
   $: format = (ml) => formatWater(ml, unit, $locale);
   $: volumeLabel = $_('water_tracking.volume', { values: { unit: waterUnitLabel(unit) } });
 
@@ -144,7 +147,7 @@
 
     <section class="history" aria-labelledby="water-history-heading">
       <h3 id="water-history-heading">{$_('water_tracking.history')}</h3>
-      {#if !logs.length}
+      {#if !logs.length && !beverages.length}
         <p>{$_('water_tracking.empty')}</p>
       {:else}
         <ul>
@@ -173,6 +176,15 @@
                 </div>
               {/if}
             </li>
+          {/each}
+        </ul>
+      {/if}
+      {#if beverages.length}
+        <h4>{$_('water_tracking.diary_beverages')}</h4>
+        <p>{$_('water_tracking.diary_beverages_help')}</p>
+        <ul>
+          {#each beverages as beverage}
+            <li class="beverage-row"><span>{beverage.name}</span><strong>{format(beverage.volume)}</strong></li>
           {/each}
         </ul>
       {/if}
@@ -207,5 +219,8 @@
   .log-row { display: flex; align-items: center; gap: 4px; }
   .log-row > span { flex: 1; }
   .log-row small { margin-inline-start: 6px; color: var(--text-2); }
+  h4 { margin: 10px 0 4px; font-size: .9rem; }
+  .beverage-row { display: flex; justify-content: space-between; gap: 8px; }
+  .beverage-row strong { flex-shrink: 0; }
   .error { color: var(--danger); margin: 0; }
 </style>

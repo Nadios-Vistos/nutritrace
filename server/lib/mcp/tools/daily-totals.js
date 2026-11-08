@@ -15,7 +15,7 @@
  */
 import { z } from 'zod';
 import db from '../../../db.js';
-import { Nutrition } from '../../../../src/lib/nutrition.js';
+import { Nutrition, hydrationTotal } from '../../../../src/lib/nutrition.js';
 import { DATE_RE, safeJson, todayLocal, toolResult, toolError, isCalendarDate } from '../_util.js';
 
 /**
@@ -45,7 +45,7 @@ export function diaryRowTotals(date, row) {
   const totals = Nutrition.sum(items.map(i => Nutrition.calculate(i)));
   // Round to 1 decimal place, matches how the diary top-bar renders.
   for (const k of Object.keys(totals)) totals[k] = Math.round(totals[k] * 10) / 10;
-  const water_ml = waterLogs.reduce((s, l) => s + (Number(l.amount) || 0), 0);
+  const water_ml = hydrationTotal(items, waterLogs);
   return { date, totals, water_ml, item_count: items.length };
 }
 

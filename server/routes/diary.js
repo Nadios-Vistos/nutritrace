@@ -8,7 +8,7 @@ import { dispatchWebhookEvent } from '../lib/webhooks.js';
 import { getGoalsCore } from '../lib/mcp/tools/goals.js';
 import { dailyTotalsCore } from '../lib/mcp/tools/daily-totals.js';
 import { checkNutritionGoalCrossing, checkWaterGoalCrossing } from '../lib/goal-webhook.js';
-import { Nutrition } from '../../src/lib/nutrition.js';
+import { Nutrition, hydrationTotal } from '../../src/lib/nutrition.js';
 import { clientClock, parseUtc, pushWins, editStamp, resolveNote, sqlTime } from '../lib/sync-clock.js';
 
 const router = Router();
@@ -213,7 +213,7 @@ router.put('/:date', wrap((req, res) => {
     try {
       const newWaterEntries = mergedWater.filter(w => w.uuid && !serverWater.some(s => s.uuid === w.uuid));
       if (newWaterEntries.length) {
-        const water_ml = mergedWater.reduce((s, l) => s + (Number(l.amount) || 0), 0);
+        const water_ml = hydrationTotal(mergedItems, mergedWater);
         dispatchWebhookEvent(u, 'water.logged', { date, water_ml, added: newWaterEntries });
       }
     } catch (e) { /* never let a webhook failure block the save */ }
@@ -238,7 +238,7 @@ router.put('/:date', wrap((req, res) => {
       const priorItems = (existingRow && !existingRow.deleted_at) ? serverItems : [];
       const priorWater = (existingRow && !existingRow.deleted_at) ? serverWater : [];
       const beforeTotals = Nutrition.sum(priorItems.map(i => Nutrition.calculate(i)));
-      const beforeWaterMl = priorWater.reduce((s, l) => s + (Number(l.amount) || 0), 0);
+      const beforeWaterMl = hydrationTotal(priorItems, priorWater);
       const after = dailyTotalsCore(u, { date });
 
       checkNutritionGoalCrossing(u, date, goals, beforeTotals, after.totals);

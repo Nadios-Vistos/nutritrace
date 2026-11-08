@@ -66,7 +66,7 @@
   import { NtApi } from '../lib/api.js';
   import { DB, localDateStr } from '../lib/db.js';
   import { portal } from '../lib/portal.js';
-  import { Nutrition, NUTRIMENTS } from '../lib/nutrition.js';
+  import { Nutrition, NUTRIMENTS, hydrationTotal } from '../lib/nutrition.js';
   import { readBodyStat, tagBodyStats, LENGTH_KEYS } from '../lib/body-stats-unit.js';
   import { decimalInput, parseDecimal } from '../lib/decimal-input.js';
   import { pageScrollTop } from '../lib/scroll-anchor.js';
@@ -1540,7 +1540,7 @@
 
 
   $: _waterLogs = entry.water || [];
-  $: _waterTotal = _waterLogs.reduce((sum, log) => sum + (Number(log.amount) || 0), 0);
+  $: _waterTotal = hydrationTotal(entry.items, _waterLogs);
   $: _waterRawPct = $waterGoalMl > 0 ? Math.round(_waterTotal / $waterGoalMl * 100) : 0;
   $: _waterPct = Math.min(100, _waterRawPct);
   $: waterDisplay = (ml) => formatWater(ml, $waterUnit, $locale);
@@ -2610,6 +2610,7 @@
     <WaterSheet
       dateLabel={formatDate($currentDate, dateLabels, $locale || undefined)}
       logs={_waterLogs}
+      items={entry.items}
       total={_waterTotal}
       goal={$waterGoalMl}
       unit={$waterUnit}

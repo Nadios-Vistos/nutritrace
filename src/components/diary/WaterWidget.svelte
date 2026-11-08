@@ -30,7 +30,6 @@
   let customInput;
 
   $: pct = goalMl > 0 ? Math.min(100, Math.round((totalMl / goalMl) * 100)) : 0;
-  $: displayGoal  = formatMl(goalMl);
 
   // Brief pulse animation on the bar when totalMl grows (new log added
   // via a quick-add button). Increments a key so the class toggles even

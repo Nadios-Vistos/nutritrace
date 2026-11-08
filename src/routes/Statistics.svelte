@@ -10,7 +10,7 @@
   import { DB, localDateStr } from '../lib/db.js';
   import { NtApi } from '../lib/api.js';
   import { currentDate } from '../stores/diary.js';
-  import { NUTRIMENTS, Nutrition } from '../lib/nutrition.js';
+  import { NUTRIMENTS, Nutrition, hydrationTotal } from '../lib/nutrition.js';
   import { readBodyStat } from '../lib/body-stats-unit.js';
   import { resolveRangeGoal } from '../lib/goal-resolver.js';
   import { goals, energyUnit, weightUnit, lengthUnit, statsChartType, statsYZero,
@@ -348,7 +348,7 @@
           const entry = entryMap[date];
           if (entry) {
             if (isWater) {
-              const total = (entry.water || []).reduce((s, l) => s + (l.amount || 0), 0);
+              const total = hydrationTotal(entry.items || [], entry.water || []);
               val = total > 0 ? total : null;
             } else if (isBodyStat) {
               const bs = entry.body_stats || entry.bodyStats || {};

@@ -1,6 +1,7 @@
 import nodemailer from 'nodemailer';
 import db from './db.js';
 import { logger } from './logger.js';
+import { hydrationTotal } from '../src/lib/nutrition.js';
 
 /** Seed app_config from env vars at startup (env vars take priority) */
 export function seedSmtpFromEnv() {
@@ -444,7 +445,7 @@ export async function sendWeeklySummaryEmail(userId, origin) {
         totalProt += dayProt;
         totalCarb += dayCarb;
         totalFat  += dayFat;
-        totalWater += (entry.water || []).reduce((s, l) => s + (l.amount || 0), 0);
+        totalWater += hydrationTotal(entry.items, entry.water || []);
         if (calGoal != null) {
           daysWithGoal++;
           if (dayCal >= calGoal * 0.85 && dayCal <= calGoal * 1.15) goalsHitCount++;

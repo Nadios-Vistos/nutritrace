@@ -8,7 +8,7 @@
   import { NtApi } from '../lib/api.js';
   import { portal } from '../lib/portal.js';
   import { goals, goalTemplates, energyUnit, weightUnit, heightUnit, lengthUnit, visibleNutriments, hiddenBodyStats, waterGoalMl, waterUnit, pageBanners, bannerStyle, wellnessEnabled, fitbitEnabled, garminEnabled, googleHealthEnabled, healthConnectEnabled, fitbitFamilyEnabled, calorieGoalMode, calorieGoalFactor } from '../stores/settings.js';
-  import { NUTRIMENTS, Nutrition } from '../lib/nutrition.js';
+  import { NUTRIMENTS, Nutrition, hydrationTotal } from '../lib/nutrition.js';
   import { readBodyStat } from '../lib/body-stats-unit.js';
   import { decimalInput, parseDecimal } from '../lib/decimal-input.js';
   import { macroGoalGrams, percentGoalToGrams, gramsGoalToPercent } from '../lib/goal-resolver.js';
@@ -244,7 +244,7 @@
     if (entry) {
       todayBodyStats = entry.body_stats || entry.bodyStats || {};
       todayTotals = Nutrition.sum((entry.items || []).map(i => Nutrition.calculate(i)));
-      todayWaterMl = (entry.water || []).reduce((s, l) => s + (l.amount || 0), 0);
+      todayWaterMl = hydrationTotal(entry.items || [], entry.water || []);
     }
     // Body-stat fallback history (issue #46): for each body-stat metric,
     // find the most recent reading within the last 30 days. getTodayValue

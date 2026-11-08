@@ -12,6 +12,7 @@
 import db from '../db.js';
 import { linkBase } from './public-url.js';
 import { logger } from '../logger.js';
+import { hydrationTotal } from '../../src/lib/nutrition.js';
 
 function _getUserSetting(userId, key) {
   const row = db.prepare('SELECT value FROM user_settings WHERE user_id = ? AND key = ?').get(userId, key);
@@ -331,13 +332,13 @@ async function _pushReminders(userId) {
             const today = local.dateStr;
             const uCond = userId === 0 ? '(user_id IS NULL OR user_id = 0)' : 'user_id = ?';
             const uArgs = userId === 0 ? [today] : [today, userId];
-            let row = db.prepare(`SELECT water FROM diary WHERE date = ? AND ${uCond} AND deleted_at IS NULL`).get(...uArgs);
+            let row = db.prepare(`SELECT items, water FROM diary WHERE date = ? AND ${uCond} AND deleted_at IS NULL`).get(...uArgs);
             // Multi-user fallback: also check NULL user_id (pre-auth diary rows)
             if (!row && userId !== 0) {
-              row = db.prepare(`SELECT water FROM diary WHERE date = ? AND user_id IS NULL AND deleted_at IS NULL`).get(today);
+              row = db.prepare(`SELECT items, water FROM diary WHERE date = ? AND user_id IS NULL AND deleted_at IS NULL`).get(today);
             }
-            if (row?.water) {
-              const waterTotal = JSON.parse(row.water).reduce((s, l) => s + (l.amount || 0), 0);
+            if (row) {
+              const waterTotal = hydrationTotal(JSON.parse(row.items || '[]'), JSON.parse(row.water || '[]'));
               if (waterTotal >= waterGoal) skipWater = true;
             }
           }

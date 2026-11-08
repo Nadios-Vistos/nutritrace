@@ -152,6 +152,10 @@
     return food?.source_app === 'ciqual' && food.id == null;
   }
 
+  function isCiqualBeverage(food) {
+    return isCiqualReference(food) && food.nutrition?.beverage_ml > 0;
+  }
+
   // ── Per-source quality-tier filters ──────────────────────────────────────
   // Backdrop-pattern dropdown attached to the OFF + USDA source chips (via
   // caret). Multi-select checkboxes, default all-active (no filter).
@@ -1095,7 +1099,7 @@
       promptFood = food;
       promptServings = 1;
       promptPortion = food.portion || 100;
-      promptUnit = food.unit || 'g';
+      promptUnit = isCiqualBeverage(food) ? 'ml' : (food.unit || 'g');
       showQtyPrompt = true;
       return;
     }
@@ -1213,7 +1217,7 @@
       promptFood = food;
       promptServings = 1;
       promptPortion = food.portion || 100;
-      promptUnit = food.unit || 'g';
+      promptUnit = isCiqualBeverage(food) ? 'ml' : (food.unit || 'g');
       showQtyPrompt = true;
       return;
     }
@@ -2822,17 +2826,20 @@
   <div style="display:flex;flex-direction:column;gap:16px;padding-top:8px" on:keydown={_onQtyPromptKey}>
     {#if isCiqualReference(promptFood)}
       <div class="qty-quickpicks">
-        {#each [50, 100, 150] as grams}
-          <button type="button" class="qty-quickpick" class:active={parseDecimal(promptPortion) === grams}
-            on:click={() => promptPortion = grams}>{grams} g</button>
+        {#each [50, 100, 150] as amount}
+          <button type="button" class="qty-quickpick" class:active={parseDecimal(promptPortion) === amount}
+            on:click={() => promptPortion = amount}>{amount} {promptUnit}</button>
         {/each}
       </div>
       <label class="ciqual-toolbar">
-        {$_('ciqual.portion')}
+        {$_(isCiqualBeverage(promptFood) ? 'water_tracking.beverage_volume' : 'ciqual.portion')}
         <input class="input" type="text" inputmode="decimal" use:decimalInput bind:value={promptPortion}
           bind:this={_qtyPromptPortionEl} data-field="portion" />
       </label>
       <strong>{_qtyEnergy.value.toLocaleString()} {_qtyEnergy.unit}</strong>
+      {#if isCiqualBeverage(promptFood)}
+        <span class="text-3 text-sm">{$_('water_tracking.auto_beverage')}</span>
+      {/if}
     {:else}
     <!-- Issues #69 + #70: surface the OFF nutrition basis so users know
          whether values are per-100-g or per-100-ml at a glance. Gated on

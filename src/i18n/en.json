@@ -2722,11 +2722,17 @@
     "water": "Water"
   },
   "water_tracking": {
+    "count_beverage": "Count this drink toward hydration",
+    "beverage_serving": "Drink volume per serving (ml)",
+    "beverage_volume": "Drink volume (ml)",
+    "auto_beverage": "This volume will count automatically toward hydration.",
+    "diary_beverages": "Drinks from the diary",
+    "diary_beverages_help": "Edit or remove these drinks in the food diary.",
     "title": "Hydration",
     "open_with_goal": "Hydration, {total} of {goal}. Add water.",
     "open_to_add": "Hydration, {total} logged. Add water.",
     "thirsty_hint": "The mascot is thirsty. Less than half the daily water goal has been logged.",
-    "drunk": "Water logged",
+    "drunk": "Volume logged",
     "daily_goal": "Daily goal",
     "edit_goal": "Edit hydration goal",
     "goal_input": "Goal ({unit})",

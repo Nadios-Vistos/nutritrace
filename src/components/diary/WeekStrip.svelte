@@ -20,7 +20,7 @@
   import { portal } from '../../lib/portal.js';
   import { NtApi } from '../../lib/api.js';
   import { localDateStr } from '../../lib/db.js';
-  import { Nutrition } from '../../lib/nutrition.js';
+  import { Nutrition, hydrationTotal } from '../../lib/nutrition.js';
   import { disableAnimations, dateFormat } from '../../stores/settings.js';
 
   // Mirrors Diary.svelte's formatDateSub — respects the user's
@@ -228,7 +228,7 @@
         const nutrArr = items.map(it => Nutrition.calculate(it));
         const totals = Nutrition.sum(nutrArr);
         const water = entry.water || [];
-        const water_ml = water.reduce((s, l) => s + (Number(l.amount) || 0), 0);
+        const water_ml = hydrationTotal(items, water);
         map.set(entry.date, {
           kcal: Math.round(totals.calories || 0),
           protein: Math.round(totals.proteins || 0),

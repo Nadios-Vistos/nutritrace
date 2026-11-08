@@ -152,7 +152,7 @@ const Nutrition = {
     if (item.nutrition && typeof item.nutrition === 'object' && Object.keys(item.nutrition).length > 0) {
       // Nested structure (API foods and properly-saved FoodEditor items)
       for (const [key, val] of Object.entries(item.nutrition)) {
-        if (key === '_derived') continue; // metadata, not a numeric value
+        if (key === '_derived' || key === 'beverage_ml') continue;
         result[key] = (parseFloat(val) || 0) * factor;
       }
     } else {
@@ -264,5 +264,16 @@ const Nutrition = {
     }
   }
 };
+
+export function beverageVolume(item) {
+  if (item?.is_recipe || item?._splitItems?.length) return 0;
+  const volume = Number(item?.nutrition?.beverage_ml) * Number(item?.quantity ?? 1);
+  return Number.isFinite(volume) && volume > 0 ? volume : 0;
+}
+
+export function hydrationTotal(items = [], water = []) {
+  const direct = water.reduce((sum, log) => sum + (Number(log.amount) || 0), 0);
+  return Math.round(direct + items.reduce((sum, item) => sum + beverageVolume(item), 0));
+}
 
 export { NUTRIMENTS, Nutrition };

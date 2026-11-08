@@ -1,6 +1,6 @@
 import { writable, derived } from 'svelte/store';
 import { NtApi } from '../lib/api.js';
-import { Nutrition } from '../lib/nutrition.js';
+import { Nutrition, hydrationTotal } from '../lib/nutrition.js';
 import { localDateStr, DB } from '../lib/db.js';
 import { resolveAssetUrl, isNative } from '../lib/platform.js';
 import { itemSourceRef } from '../lib/item-source.js';
@@ -259,7 +259,7 @@ async function _save(entry) {
       const { DB } = await import('../lib/db.js');
       const goals = DB.getSetting('goals', {});
       const totals = Nutrition.sum(result.items.map(i => Nutrition.calculate(i)));
-      const waterMl = (result.water || []).reduce((s, l) => s + (l.amount || 0), 0);
+      const waterMl = hydrationTotal(result.items, result.water || []);
       // Add water goal from waterGoalMl setting (it's separate from the goals object)
       const waterGoal = DB.getSetting('waterGoalMl', 0);
       if (waterGoal > 0) goals.water_ml = { min: waterGoal };

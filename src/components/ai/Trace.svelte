@@ -10,7 +10,7 @@
   import { NtApi }     from '../../lib/api.js';
   import { confirmDialog } from '../../stores/confirmDialog.js';
   import { DB, localDateStr } from '../../lib/db.js';
-  import { Nutrition, NUTRIMENTS } from '../../lib/nutrition.js';
+  import { Nutrition, NUTRIMENTS, hydrationTotal } from '../../lib/nutrition.js';
   // Comma-joined list of every NT-tracked nutriment ID — inlined into the
   // system prompt so the AI knows the full key universe at a glance and
   // doesn't default to "just the four macros".
@@ -242,7 +242,7 @@
               date: args.date, meals,
               totals: hasItems ? { calories: Math.round(totals.calories || 0), protein: Math.round(totals.proteins || 0), carbs: Math.round(totals.carbohydrates || 0), fat: Math.round(totals.fat || 0) } : null,
               body_stats: bodyStats,
-              water_ml: (entry?.water || []).reduce((s, l) => s + (l.amount || 0), 0),
+              water_ml: hydrationTotal(entry?.items || [], entry?.water || []),
             };
             if (notes) result.day_notes = notes;
             if (Array.isArray(activities) && activities.length) {
@@ -353,7 +353,7 @@
                 sums.proteins       += tot.proteins       || 0;
                 sums.carbohydrates  += tot.carbohydrates  || 0;
                 sums.fat            += tot.fat            || 0;
-                sums.water_ml       += (entry.water || []).reduce((s, l) => s + (l.amount || 0), 0);
+                sums.water_ml       += hydrationTotal(entry.items || [], entry.water || []);
                 const bs = entry.body_stats || entry.bodyStats || {};
                 // Force conversion to kg so diff arithmetic is unit-stable
                 // even when the user toggled their display unit mid-period.
@@ -1415,7 +1415,7 @@
     if (bsParts.length) statsText = bsParts.join(', ');
 
     // Water intake
-    const waterMl   = (entry?.water || []).reduce((s, l) => s + (l.amount || 0), 0);
+    const waterMl   = hydrationTotal(entry?.items || [], entry?.water || []);
     const waterText  = waterMl > 0 ? `${(waterMl / 1000).toFixed(2)} L (${Math.round(waterMl)} ml)` : 'None logged';
 
     // Wellness data — Fitbit + Garmin + Withings, best-effort, silent on failure

@@ -13,6 +13,7 @@ import { dispatchWebhookEvent } from '../../webhooks.js';
 import { checkWaterGoalCrossing } from '../../goal-webhook.js';
 import { getGoalsCore } from './goals.js';
 import { dailyTotalsCore } from './daily-totals.js';
+import { hydrationTotal } from '../../../../src/lib/nutrition.js';
 
 const MAX_ML_PER_ENTRY = 5000;   // 5 L in one log = obvious agent bug or typo
 
@@ -72,7 +73,7 @@ export function logWaterCore(userId, { amount_ml, date, time } = {}) {
     throw e;
   }
 
-  const total_ml = next.water.reduce((s, l) => s + (Number(l.amount) || 0), 0);
+  const total_ml = hydrationTotal(next.items, next.water);
 
   try {
     dispatchWebhookEvent(userId, 'water.logged', { date: day, water_ml: total_ml, added: [log] });

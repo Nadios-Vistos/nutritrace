@@ -2722,11 +2722,17 @@
     "recipes_sort_desc": "Ordre d’affichage des recettes."
   },
   "water_tracking": {
+    "count_beverage": "Compter cette boisson dans l’hydratation",
+    "beverage_serving": "Volume de boisson par portion (ml)",
+    "beverage_volume": "Volume bu (ml)",
+    "auto_beverage": "Ce volume sera ajouté automatiquement à l’hydratation.",
+    "diary_beverages": "Boissons du journal",
+    "diary_beverages_help": "Modifiez ou supprimez ces boissons dans le journal alimentaire.",
     "title": "Hydratation",
     "open_with_goal": "Hydratation, {total} sur {goal}. Ajouter de l’eau.",
     "open_to_add": "Hydratation, {total} d’eau. Ajouter de l’eau.",
     "thirsty_hint": "La mascotte a soif. Moins de la moitié de l’objectif d’eau a été enregistrée.",
-    "drunk": "Eau bue",
+    "drunk": "Volume bu",
     "daily_goal": "Objectif quotidien",
     "edit_goal": "Modifier l’objectif d’hydratation",
     "goal_input": "Objectif ({unit})",

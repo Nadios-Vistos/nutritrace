@@ -7,6 +7,15 @@ function normalize(text) {
 
 let cataloguePromise;
 
+function isReadyToDrink(code, name, category) {
+  if (category !== 'eaux et autres boissons') return false;
+  const label = normalize(name);
+  if (/^(eau minerale|eau de source|eau du robinet|eau de coco)\b/.test(label)) return true;
+  if (Number(code) >= 18000 && /\b(prete? a boire|infusee?)\b/.test(label)) return true;
+  return /^(jus |nectar |smoothie |cola |limonade |boisson au the )/.test(label)
+    && !/\b(a diluer|en poudre|concentre non dilue)\b/.test(label);
+}
+
 export function loadCiqual() {
   cataloguePromise ??= import('./catalogues/ciqual-2025.json').then(({ default: data }) => {
     const foods = data.foods.map(([code, name, category, ...values]) => ({
@@ -16,8 +25,13 @@ export function loadCiqual() {
       portion: 100,
       unit: 'g',
       nutrition_basis: 'g',
-      nutrition: Object.fromEntries(data.nutrients.flatMap((key, index) =>
-        values[index] == null ? [] : [[key, values[index]]])),
+      nutrition: {
+        ...Object.fromEntries(data.nutrients.flatMap((key, index) =>
+          values[index] == null ? [] : [[key, values[index]]])),
+        // The source is per 100 g. For ready-to-drink entries we use the
+        // same 1 g/ml approximation as NutriTrace's portion scaler.
+        ...(isReadyToDrink(code, name, category) && { beverage_ml: 100 }),
+      },
       source: 'ciqual',
       source_app: 'ciqual',
       source_external_id: code,
