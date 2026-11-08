@@ -131,6 +131,7 @@ router.get('/', requireAuth, requireAdmin, wrap((req, res) => {
   const rows = db.prepare('SELECT key, value FROM app_config').all();
   const out = {};
   for (const { key, value } of rows) {
+    if (key === 'mealie_mirror_config') continue;
     const redacted = key === 'smtp_pass' || key === 'ai_api_key' || key === 'fitbit_client_secret' || key === 'withings_client_secret';
     out[key] = redacted ? (value ? '••••••••' : '') : (value || '');
   }

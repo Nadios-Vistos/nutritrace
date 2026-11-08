@@ -3,6 +3,7 @@
   import { _ } from 'svelte-i18n';
   import Toggle from '../../components/settings/Toggle.svelte';
   import ConnectionStatus from '../../components/settings/ConnectionStatus.svelte';
+  import MealieMirror from '../../components/settings/MealieMirror.svelte';
   import { DB } from '../../lib/db.js';
   import { NtApi } from '../../lib/api.js';
   import { isNative, getServerUrl, getAuthToken, apiUrl } from '../../lib/platform.js';
@@ -810,6 +811,10 @@
       </div>
     {/if}
   </div>
+
+  {#if $currentUser?.role === 'admin' && $currentUser?.id != null && (!isNative || getServerUrl())}
+    <MealieMirror />
+  {/if}
 
   <p class="sub-label">{$_('settings_integrations.cooktrace_section')}</p>
   <div class="card settings-card">

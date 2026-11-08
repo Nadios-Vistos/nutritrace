@@ -105,6 +105,13 @@ db.exec(`
     value TEXT
   );
 
+  CREATE TABLE IF NOT EXISTS mealie_recipes (
+    id       TEXT PRIMARY KEY,
+    name     TEXT NOT NULL,
+    revision TEXT,
+    payload  TEXT NOT NULL
+  );
+
   CREATE TABLE IF NOT EXISTS password_reset_tokens (
     token      TEXT PRIMARY KEY,
     user_id    INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,

@@ -198,6 +198,7 @@ function restoreFromZip(zip) {
     db.prepare('DELETE FROM meal_shares').run();
     db.prepare('DELETE FROM user_settings').run();
     db.prepare('DELETE FROM app_config').run();
+    db.prepare('DELETE FROM mealie_recipes').run();
     db.prepare('DELETE FROM diary').run();
     db.prepare('DELETE FROM foods').run();
     db.prepare('DELETE FROM meals').run();
@@ -267,6 +268,8 @@ function restoreFromZip(zip) {
       INSERT OR REPLACE INTO app_config (key, value) VALUES (@key, @value)
     `);
     for (const c of data.app_config || []) insConfig.run(c);
+    const insMealie = db.prepare('INSERT INTO mealie_recipes (id, name, revision, payload) VALUES (@id, @name, @revision, @payload)');
+    for (const recipe of data.mealie_recipes || []) insMealie.run(recipe);
 
     db.prepare('DELETE FROM ai_chat_history').run();
     const insChat = db.prepare(`
@@ -422,6 +425,7 @@ function dumpDatabase() {
     diary:            db.prepare('SELECT * FROM diary').all(),
     user_settings:    db.prepare('SELECT * FROM user_settings').all(),
     app_config:       db.prepare('SELECT * FROM app_config').all(),
+    mealie_recipes:   db.prepare('SELECT * FROM mealie_recipes').all(),
     ai_chat_history:  db.prepare('SELECT * FROM ai_chat_history').all(),
     // wellness_data holds BOTH raw wearable metrics AND Trace-computed
     // readiness / resilience score rows (metric_type = 'readiness_score',

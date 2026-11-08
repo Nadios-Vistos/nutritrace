@@ -6,6 +6,7 @@
   import { NtApi, API, USDA } from '../lib/api.js';
   import { offNutritionStatus, needsFullLookup } from '../lib/off-nutrition.js';
   import { Mealie } from '../lib/mealieApi.js';
+  import { loadBasics, searchCiqual } from '../lib/ciqual.js';
   import BarcodeScanner from '../components/foods/BarcodeScanner.svelte';
   import { DB } from '../lib/db.js';
   import { takePhoto } from '../lib/camera.js';
@@ -109,14 +110,27 @@
   let _pickerSharingEnabled = false;
   let _pickerSharedCounts   = { foods: 0 };
   const _pickerMealieEnabled = DB.getSetting('mealieEnabled', false);
+  let basicsCatalogue = null;
+  let basicsLoading = false;
+  let basicsError = false;
   $: _pickerSourceOptions = [
     { value: 'local',  label: 'Local'        },
+    { value: 'basics', label: $_('ciqual.basics') },
     ...($offEnabled                          ? [{ value: 'off',    label: 'OFF'        }] : []),
     ...($usdaEnabled                         ? [{ value: 'usda',   label: 'USDA'       }] : []),
     ...(_pickerMealieEnabled                 ? [{ value: 'mealie', label: 'Mealie'     }] : []),
     ...(_pickerSharingEnabled && _pickerSharedCounts.foods > 0
                                              ? [{ value: 'shared', label: 'From Others'}] : []),
   ];
+  $: if (_pickerSource === 'basics' && !basicsCatalogue && !basicsLoading && !basicsError) refreshBasics();
+
+  async function refreshBasics() {
+    basicsLoading = true;
+    basicsError = false;
+    try { basicsCatalogue = await loadBasics(); }
+    catch { basicsError = true; }
+    finally { basicsLoading = false; }
+  }
   async function _refreshPickerSharing() {
     try {
       const s = await NtApi.getSharingStatus();
@@ -503,7 +517,9 @@
   // skip the local sort and the local search filter for those.
   $: _isExternalSearch = pickerTab === 0 && (_pickerSource === 'off' || _pickerSource === 'usda' || _pickerSource === 'mealie');
   $: _pickerListSorted = _isExternalSearch ? _pickerList : _applyPickerSort(_pickerList, _pickerSortMode);
-  $: pickerFiltered = (_isExternalSearch || !pickerSearch)
+  $: pickerFiltered = _pickerSource === 'basics' && pickerTab === 0
+    ? searchCiqual(basicsCatalogue, pickerSearch)
+    : (_isExternalSearch || !pickerSearch)
     ? _pickerListSorted
     : _pickerListSorted.filter(f =>
         foldText(f.name).includes(foldText(pickerSearch)) ||
@@ -582,6 +598,7 @@
   // Returns the saved (local) food, or null if the save failed.
   async function _maybePersistPickedFood(food) {
     if (pickerTab !== 0) return food;                 // Meals/Recipes are always local
+    if (food.source_app === 'ciqual') return food;   // Shared references are copied into the recipe as ingredient values
     if (_pickerSource === 'local') return food;
     _pickerSavingPick = true;
     try {
@@ -1289,8 +1306,13 @@
       </div>
     {/if}
     <div class="picker-list">
-      {#if pickerLoading || _pickerLoadingExt}
+      {#if pickerLoading || _pickerLoadingExt || (_pickerSource === 'basics' && basicsLoading)}
         <Spinner block size="sm" />
+      {:else if _pickerSource === 'basics' && basicsError}
+        <div class="picker-empty">
+          <p>{$_('ciqual.unavailable')}</p>
+          <button class="btn btn-secondary" type="button" on:click={refreshBasics}>{$_('foods_deep.retry')}</button>
+        </div>
       {:else if pickerFiltered.length === 0}
         <div class="picker-empty">
           {#if _isExternalSearch && !pickerSearch}
@@ -1306,7 +1328,7 @@
           {/if}
         </div>
       {:else}
-        {#each pickerFiltered as food, _fi (food.id ?? food.barcode ?? food.fdcId ?? food.slug ?? `${_pickerSource}:${_fi}`)}
+        {#each pickerFiltered as food, _fi (food.id ?? food.barcode ?? food.fdcId ?? food.slug ?? food.source_external_id ?? `${_pickerSource}:${_fi}`)}
           {@const _sel = selectedIngredients.has(food)}
           {@const _pickEnergy = Nutrition.displayEnergy(food.nutrition?.calories || 0, $energyUnit)}
           <div class="picker-item-row" class:picker-item-selected={_sel}>

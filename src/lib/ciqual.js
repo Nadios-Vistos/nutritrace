@@ -1,3 +1,5 @@
+import { BASIC_FOODS } from './catalogues/basics.js';
+
 const collator = new Intl.Collator('fr', { sensitivity: 'base' });
 
 function normalize(text) {
@@ -6,6 +8,7 @@ function normalize(text) {
 }
 
 let cataloguePromise;
+let basicsPromise;
 
 function isReadyToDrink(code, name, category) {
   if (category !== 'eaux et autres boissons') return false;
@@ -47,6 +50,24 @@ export function loadCiqual() {
   return cataloguePromise;
 }
 
+export function loadBasics() {
+  basicsPromise ??= loadCiqual().then(catalogue => {
+    const byCode = new Map(catalogue.foods.map(food => [food.source_external_id, food]));
+    const foods = BASIC_FOODS.flatMap(([code, name]) => {
+      const food = byCode.get(code);
+      return food?.nutrition.calories == null ? [] : [{
+        ...food, name, searchName: normalize(name), searchAliases: food.searchName,
+      }];
+    }).sort((a, b) => collator.compare(a.name, b.name));
+    const categories = [...new Set(foods.map(food => food.category))].sort(collator.compare);
+    return { ...catalogue, foods, categories };
+  }).catch(error => {
+    basicsPromise = undefined;
+    throw error;
+  });
+  return basicsPromise;
+}
+
 export function searchCiqual(catalogue, query, category = '') {
   const foods = catalogue?.foods ?? [];
   const candidates = category ? foods.filter(food => food.category === category) : foods;
@@ -58,7 +79,8 @@ export function searchCiqual(catalogue, query, category = '') {
   const other = [];
   for (const food of candidates) {
     if (food.searchName.startsWith(term)) prefix.push(food);
-    else if (food.source_external_id === term || words.every(word => food.searchName.includes(word))) other.push(food);
+    else if (food.source_external_id === term ||
+        words.every(word => food.searchName.includes(word) || food.searchAliases?.includes(word))) other.push(food);
   }
   return [...prefix, ...other];
 }

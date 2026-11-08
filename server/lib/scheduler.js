@@ -524,6 +524,8 @@ async function _pushReminders(userId) {
 // ── Main tick — called every 15 minutes ─────────────────────────────────────
 
 async function _tick() {
+  import('./mealie-mirror.js').then(({ syncMealieMirror }) => syncMealieMirror())
+    .catch(() => logger.warn('[scheduler] Mealie mirror could not start'));
   try {
     // Get all users (or single user if no user management)
     const users = db.prepare('SELECT id FROM users').all();

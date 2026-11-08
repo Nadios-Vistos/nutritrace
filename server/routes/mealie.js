@@ -1,12 +1,28 @@
 import { Router } from 'express';
 import { wrap } from '../logger.js';
-import { requireAuth, userMgmtActive } from '../middleware/auth.js';
+import { requireAdmin, requireAuth, userMgmtActive } from '../middleware/auth.js';
 import db from '../db.js';
 import { fetchChecked, serviceBase, readBody } from '../lib/ssrf-guard.js';
 import { apiPathFor, MEALIE_API } from '../lib/service-paths.js';
+import { configureMirror, mirrorRecipes, mirrorStatus, syncMealieMirror } from '../lib/mealie-mirror.js';
 
 const router = Router();
 router.use(requireAuth);
+
+router.get('/library', wrap((req, res) => {
+  if (!req.user) return res.status(401).json({ error: 'Sign in required' });
+  res.json(mirrorRecipes());
+}));
+
+router.get('/mirror', requireAdmin, wrap((req, res) => res.json(mirrorStatus())));
+router.put('/mirror', requireAdmin, wrap((req, res) => {
+  if (!configureMirror(req.body || {})) return res.status(400).json({ error: 'Invalid Mealie configuration' });
+  res.json(mirrorStatus());
+}));
+router.post('/mirror/sync', requireAdmin, wrap((req, res) => {
+  syncMealieMirror().catch(() => {});
+  res.status(202).json(mirrorStatus());
+}));
 
 // Mealie usually lives on the home network, so that's allowed for every
 // account, but only for the parts of its API this app reads, with GET, and

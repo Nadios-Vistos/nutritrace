@@ -23,12 +23,13 @@
   import { loadEntry } from '../stores/diary.js';
   import { API, USDA, NtApi } from '../lib/api.js';
   import { Nutrition } from '../lib/nutrition.js';
-  import { loadCiqual, searchCiqual } from '../lib/ciqual.js';
+  import { loadBasics, loadCiqual, searchCiqual } from '../lib/ciqual.js';
   import { Mealie } from '../lib/mealieApi.js';
   import { CookTrace } from '../lib/cooktraceApi.js';
   import { offlineState } from '../lib/offline-api.js';
   import { offNutritionStatus, needsFullLookup } from '../lib/off-nutrition.js';
   import { resolveAssetUrl, isNative } from '../lib/platform.js';
+  import { userMgmtActive } from '../stores/auth.js';
   import { itemSourceRef } from '../lib/item-source.js';
   import { offCountryTagToFlag, offCountryTagToName } from '../lib/off-country-flag.js';
   import { foodsShowThumbnails, foodsShowCategories, foodsShowLabels, foodsShowNotes, foodsSort, mealsSort, recipesSort, foodCategories, foodsShowYesterdayMeals, foodsYesterdayCollapsed, foodsSavedCollapsed, mealNames, usdaEnabled, usdaApiKey, offEnabled, offSearchCountry, offSearchLanguage, foodsDefaultSource, diaryDefaultField, catName as _catName, catDisplay as _catDisplay, pageBanners, bannerStyle, energyUnit } from '../stores/settings.js';
@@ -66,7 +67,7 @@
     // Non-foods tabs only support local + shared — silently reset if the
     // current source isn't valid here (toast removed; common-sense reset).
     if (activeTab !== 0 && searchSource !== 'local' && searchSource !== 'shared'
-        && !(activeTab === 2 && searchSource === 'cooktrace')) searchSource = 'local';
+        && !(activeTab === 2 && ['cooktrace', 'mealieLibrary'].includes(searchSource))) searchSource = 'local';
     if (searchSource === 'shared' && !_tabHasShared) searchSource = 'local';
   }
 
@@ -110,7 +111,7 @@
   // parallel and shows results grouped by source with per-row source badges.
   $: _perSourceOptions = [
     { value: 'local',  label: $_('foods.sources.local')  },
-    ...(activeTab === 0 ? [{ value: 'ciqual', label: 'Ciqual' }] : []),
+    ...(activeTab === 0 ? [{ value: 'basics', label: $_('ciqual.basics') }, { value: 'ciqual', label: 'Ciqual' }] : []),
     ...(activeTab === 0 && $offEnabled    ? [{ value: 'off',    label: 'OFF' }] : []),
     ...(activeTab === 0 && $usdaEnabled   ? [{ value: 'usda',   label: 'USDA' }] : []),
     ...(activeTab === 0 && _mealieEnabled ? [{ value: 'mealie', label: 'Mealie' }] : []),
@@ -119,6 +120,7 @@
     // source values keep the results arrays and pick handlers separate.
     ...(activeTab === 0 && _cooktraceEnabled ? [{ value: 'ctpantry', label: 'CookTrace' }] : []),
     ...(activeTab === 2 && _cooktraceEnabled ? [{ value: 'cooktrace', label: 'CookTrace' }] : []),
+    ...(activeTab === 2 && $userMgmtActive ? [{ value: 'mealieLibrary', label: 'Mealie' }] : []),
     ...(_tabHasShared  ? [{ value: 'shared', label: $_('foods.sources.from_others') }] : []),
   ];
   $: availableSources = _perSourceOptions.length >= 2
@@ -126,24 +128,78 @@
     : _perSourceOptions;
   $: _sourceLabel = availableSources.find(s => s.value === searchSource)?.label || '';
 
+  let mealieLibrary = [];
+  let mealieLibraryLoading = false;
+  let mealieLibraryError = false;
+  let selectedMealieRecipe = null;
+  let mealiePortions = '1';
+  $: if (activeTab === 2 && $userMgmtActive && ['mealieLibrary', 'all'].includes(searchSource)) refreshMealieLibrary();
+  $: mealieMatches = mealieLibrary.filter(recipe => _fuzzyMatch(recipe, search));
+
+  async function refreshMealieLibrary() {
+    if (mealieLibraryLoading) return;
+    mealieLibraryLoading = true;
+    mealieLibraryError = false;
+    try { mealieLibrary = await NtApi.get('/api/mealie/library'); }
+    catch { mealieLibraryError = true; }
+    finally { mealieLibraryLoading = false; }
+  }
+
+  function openMealieRecipe(recipe) {
+    selectedMealieRecipe = recipe;
+    mealiePortions = '1';
+  }
+
+  async function logMealieRecipe() {
+    const recipe = selectedMealieRecipe;
+    const quantity = parseDecimal(mealiePortions);
+    if (!recipe || recipe.nutrition.calories == null || !Number.isFinite(quantity) || quantity <= 0 || _addingToDiary) return;
+    _addingToDiary = true;
+    try {
+      const { addDiaryItem } = await import('../stores/diary.js');
+      await addDiaryItem({
+        name: recipe.name, portion: 1, unit: 'serving', quantity,
+        nutrition: recipe.nutrition, source_app: recipe.source_app, source_external_id: recipe.source_external_id,
+      }, Number(pickMeal) || 0, pickDate || undefined);
+      showSuccess($_('foods.toast.added_to_diary'));
+      editorState.lastMealAdded = Number(pickMeal) || 0;
+      selectedMealieRecipe = null;
+      history.back();
+    } catch {
+      showError($_('mealie_mirror.log_error'));
+    } finally {
+      _addingToDiary = false;
+    }
+  }
+
   let ciqualCatalogue = null;
+  let basicsCatalogue = null;
   let ciqualLoading = false;
   let ciqualError = false;
   let ciqualCategory = '';
   const CIQUAL_PAGE_SIZE = 40;
   let ciqualLimit = CIQUAL_PAGE_SIZE;
   $: { search; ciqualCategory; ciqualLimit = CIQUAL_PAGE_SIZE; }
-  $: ciqualMatches = searchSource === 'ciqual' ? searchCiqual(ciqualCatalogue, search, ciqualCategory) : [];
+  $: searchSource, ciqualCategory = '';
+  $: referenceCatalogue = searchSource === 'basics' ? basicsCatalogue : ciqualCatalogue;
+  $: ciqualMatches = searchCiqual(referenceCatalogue, search, ciqualCategory);
   $: ciqualAllMatches = searchSource === 'all' && activeTab === 0 && search.trim()
-    && (pinnedSources.size === 0 || pinnedSources.has('ciqual'))
-    ? searchCiqual(ciqualCatalogue, search).filter(food => food.nutrition.calories != null).slice(0, 12) : [];
-  $: if (activeTab === 0 && (searchSource === 'ciqual' || searchSource === 'all')
+    ? searchReferenceCatalogues(ciqualCatalogue, basicsCatalogue, pinnedSources, search)
+    : [];
+  $: if (activeTab === 0 && (searchSource === 'basics' || searchSource === 'ciqual' || searchSource === 'all')
     && !ciqualCatalogue && !ciqualLoading && !ciqualError) refreshCiqual();
+
+  function searchReferenceCatalogues(full, basics, sources, query) {
+    const common = !sources.size || sources.has('basics') ? searchCiqual(basics, query) : [];
+    const codes = new Set(common.map(food => food.source_external_id));
+    const rest = !sources.size || sources.has('ciqual') ? searchCiqual(full, query) : [];
+    return [...common, ...rest.filter(food => !codes.has(food.source_external_id) && food.nutrition.calories != null)].slice(0, 12);
+  }
 
   async function refreshCiqual() {
     ciqualLoading = true;
     ciqualError = false;
-    try { ciqualCatalogue = await loadCiqual(); }
+    try { [ciqualCatalogue, basicsCatalogue] = await Promise.all([loadCiqual(), loadBasics()]); }
     catch { ciqualError = true; }
     finally { ciqualLoading = false; }
   }
@@ -265,10 +321,12 @@
   // pinned set was correctly updated (verified via adb logcat).
   $: activeChips = {
     local:  pinnedSources.size > 0 ? pinnedSources.has('local')  : searchSource === 'local',
+    basics: pinnedSources.size > 0 ? pinnedSources.has('basics') : searchSource === 'basics',
     ciqual: pinnedSources.size > 0 ? pinnedSources.has('ciqual') : searchSource === 'ciqual',
     off:    pinnedSources.size > 0 ? pinnedSources.has('off')    : searchSource === 'off',
     usda:   pinnedSources.size > 0 ? pinnedSources.has('usda')   : searchSource === 'usda',
     mealie: pinnedSources.size > 0 ? pinnedSources.has('mealie') : searchSource === 'mealie',
+    mealieLibrary: pinnedSources.size > 0 ? pinnedSources.has('mealieLibrary') : searchSource === 'mealieLibrary',
     cooktrace: pinnedSources.size > 0 ? pinnedSources.has('cooktrace') : searchSource === 'cooktrace',
     ctpantry: pinnedSources.size > 0 ? pinnedSources.has('ctpantry') : searchSource === 'ctpantry',
     shared: pinnedSources.size > 0 ? pinnedSources.has('shared') : searchSource === 'shared',
@@ -668,6 +726,7 @@
     ...ciqualAllMatches.map(item => ({ source: 'ciqual', item })),
     ...(_isSourceActive('shared') && _tabHasShared ? (_groupList || []).filter(f => search.trim() ? _fuzzyMatch(f, search) : false).map(item => ({ source: 'shared', item })) : []),
     ...(_isSourceActive('mealie') ? (mealieResults || []).map(item => ({ source: 'mealie', item })) : []),
+    ...(activeTab === 2 && (!pinnedSources.size || pinnedSources.has('mealieLibrary')) ? mealieMatches.map(item => ({ source: 'mealieLibrary', item })) : []),
     ...(_isSourceActive('cooktrace') ? (cooktraceResults || []).map(item => ({ source: 'cooktrace', item })) : []),
     ...(_isSourceActive('ctpantry') ? (ctPantryResults || []).map(item => ({ source: 'ctpantry', item })) : []),
     ...(_isSourceActive('off')    ? (offResults    || []).filter(f => !offTiersFiltered  || offTiersActive.has(_bucketOff(f.completeness))).map(item => ({ source: 'off',    item })) : []),
@@ -675,6 +734,7 @@
   ];
 
   function _pickBySource(source, item) {
+    if (source === 'mealieLibrary') return openMealieRecipe(item);
     if (source === 'mealie') return pickMealieRecipe(item);
     if (source === 'cooktrace') return pickCooktraceRecipe(item);
     if (source === 'ctpantry') return pickCtPantryItem(item);
@@ -887,7 +947,7 @@
     apiHasMore = false;
     // Local + shared don't need remote calls; 'all' mode always needs the
     // debounce because it fans out to external APIs alongside local filter.
-    if (!search.trim() || searchSource === 'local' || searchSource === 'shared') return;
+    if (!search.trim() || ['local', 'shared', 'mealieLibrary', 'basics', 'ciqual'].includes(searchSource)) return;
     const src = searchSource;
     searchTimeout = setTimeout(async () => {
       if (activeTab !== 0 && src !== 'cooktrace' && src !== 'all') return;
@@ -2232,7 +2292,7 @@
             {@const isMealie = source === 'mealie'}
             {@const isCookTrace = source === 'cooktrace'}
             {@const isCtPantry = source === 'ctpantry'}
-            {@const isExternal = source === 'off' || source === 'usda' || source === 'ciqual'}
+            {@const isExternal = source === 'off' || source === 'usda' || source === 'ciqual' || source === 'mealieLibrary'}
             {@const _foodEnergy = isMealie
               ? null
               : Nutrition.displayEnergy(item.nutrition?.calories || item.calories || 0, $energyUnit)}
@@ -2280,7 +2340,8 @@
                     {#if item.brand}<span class="food-brand text-3 text-sm">{item.brand}</span>{/if}
                     {#if _foodEnergy}
                       <span class="food-kcal text-sm">
-                        {#if source === 'off' && _offNoValues(item)}{$_('foods.off_no_values_listed')}{:else}{_foodEnergy.value.toLocaleString()} {_foodEnergy.unit}{/if}
+                        {#if source === 'mealieLibrary' && item.nutrition.calories == null}{$_('mealie_mirror.missing')}
+                        {:else if source === 'off' && _offNoValues(item)}{$_('foods.off_no_values_listed')}{:else}{_foodEnergy.value.toLocaleString()} {_foodEnergy.unit}{/if}
                         <!-- OFF completeness dot -->
                         {#if source === 'off' && typeof item.completeness === 'number'}
                           <span class="off-quality-dot"
@@ -2309,7 +2370,7 @@
                 <span class="source-badge source-badge-{source}">
                   {#if source === 'local'}{$_('foods.sources.local')}
                   {:else if source === 'shared'}{$_('foods.sources.shared')}
-                  {:else if source === 'mealie'}{$_('foods.sources.mealie')}
+                  {:else if source === 'mealie' || source === 'mealieLibrary'}{$_('foods.sources.mealie')}
                   {:else if source === 'cooktrace' || source === 'ctpantry'}CookTrace
                   {:else if source === 'usda'}USDA
                   {:else if source === 'ciqual'}Ciqual
@@ -2364,7 +2425,29 @@
         {/if}
       {/if}
 
-    {:else if searchSource === 'ciqual'}
+    {:else if searchSource === 'mealieLibrary'}
+      {#if mealieLibraryLoading}
+        <div class="loading-row">{$_('foods.loading_library')}</div>
+      {:else if mealieLibraryError}
+        <div class="empty-state"><p>{$_('mealie_mirror.unavailable')}</p><button class="btn btn-secondary" on:click={refreshMealieLibrary}>{$_('foods_deep.retry')}</button></div>
+      {:else if mealieMatches.length === 0}
+        <div class="empty-state"><p>{$_(search ? 'foods.no_results_in' : 'mealie_mirror.empty', { values: { source: 'Mealie' } })}</p></div>
+      {:else}
+        <ul class="food-list">
+          {#each mealieMatches as recipe (recipe.source_external_id)}
+            <li class="food-item card">
+              <button class="food-item-btn" type="button" on:click={() => openMealieRecipe(recipe)}>
+                {#if recipe.imgUrl}<img class="food-thumb" src={recipe.imgUrl} alt="" loading="lazy" on:error={event => event.currentTarget.hidden = true} />{/if}
+                <span class="food-info">
+                  <span class="food-name">{recipe.name}</span>
+                  <span class="food-kcal text-sm">{$_(recipe.nutrition.calories == null ? 'mealie_mirror.missing' : 'mealie_mirror.per_serving', { values: { kcal: recipe.nutrition.calories } })}</span>
+                </span>
+              </button>
+            </li>
+          {/each}
+        </ul>
+      {/if}
+    {:else if searchSource === 'ciqual' || searchSource === 'basics'}
       {#if ciqualLoading}
         <div class="loading-row">{$_('foods.loading_library')}</div>
       {:else if ciqualError}
@@ -2372,18 +2455,18 @@
           <p>{$_('ciqual.unavailable')}</p>
           <button class="btn btn-secondary" type="button" on:click={refreshCiqual}>{$_('foods_deep.retry')}</button>
         </div>
-      {:else if ciqualCatalogue}
+      {:else if referenceCatalogue}
         <div class="ciqual-toolbar">
-          <a href={ciqualCatalogue.url} target="_blank" rel="noreferrer">{ciqualCatalogue.source} · {ciqualCatalogue.license}</a>
+          <a href={referenceCatalogue.url} target="_blank" rel="noreferrer">{referenceCatalogue.source} · {referenceCatalogue.license}</a>
           <select class="select" aria-label={$_('ciqual.all_categories')} bind:value={ciqualCategory}>
             <option value="">{$_('ciqual.all_categories')}</option>
-            {#each ciqualCatalogue.categories as category}
+            {#each referenceCatalogue.categories as category}
               <option value={category}>{category}</option>
             {/each}
           </select>
         </div>
         {#if ciqualMatches.length === 0}
-          <div class="empty-state"><p>{$_('foods.no_results_in', { values: { source: 'Ciqual' } })}</p></div>
+          <div class="empty-state"><p>{$_('foods.no_results_in', { values: { source: _sourceLabel } })}</p></div>
         {:else}
           <ul class="food-list">
             {#each ciqualMatches.slice(0, ciqualLimit) as food (food.source_external_id)}
@@ -2821,6 +2904,34 @@
   on:addToDiary={onDetailAddToDiary}
   on:deleted={() => { detailSheetFood = null; load(); }} />
 
+<Sheet open={selectedMealieRecipe != null} title={selectedMealieRecipe?.name || ''} on:close={() => selectedMealieRecipe = null}>
+  {#if selectedMealieRecipe}
+    <div class="mealie-recipe">
+      {#if selectedMealieRecipe.nutrition.calories == null}
+        <p>{$_('mealie_mirror.missing')}</p>
+      {:else if pickMode}
+        <form on:submit|preventDefault={logMealieRecipe}>
+          <label>{$_('foods_deep.num_servings')}
+            <input class="input" type="text" inputmode="decimal" use:decimalInput bind:value={mealiePortions} />
+          </label>
+          <p>{$_('mealie_mirror.per_serving', { values: { kcal: selectedMealieRecipe.nutrition.calories } })}</p>
+          <button class="btn btn-primary" type="submit" disabled={_addingToDiary || !(parseDecimal(mealiePortions) > 0)}>{$_('foods.add_to_diary')}</button>
+        </form>
+      {:else}
+        <p>{$_('mealie_mirror.per_serving', { values: { kcal: selectedMealieRecipe.nutrition.calories } })}</p>
+      {/if}
+      {#if selectedMealieRecipe.items.length}
+        <ul>
+          {#each selectedMealieRecipe.items as ingredient}
+            <li>{ingredient.portion} {ingredient.unit} {ingredient.name}{ingredient.notes ? ' · ' + ingredient.notes : ''}</li>
+          {/each}
+        </ul>
+      {/if}
+      {#if selectedMealieRecipe.notes}<p class="mealie-recipe-notes">{selectedMealieRecipe.notes}</p>{/if}
+    </div>
+  {/if}
+</Sheet>
+
 <!-- Quantity prompt sheet -->
 <Sheet bind:open={showQtyPrompt} title={promptFood ? promptFood.name : 'Add to Diary'}>
   <div style="display:flex;flex-direction:column;gap:16px;padding-top:8px" on:keydown={_onQtyPromptKey}>
@@ -3168,6 +3279,10 @@
 {/if}
 
 <style>
+  .mealie-recipe { display: grid; gap: 12px; padding: 8px 0; }
+  .mealie-recipe form { display: grid; gap: 8px; }
+  .mealie-recipe ul { padding-inline-start: 22px; }
+  .mealie-recipe-notes { white-space: pre-wrap; overflow-wrap: anywhere; }
   .ciqual-toolbar { display: grid; gap: 8px; }
   .ciqual-toolbar a { color: var(--accent); font-size: 0.85rem; }
   /* Live-preview macro pills inside the qty-prompt sheet (#30).

@@ -591,6 +591,7 @@ _wire();
  * changing its settings, asking it to sync) is not kept.
  */
 const _KEEP_READS = [
+  /^\/api\/mealie\/library$/,
   /^\/api\/wellness\/[\w-]+\/data(\?|$)/,
   /^\/api\/wellness\/[\w-]+\/workouts(\?|$)/,
   /^\/api\/wellness\/[\w-]+\/status$/,
