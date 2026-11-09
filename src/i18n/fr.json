@@ -973,16 +973,56 @@
     },
     "filters_empty": "Aucun filtre disponible pour cet onglet.",
     "save_to_catalog": "Enregistrer dans mon catalogue",
-    "save_to_foods": "Enregistrer dans mes aliments"
+    "save_to_foods": "Enregistrer dans mes aliments",
+    "shared_load_failed": "Impossible de charger le catalogue partagé.",
+    "delete_item_title": "Supprimer cet élément ?",
+    "delete_item_description": "Cet élément sera supprimé définitivement.",
+    "delete_selection_title": "{count, plural, one {Supprimer cet élément ?} other {Supprimer ces # éléments ?}}",
+    "delete_selection_description": "Les entrées du journal conservent leurs valeurs nutritionnelles et perdent le lien vers les éléments supprimés. La suppression est définitive.",
+    "amount_basis": "pour 100 {unit}"
   },
   "trace": {
-    "panel_label": "Discussion Coach IA",
-    "ask_placeholder": "Demandez-moi n'importe quoi…",
+    "panel_label": "Discussion avec l’assistant IA",
+    "ask_placeholder": "Écrivez votre question…",
+    "subtitle": "Votre assistant santé et nutrition",
+    "welcome": {
+      "title": "Bonjour, je suis {name} !",
+      "description": "Posez-moi vos questions sur votre alimentation, votre sommeil, votre activité, votre récupération, votre hydratation ou votre composition corporelle.",
+      "today": "Mon bilan du jour",
+      "today_prompt": "Quel est mon bilan aujourd’hui ?",
+      "next_meal": "Une idée de repas",
+      "next_meal_prompt": "Que me conseilles-tu pour mon prochain repas ?",
+      "sleep": "Sommeil et récupération",
+      "sleep_prompt": "Comment se sont passés mon sommeil et ma récupération ?",
+      "goals": "Suivi des objectifs",
+      "goals_prompt": "Où en suis-je par rapport à mes objectifs ?"
+    },
+    "working": "Consultation de vos données…",
+    "image_attached": "Image jointe",
+    "image_prompt": "Que montre cette image ?",
+    "remove_image": "Retirer l’image",
+    "send": "Envoyer le message",
+    "errors": {
+      "mic_denied": "Autorisez l’accès au microphone pour dicter un aliment.",
+      "voice_empty": "Je n’ai pas compris. Réessayez.",
+      "voice_failed": "La reconnaissance vocale a échoué.",
+      "no_food_heard": "Aucun aliment reconnu dans « {text} ».",
+      "parse_failed": "Impossible de traiter la saisie dictée.",
+      "key_required": "Ajoutez votre clé API dans Paramètres → Assistant IA.",
+      "request_failed": "Trace n’a pas pu répondre. Vérifiez la connexion dans Paramètres → Assistant IA.",
+      "zero_calories": "L’estimation est de 0 kcal. Elle ne peut pas être ajoutée au journal."
+    },
     "clear_conversation": "Effacer la conversation",
     "attach_image": "Joindre une image",
     "food_card": {
       "log_to": "Ajouter à",
-      "dont_log": "Ne pas ajouter"
+      "dont_log": "Ne pas ajouter",
+      "discard": "Ignorer",
+      "save_and_log": "Enregistrer et ajouter au journal",
+      "per_amount": "Pour {amount}",
+      "calories_logged": "{kcal, number} kcal ajoutées au journal ({meal}).",
+      "food_saved": "{name} a été enregistré dans vos aliments.",
+      "food_saved_and_logged": "{name} a été enregistré dans vos aliments et ajouté au journal ({meal})."
     },
     "clear_confirm_title": "Effacer cette conversation ?",
     "clear_confirm_message": "Les messages de cette conversation seront définitivement supprimés.",
@@ -1262,7 +1302,13 @@
     "includes": "Dont {amount} de {name}",
     "title": "Valeurs nutritionnelles",
     "serving_size": "Taille de la portion",
-    "amount_per": "Quantité par portion"
+    "amount_per": "Quantité par portion",
+    "servings_per_container": "{count} portions par emballage",
+    "one_of": "1 portion sur {count}",
+    "daily_value": "% de la valeur quotidienne*",
+    "daily_value_note": "* Le pourcentage de la valeur quotidienne indique ce qu’apporte une portion sur une journée. L’apport de référence est de 2 000 kcal par jour.",
+    "derived_from_salt": "Calculé à partir du sel",
+    "derived_from_sodium": "Calculé à partir du sodium"
   },
   "unit_picker": {
     "groups": {
@@ -2752,7 +2798,13 @@
     "auto_share": "Partage automatique",
     "auto_share_desc": "S’applique aux aliments, repas et recettes que vous créez. Pour modifier le partage des éléments existants, utilisez le partage groupé ci-dessous.",
     "visibility": "Visibilité",
-    "bulk_share_desc": "Choisissez qui peut voir vos éléments existants. Chaque catégorie a son propre réglage."
+    "bulk_share_desc": "Choisissez qui peut voir vos éléments existants. Chaque catégorie a son propre réglage.",
+    "sharing_apply_existing": "Appliquer aux éléments existants",
+    "sharing_applying": "Application en cours…",
+    "sharing_members": "Choisissez qui peut voir ces éléments.",
+    "sharing_loading": "Chargement des comptes…",
+    "sharing_updated": "Partage mis à jour.",
+    "sharing_failed": "Impossible de mettre à jour le partage."
   },
   "settings_nutrition_import": {
     "title": "Importer un historique alimentaire",

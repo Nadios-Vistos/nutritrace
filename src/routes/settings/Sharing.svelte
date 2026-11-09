@@ -130,8 +130,8 @@
       ]);
       // Persist for next time — the form should remember its last state.
       await _saveBulkState();
-      showSuccess('Sharing updated');
-    } catch(e) { showError('Could not apply: ' + e.message); }
+      showSuccess($_('settings_integrations.sharing_updated'));
+    } catch { showError($_('settings_integrations.sharing_failed')); }
     bulkApplying = false;
   }
 
@@ -183,9 +183,9 @@
     <p class="settings-group-sub">{$_('settings_integrations.bulk_share_desc')}</p>
     <div class="card settings-card" style="gap:0">
       {#each [
-        { key: 'foods',   label: 'Foods'   },
-        { key: 'meals',   label: 'Meals'   },
-        { key: 'recipes', label: 'Recipes' },
+        { key: 'foods',   label: $_('nav.foods') },
+        { key: 'meals',   label: $_('foods.tabs.meals') },
+        { key: 'recipes', label: $_('foods.tabs.recipes') },
       ] as cat, ci}
         {#if ci > 0}<div class="setting-divider"></div>{/if}
         {@const _vis    = cat.key === 'foods' ? bulkVisFoods   : cat.key === 'meals' ? bulkVisMeals   : bulkVisRecipes}
@@ -193,7 +193,7 @@
         <div class="setting-row">
           <span class="setting-label">{cat.label}</span>
           <div class="select-wrap" style="width:160px">
-            <select class="select sel-sm"
+            <select class="select sel-sm" aria-label={cat.label}
               on:change={e => {
                 const v = e.target.value;
                 if (cat.key === 'foods')   bulkVisFoods   = v;
@@ -209,7 +209,7 @@
         </div>
         {#if _vis === 'specific'}
           <div style="padding:0 16px 12px">
-            <div class="setting-desc" style="margin-bottom:8px">Members who can see your {cat.label.toLowerCase()}:</div>
+            <div class="setting-desc" style="margin-bottom:8px">{$_('settings_integrations.sharing_members')}</div>
             <div style="display:flex;flex-wrap:wrap;gap:8px">
               {#each bulkUsers as u}
                 <button class="chip" class:chip-active={_users.includes(u.id)}
@@ -218,14 +218,14 @@
                   {u.name}
                 </button>
               {/each}
-              {#if !bulkUsersLoaded}<span class="setting-desc">Loading…</span>{/if}
+              {#if !bulkUsersLoaded}<span class="setting-desc">{$_('settings_integrations.sharing_loading')}</span>{/if}
             </div>
           </div>
         {/if}
       {/each}
       <div style="padding:8px 16px 12px">
         <button class="btn btn-secondary w-full" on:click={applyBulkShare} disabled={bulkApplying}>
-          {bulkApplying ? 'Applying…' : 'Apply to Existing Items'}
+          {bulkApplying ? $_('settings_integrations.sharing_applying') : $_('settings_integrations.sharing_apply_existing')}
         </button>
       </div>
     </div>

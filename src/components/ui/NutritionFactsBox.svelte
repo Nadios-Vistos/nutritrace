@@ -1,5 +1,5 @@
 <script>
-  import { _ } from 'svelte-i18n';
+  import { _, number } from 'svelte-i18n';
   /**
    * NutritionFactsBox — FDA-style "Nutrition Facts" label.
    *
@@ -30,7 +30,7 @@
   import {
     NUTRIMENTS, DEFAULT_VISIBLE_NUTRIMENT_IDS,
     dvPercent, isDerived,
-    energyLabel, energyUnitSuffix,
+    energyUnitSuffix,
     Nutrition,
   } from '../../lib/nutrition.js';
   import { visibleNutriments, energyUnit } from '../../stores/settings.js';
@@ -69,7 +69,6 @@
   $: caloriesValDisplay = caloriesNut
     ? Nutrition.displayEnergy(nutrition[caloriesNut.id], $energyUnit).value : null;
   $: caloriesUnitLabel = energyUnitSuffix($energyUnit);
-  $: caloriesRowLabel = energyLabel($energyUnit);
   $: bodyRows = rows.filter(r => r.id !== 'calories');
 
   // Macros (incl. their sub-rows) go above the thick rule; vitamins +
@@ -77,15 +76,13 @@
   $: macroRows  = bodyRows.filter(r => r.category !== 'vitamin' && r.category !== 'mineral');
   $: vitMinRows = bodyRows.filter(r => r.category === 'vitamin' || r.category === 'mineral');
 
-  function fmt(v, unit) {
+  function fmt(v, unit, formatNumber) {
     if (v == null) return '';
     const n = Number(v);
     if (!Number.isFinite(n)) return String(v);
     // Whole when close enough; otherwise 1 decimal max. No space
     // between number and unit (matches FDA: "0g", "15mg").
-    const text = Math.abs(n - Math.round(n)) < 0.05
-      ? String(Math.round(n))
-      : n.toFixed(1).replace(/\.0$/, '');
+    const text = formatNumber(n, { maximumFractionDigits: 1 });
     return text + (unit || '');
   }
   function _depth(n) {
@@ -107,19 +104,17 @@
   <div class="title">{$_('nutrition_facts.title')}</div>
 
   {#if servingsPerContainer}
-    <div class="serving-line">{servingsPerContainer} servings per container</div>
+    <div class="serving-line">{$_('nutrition_facts.servings_per_container', { values: { count: servingsPerContainer } })}</div>
   {/if}
   <div class="serving-line">
     <strong>{$_('nutrition_facts.serving_size')}</strong>
     <span class="serving-detail">
       {#if servingDescription}
         {servingDescription}
-      {:else if yieldText}
-        1 of {servings || '?'} ({yieldText})
-      {:else if servings}
-        1 of {servings}
+      {:else if yieldText || servings}
+        {$_('nutrition_facts.one_of', { values: { count: servings || '?' } })}{#if yieldText} ({yieldText}){/if}
       {:else}
-        per serving
+        {$_('foods.detail.per_serving')}
       {/if}
     </span>
   </div>
@@ -129,15 +124,15 @@
   {#if caloriesNut}
     <div class="amount-label">{$_('nutrition_facts.amount_per')}</div>
     <div class="cal-row">
-      <span class="cal-name">{caloriesRowLabel}</span>
+      <span class="cal-name">{$_($energyUnit === 'kJ' ? 'common.energy' : 'nutrient_names.calories')}</span>
       <span class="cal-value">
-        {caloriesValDisplay}{#if $energyUnit === 'kJ'}<span class="cal-unit"> {caloriesUnitLabel}</span>{/if}
+        {$number(caloriesValDisplay)}{#if $energyUnit === 'kJ'}<span class="cal-unit"> {caloriesUnitLabel}</span>{/if}
       </span>
     </div>
     <div class="rule mid"></div>
   {/if}
 
-  <div class="dv-header">% Daily Value*</div>
+  <div class="dv-header">{$_('nutrition_facts.daily_value')}</div>
 
   {#each macroRows as nut (nut.id)}
     {@const v = nutrition[nut.id]}
@@ -150,14 +145,14 @@
         {#if nut.id === 'added-sugars'}
           <!-- FDA format: "Includes <qty> Added Sugars". Qty is
                embedded between "Includes" and the label. -->
-          <span class="row-name">{$_('nutrition_facts.includes', { values: { amount: fmt(v, nut.unit), name: $_(`nutrient_names.${nut.id}`, { default: nut.label }) } })}</span>
+          <span class="row-name">{$_('nutrition_facts.includes', { values: { amount: fmt(v, nut.unit, $number), name: $_(`nutrient_names.${nut.id}`, { default: nut.label }) } })}</span>
         {:else}
           <span class="row-name">{$_(`nutrient_names.${nut.id}`, { default: nut.label })}</span>
-          <span class="row-value">{fmt(v, nut.unit)}</span>
+          <span class="row-value">{fmt(v, nut.unit, $number)}</span>
         {/if}
         {#if derived}
           <span class="derived material-symbols-rounded"
-            title="Derived from {nut.id === 'sodium' ? 'salt' : 'sodium'}">calculate</span>
+            title={$_(nut.id === 'sodium' ? 'nutrition_facts.derived_from_salt' : 'nutrition_facts.derived_from_sodium')}>calculate</span>
         {/if}
       </span>
       <span class="row-dv">{dv != null ? `${dv}%` : ''}</span>
@@ -172,7 +167,7 @@
       <div class="row vmin" class:no-bottom={i === vitMinRows.length - 1}>
         <span class="row-label">
           <span class="row-name">{$_(`nutrient_names.${nut.id}`, { default: nut.label })}</span>
-          <span class="row-value">{fmt(v, nut.unit)}</span>
+          <span class="row-value">{fmt(v, nut.unit, $number)}</span>
         </span>
         <span class="row-dv">{dv != null ? `${dv}%` : ''}</span>
       </div>
@@ -181,9 +176,7 @@
 
   <div class="rule thick"></div>
   <p class="footnote">
-    * The % Daily Value (DV) tells you how much a nutrient in a serving
-    of food contributes to a daily diet. 2,000 calories a day is used
-    for general nutrition advice.
+    {$_('nutrition_facts.daily_value_note')}
   </p>
 </div>
 {/if}

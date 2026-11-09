@@ -1072,12 +1072,52 @@
     },
     "filters_empty": "No filters available for this tab.",
     "save_to_catalog": "Save to My Catalog",
-    "save_to_foods": "Save to My Foods"
+    "save_to_foods": "Save to My Foods",
+    "shared_load_failed": "Could not load shared items.",
+    "delete_item_title": "Delete this item?",
+    "delete_item_description": "This will permanently delete this item.",
+    "delete_selection_title": "{count, plural, one {Delete this item?} other {Delete these # items?}}",
+    "delete_selection_description": "Existing diary entries keep their nutrition values and lose the link to the deleted items. This cannot be undone.",
+    "amount_basis": "per 100 {unit}"
   },
   "trace": {
     "food_card": {
       "log_to": "Log to",
-      "dont_log": "Don't Log"
+      "dont_log": "Don't Log",
+      "discard": "Discard",
+      "save_and_log": "Save and Add to Diary",
+      "per_amount": "Per {amount}",
+      "calories_logged": "Added {kcal, number} kcal to {meal}.",
+      "food_saved": "{name} saved to your food catalog.",
+      "food_saved_and_logged": "{name} saved to your food catalog and added to {meal}."
+    },
+    "subtitle": "Your AI Health and Nutrition Coach",
+    "welcome": {
+      "title": "Hi, I’m {name}!",
+      "description": "Ask me about your nutrition, sleep, activity, recovery, hydration or body composition.",
+      "today": "How am I doing today?",
+      "today_prompt": "How am I doing today?",
+      "next_meal": "Meal suggestion",
+      "next_meal_prompt": "What should I eat for my next meal?",
+      "sleep": "Sleep and recovery",
+      "sleep_prompt": "How was my sleep and recovery?",
+      "goals": "Goal progress",
+      "goals_prompt": "Am I on track with my goals?"
+    },
+    "working": "Checking your data…",
+    "image_attached": "Image attached",
+    "image_prompt": "What does this image show?",
+    "remove_image": "Remove image",
+    "send": "Send message",
+    "errors": {
+      "mic_denied": "Allow microphone access to dictate a food.",
+      "voice_empty": "I didn’t catch that. Try again.",
+      "voice_failed": "Voice recognition failed.",
+      "no_food_heard": "No food found in “{text}”.",
+      "parse_failed": "Could not process the dictated entry.",
+      "key_required": "Add your API key in Settings → AI Assistant.",
+      "request_failed": "Trace could not complete the request. Check the connection in Settings → AI Assistant.",
+      "zero_calories": "The estimate is 0 kcal and cannot be added to the diary."
     },
     "panel_label": "AI Coach Chat",
     "ask_placeholder": "Ask me anything…",
@@ -1399,7 +1439,13 @@
     "auto_share": "Auto Share",
     "auto_share_desc": "Applied automatically to new foods, meals, and recipes you create. Existing items are left alone; use Bulk Share below to update those.",
     "visibility": "Visibility",
-    "bulk_share_desc": "Set who can see your existing items. Each category has its own visibility, so changing one doesn't affect the others."
+    "bulk_share_desc": "Set who can see your existing items. Each category has its own visibility, so changing one doesn't affect the others.",
+    "sharing_apply_existing": "Apply to Existing Items",
+    "sharing_applying": "Applying…",
+    "sharing_members": "Choose who can see these items.",
+    "sharing_loading": "Loading accounts…",
+    "sharing_updated": "Sharing updated.",
+    "sharing_failed": "Could not update sharing."
   },
   "settings_diagnostics": {
     "diag_mode": "Diagnostic Mode",
@@ -1480,7 +1526,13 @@
     "title": "Nutrition Facts",
     "serving_size": "Serving Size",
     "amount_per": "Amount Per Serving",
-    "includes": "Includes {amount} {name}"
+    "includes": "Includes {amount} {name}",
+    "servings_per_container": "{count} servings per container",
+    "one_of": "1 of {count}",
+    "daily_value": "% Daily Value*",
+    "daily_value_note": "* The % Daily Value shows how much a nutrient in one serving contributes to a daily diet. The reference is 2,000 kcal per day.",
+    "derived_from_salt": "Calculated from salt",
+    "derived_from_sodium": "Calculated from sodium"
   },
   "fasting_insights": {
     "title": "Fasting",

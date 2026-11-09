@@ -482,7 +482,7 @@
         NtApi.getGroupMeals(),
         NtApi.getGroupRecipes(),
       ]);
-    } catch(e) { console.error('[foods] group load error:', e); showError('Could not load shared items'); }
+    } catch(e) { console.error('[foods] group load error:', e); showError($_('foods.shared_load_failed')); }
     finally { loadingGroup = false; }
   }
 
@@ -491,7 +491,7 @@
       const isMeal = activeTab === 1 || activeTab === 2;
       return isMeal ? await NtApi.copyMeal(food.id) : await NtApi.copyFood(food.id);
     } catch(e) {
-      showError('Could not copy item: ' + e.message);
+      showError($_('meal_editor.errors.save_to_catalog'));
       return null;
     }
   }
@@ -1302,7 +1302,7 @@
       const mine = await copyAndUse(food);
       if (!mine) return;
       food = mine;
-      showSuccess('Saved to your catalog');
+      showSuccess($_('food_editor.toast.saved_copy'));
       await load();
     }
 
@@ -1643,11 +1643,15 @@
       cloneItem(selectedItem);
     } else if (detail.value === 'copy') {
       if (selectedItem.id) {
-        copyAndUse(selectedItem).then(() => { showSuccess('Saved to your catalog'); load(); });
+        copyAndUse(selectedItem).then(copy => {
+          if (!copy) return;
+          showSuccess($_('food_editor.toast.saved_copy'));
+          load();
+        });
       } else {
         // External item (OFF/USDA) — create a new local food from it
-        NtApi.createFood(selectedItem).then(() => { showSuccess('Saved to My Foods'); load(); })
-          .catch(e => showError('Could not save: ' + e.message));
+        NtApi.createFood(selectedItem).then(() => { showSuccess($_('food_editor.saved')); load(); })
+          .catch(() => showError($_('common.errors.save_failed')));
       }
     } else if (detail.value === 'delete') {
       showDeleteDialog = true;
@@ -2116,7 +2120,7 @@
   <!-- Manage-mode action icons — fixed at top-right, matches Diary UX -->
   {#if manageMode}
     <div use:portal class="foods-topbar-actions">
-      <button class="btn-icon" on:click={exitManageMode} aria-label="Cancel selection" title="Cancel">
+      <button class="btn-icon" on:click={exitManageMode} aria-label={$_('common.cancel')} title={$_('common.cancel')}>
         <span class="material-symbols-rounded">close</span>
       </button>
       <button class="btn-icon"
@@ -2134,7 +2138,7 @@
       <button class="btn-icon" style="color:var(--danger)"
         disabled={manageSelected.size === 0 || bulkDeleting}
         on:click={() => (showBulkDeleteDialog = true)}
-        aria-label="Delete selected" title="Delete">
+        aria-label={$_('diary.actions.delete_selected')} title={$_('diary.actions.delete_selected')}>
         <span class="material-symbols-rounded" class:spin={bulkDeleting}>{bulkDeleting ? 'refresh' : 'delete'}</span>
       </button>
     </div>
@@ -2155,7 +2159,7 @@
         {/if}
       </button>
     {:else if manageMode}
-      <h1 class="select-mode-title">{manageSelected.size} selected</h1>
+      <h1 class="select-mode-title">{$_('foods.n_selected', { values: { n: manageSelected.size } })}</h1>
     {:else}
       <h1>{$_('routes.foods.title')}</h1>
       <button class={activeTab === 2 ? 'btn btn-primary' : 'btn-icon accent'} on:click={() => {
@@ -2401,7 +2405,7 @@
                         {/if}
                       </span>
                     {/if}
-                    {#if source === 'shared' && item._shared_by}<span class="food-kcal text-sm" style="color:var(--accent)">by {item._shared_by}</span>{/if}
+                    {#if source === 'shared' && item._shared_by}<span class="food-kcal text-sm" style="color:var(--accent)">{$_('meal_editor.shared_by', { values: { name: item._shared_by } })}</span>{/if}
                   {/if}
                 </div>
                 <span class="source-badge source-badge-{source}">
@@ -2428,7 +2432,7 @@
           <div class="all-source-counts">
             <span class="asc-chip"><span class="asc-dot asc-local"></span>Local · {_localCount}</span>
             {#if _tabHasShared}
-              <span class="asc-chip"><span class="asc-dot asc-shared"></span>Shared · {_sharedCount}</span>
+              <span class="asc-chip"><span class="asc-dot asc-shared"></span>{$_('foods.sources.shared')} · {_sharedCount}</span>
             {/if}
             {#if _mealieEnabled && activeTab === 0}
               <span class="asc-chip"><span class="asc-dot asc-mealie"></span>Mealie · {#if _sourcesOffline}{$_('foods.offline.source')}{:else}{mealieResults.length}{#if _allMealieTotal > mealieResults.length} of {_allMealieTotal.toLocaleString()}{/if}{/if}</span>
@@ -2608,11 +2612,11 @@
                   </span>
                   {#if activeTab === 0}
                     {#if food.brand}<span class="food-brand text-3 text-sm">{food.brand}</span>{/if}
-                    <span class="food-kcal text-sm">{amountAndUnit(food.portion || 100, food.unit)}{#if food.nutrition_basis && ($showUnitMetadata || $warnUnitMismatch)} · <span class="food-basis text-3">per 100 {food.nutrition_basis}</span>{/if}{#if food._shared_by} · <span style="color:var(--accent)">by {food._shared_by}</span>{/if}</span>
+                    <span class="food-kcal text-sm">{amountAndUnit(food.portion || 100, food.unit, $_)}{#if food.nutrition_basis && ($showUnitMetadata || $warnUnitMismatch)} · <span class="food-basis text-3">{$_('foods.amount_basis', { values: { unit: food.nutrition_basis } })}</span>{/if}{#if food._shared_by} · <span style="color:var(--accent)">{$_('meal_editor.shared_by', { values: { name: food._shared_by } })}</span>{/if}</span>
                   {:else}
                     {@const _kcal = Math.round(Nutrition.sum((food.items||[]).map(i => Nutrition.calculate(i))).calories || food.nutrition?.calories || 0)}
                     {@const _mealEnergy = Nutrition.displayEnergy(_kcal, $energyUnit)}
-                    <span class="food-brand text-3 text-sm">{mealServing(food.items)}{#if food._shared_by} · <span style="color:var(--accent)">by {food._shared_by}</span>{/if}</span>
+                    <span class="food-brand text-3 text-sm">{mealServing(food.items)}{#if food._shared_by} · <span style="color:var(--accent)">{$_('meal_editor.shared_by', { values: { name: food._shared_by } })}</span>{/if}</span>
                     <span class="food-kcal text-sm">{_mealEnergy.value.toLocaleString()} {_mealEnergy.unit}</span>
                   {/if}
                 </div>
@@ -3195,18 +3199,18 @@
 
 <Dialog
   bind:open={showDeleteDialog}
-  title="Delete item?"
-  message="This will permanently delete this item."
-  confirmText="Delete"
+  title={$_('foods.delete_item_title')}
+  message={$_('foods.delete_item_description')}
+  confirmText={$_('common.delete')}
   dangerous
   on:confirm={() => selectedItem && deleteItem(selectedItem)}
 />
 
 <Dialog
   bind:open={showBulkDeleteDialog}
-  title={`Delete ${manageSelected.size} ${manageSelected.size === 1 ? 'item' : 'items'}?`}
-  message="Diary entries that reference these will keep their nutrition snapshot but lose the link to the source. This can't be undone."
-  confirmText="Delete"
+  title={$_('foods.delete_selection_title', { values: { count: manageSelected.size } })}
+  message={$_('foods.delete_selection_description')}
+  confirmText={$_('common.delete')}
   dangerous
   on:confirm={confirmBulkDelete}
 />
