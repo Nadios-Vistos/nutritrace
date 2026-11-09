@@ -1,12 +1,13 @@
 <script>
   import { closeOnBack } from '../lib/back-stack.js';
-  import { onMount, tick } from 'svelte';
+  import { onDestroy, onMount, tick } from 'svelte';
   import { pop } from 'svelte-spa-router';
   import { _ } from 'svelte-i18n';
   import { NtApi, API, USDA } from '../lib/api.js';
   import { offNutritionStatus, needsFullLookup } from '../lib/off-nutrition.js';
   import { Mealie } from '../lib/mealieApi.js';
-  import { loadBasics, searchCiqual } from '../lib/ciqual.js';
+  import { CookTrace } from '../lib/cooktraceApi.js';
+  import { loadBasics, loadCiqual, searchCiqual } from '../lib/ciqual.js';
   import BarcodeScanner from '../components/foods/BarcodeScanner.svelte';
   import { DB } from '../lib/db.js';
   import { takePhoto } from '../lib/camera.js';
@@ -91,43 +92,43 @@
   let pickerMeals = [];
   let pickerRecipes = [];
   let pickerLoading = false;
-  const PICKER_TABS = ['Foods', 'Meals', 'Recipes'];
+  $: PICKER_TABS = [$_('nav.foods'), $_('foods.tabs.meals'), $_('foods.tabs.recipes')];
 
-  // Cross-source picker state (feature #59): the Foods tab inside the picker
-  // can search Local / OFF / USDA / Mealie / From Others, just like the main
-  // Foods tab. Meals + Recipes tabs stay local-only (they're user-built
-  // compositions, no external catalog to search). On pick from a non-local
-  // source, the food is saved to local first so the ingredient row has a
-  // persistent reference, matching Foods.svelte's pickFood flow.
-  let _pickerSource = 'local';      // 'local' | 'off' | 'usda' | 'mealie' | 'shared'
-  let _pickerApiResults    = [];    // OFF / USDA results
-  let _pickerMealieResults = [];    // Mealie recipe results
+  let _pickerSource = 'all';
+  let _pickerExternalRows = [];
   let _pickerSharedFoods   = [];    // foods shared by other users
   let _pickerLoadingExt    = false; // separate flag from local pickerLoading
   let _pickerScannerOpen   = false;
   let _pickerSearchTimeout = null;
+  let _pickerSearchVersion = 0;
   let _pickerSavingPick    = false; // disables list while a non-local pick is being saved
   let _pickerSharingEnabled = false;
   let _pickerSharedCounts   = { foods: 0 };
   const _pickerMealieEnabled = DB.getSetting('mealieEnabled', false);
+  const _pickerCookTraceEnabled = DB.getSetting('cooktraceEnabled', false);
   let basicsCatalogue = null;
+  let ciqualCatalogue = null;
   let basicsLoading = false;
   let basicsError = false;
   $: _pickerSourceOptions = [
-    { value: 'local',  label: 'Local'        },
+    { value: 'all', label: $_('foods.sources.all') },
+    { value: 'local', label: $_('foods.sources.local') },
     { value: 'basics', label: $_('ciqual.basics') },
+    { value: 'ciqual', label: 'Ciqual' },
     ...($offEnabled                          ? [{ value: 'off',    label: 'OFF'        }] : []),
     ...($usdaEnabled                         ? [{ value: 'usda',   label: 'USDA'       }] : []),
     ...(_pickerMealieEnabled                 ? [{ value: 'mealie', label: 'Mealie'     }] : []),
+    ...(_pickerCookTraceEnabled              ? [{ value: 'ctpantry', label: 'CookTrace' }] : []),
     ...(_pickerSharingEnabled && _pickerSharedCounts.foods > 0
-                                             ? [{ value: 'shared', label: 'From Others'}] : []),
+                                             ? [{ value: 'shared', label: $_('foods.sources.from_others') }] : []),
   ];
-  $: if (_pickerSource === 'basics' && !basicsCatalogue && !basicsLoading && !basicsError) refreshBasics();
+  $: _pickerUsesReference = pickerTab === 0 && ['all', 'basics', 'ciqual'].includes(_pickerSource);
+  $: if (showPicker && _pickerUsesReference && !basicsCatalogue && !basicsLoading && !basicsError) refreshBasics();
 
   async function refreshBasics() {
     basicsLoading = true;
     basicsError = false;
-    try { basicsCatalogue = await loadBasics(); }
+    try { [basicsCatalogue, ciqualCatalogue] = await Promise.all([loadBasics(), loadCiqual()]); }
     catch { basicsError = true; }
     finally { basicsLoading = false; }
   }
@@ -136,7 +137,13 @@
       const s = await NtApi.getSharingStatus();
       _pickerSharingEnabled = s.sharing_enabled === true;
       _pickerSharedCounts   = { foods: s.foods || 0 };
-    } catch { _pickerSharingEnabled = false; _pickerSharedCounts = { foods: 0 }; }
+      if (_pickerSharingEnabled && _pickerSharedCounts.foods > 0) await _loadSharedFoodsCatalogue();
+      else _pickerSharedFoods = [];
+    } catch {
+      _pickerSharingEnabled = false;
+      _pickerSharedCounts = { foods: 0 };
+      _pickerSharedFoods = [];
+    }
   }
   async function _loadSharedFoodsCatalogue() {
     if (!_pickerSharingEnabled) { _pickerSharedFoods = []; return; }
@@ -154,7 +161,7 @@
   let editingIndex = null; // null = adding new, number = editing existing
 
   // Multi-select
-  let selectedIngredients = new Set();
+  let selectedIngredients = new Map();
   let showMultiPortionSheet = false;
   let multiPortionItems = [];
 
@@ -423,9 +430,7 @@
     showPicker = true;
     pickerTab = 0;
     pickerSearch = '';
-    _pickerSource = 'local';
-    _pickerApiResults = [];
-    _pickerMealieResults = [];
+    _pickerSource = 'all';
     pickerLoading = true;
     try {
       [pickerFoods, pickerMeals, pickerRecipes] = await Promise.all([
@@ -442,46 +447,37 @@
     _refreshPickerSharing();
   }
 
-  // Foods tab now respects _pickerSource (#59). Meals/Recipes tabs always
-  // pull from the local library — there's no remote concept of "saved meal"
-  // or "recipe" to search against externally.
-  $: _pickerList = pickerTab === 0
-    ? (_pickerSource === 'local'  ? pickerFoods
-     : _pickerSource === 'shared' ? _pickerSharedFoods
-     : _pickerSource === 'mealie' ? _pickerMealieResults
-     :                              _pickerApiResults)
-    : pickerTab === 1 ? pickerMeals
-    :                   pickerRecipes;
-
-  // When the source switches to 'shared', lazy-load the group catalogue. The
-  // catalogue is a flat list of foods, not filtered by search (search runs
-  // locally over the loaded list — matches Foods.svelte behavior). When the
-  // source switches to OFF/USDA/Mealie, kick off the network search.
-  $: { _pickerSource; if (_pickerSource === 'shared' && _pickerSharedFoods.length === 0) _loadSharedFoodsCatalogue(); }
-  $: { pickerSearch; _pickerSource; pickerTab; _onPickerSearch(); }
-
-  function _onPickerSearch() {
+  $: _pickerSearches = {
+    ...($offEnabled && { off: q => API.searchByName(q) }),
+    ...($usdaEnabled && { usda: q => USDA.searchByName(q, 1, $usdaApiKey) }),
+    ...(_pickerMealieEnabled && { mealie: q => Mealie.search(q) }),
+    ...(_pickerCookTraceEnabled && { ctpantry: async q => (await CookTrace.searchPantryWithMeta(q)).items }),
+  };
+  $: _onPickerSearch(showPicker && pickerTab === 0, pickerSearch, _pickerSource, _pickerSearches);
+  onDestroy(() => {
     clearTimeout(_pickerSearchTimeout);
-    _pickerApiResults = [];
-    _pickerMealieResults = [];
-    if (pickerTab !== 0) return;                          // Meals/Recipes are local-only
-    if (_pickerSource === 'local' || _pickerSource === 'shared') return;
-    const q = (pickerSearch || '').trim();
-    if (!q) return;
-    const src = _pickerSource;
+    _pickerSearchVersion++;
+  });
+
+  function _onPickerSearch(isOpen, query, source, searches) {
+    clearTimeout(_pickerSearchTimeout);
+    const version = ++_pickerSearchVersion;
+    _pickerExternalRows = [];
+    _pickerLoadingExt = false;
+    const q = query.trim();
+    if (!isOpen || !q || !navigator.onLine) return;
+    const sources = source === 'all' ? Object.entries(searches)
+      : Object.entries(searches).filter(([name]) => name === source);
+    if (!sources.length) return;
+    _pickerLoadingExt = true;
     _pickerSearchTimeout = setTimeout(async () => {
-      _pickerLoadingExt = true;
-      try {
-        if (src === 'off') {
-          _pickerApiResults = await API.searchByName(q) || [];
-        } else if (src === 'usda') {
-          const key = $usdaApiKey;
-          _pickerApiResults = await USDA.searchByName(q, 1, key) || [];
-        } else if (src === 'mealie') {
-          _pickerMealieResults = await Mealie.search(q) || [];
-        }
-      } catch { /* keep empty, the UI shows the empty state */ }
-      finally { _pickerLoadingExt = false; }
+      await Promise.allSettled(sources.map(async ([name, search]) => {
+        const foods = await search(q) || [];
+        if (version !== _pickerSearchVersion) return;
+        const rows = source === 'all' ? foods.slice(0, 12) : foods;
+        _pickerExternalRows = [..._pickerExternalRows, ...rows.map(food => ({ food, source: name }))];
+      }));
+      if (version === _pickerSearchVersion) _pickerLoadingExt = false;
     }, 400);
   }
   // Pull the per-tab sort mode from the same settings the Foods page reads,
@@ -512,30 +508,49 @@
     // Foods page behavior).
     return [...sorted.filter(f => f.favorite), ...sorted.filter(f => !f.favorite)];
   }
-  // Local lists get the favorite-aware sort; external sources (OFF/USDA/
-  // Mealie) come back pre-filtered + pre-ranked by their own API, so we
-  // skip the local sort and the local search filter for those.
-  $: _isExternalSearch = pickerTab === 0 && (_pickerSource === 'off' || _pickerSource === 'usda' || _pickerSource === 'mealie');
-  $: _pickerListSorted = _isExternalSearch ? _pickerList : _applyPickerSort(_pickerList, _pickerSortMode);
-  $: pickerFiltered = _pickerSource === 'basics' && pickerTab === 0
-    ? searchCiqual(basicsCatalogue, pickerSearch)
-    : (_isExternalSearch || !pickerSearch)
-    ? _pickerListSorted
-    : _pickerListSorted.filter(f =>
-        foldText(f.name).includes(foldText(pickerSearch)) ||
-        foldText(f.brand).includes(foldText(pickerSearch)));
+  $: _pickerList = pickerTab === 0 ? pickerFoods : pickerTab === 1 ? pickerMeals : pickerRecipes;
+  $: _pickerLocalRows = localPickerRows(_pickerList, 'local', _pickerSortMode, pickerSearch);
+  $: _pickerSharedRows = localPickerRows(_pickerSharedFoods, 'shared', _pickerSortMode, pickerSearch);
+  $: _pickerReferenceRows = referencePickerRows(_pickerSource, basicsCatalogue, ciqualCatalogue, pickerSearch);
+  $: _isExternalSearch = pickerTab === 0 && Object.hasOwn(_pickerSearches, _pickerSource);
+  $: pickerFiltered = pickerTab !== 0 || _pickerSource === 'local' ? _pickerLocalRows
+    : _pickerSource === 'all' ? [
+      ..._pickerLocalRows, ..._pickerReferenceRows, ..._pickerSharedRows, ..._pickerExternalRows,
+    ]
+    : _pickerSource === 'shared' ? _pickerSharedRows
+    : _isExternalSearch ? _pickerExternalRows : _pickerReferenceRows;
 
-  // Switching the outer tab (Foods/Meals/Recipes) resets cross-source state
-  // so the Foods source filter doesn't leak into Meals/Recipes views.
-  $: { pickerTab; selectedIngredients = new Set(); if (pickerTab !== 0) _pickerSource = 'local'; }
+  function localPickerRows(foods, source, sortMode, query) {
+    const term = foldText(query.trim());
+    return _applyPickerSort(foods.filter(food =>
+      foldText(food.name).includes(term) || foldText(food.brand).includes(term)), sortMode)
+      .map(food => ({ food, source }));
+  }
+
+  function referencePickerRows(source, basics, ciqual, query) {
+    if (source === 'basics') return searchCiqual(basics, query).map(food => ({ food, source }));
+    if (source === 'ciqual') return searchCiqual(ciqual, query)
+      .filter(food => food.nutrition.calories != null).map(food => ({ food, source }));
+    if (source !== 'all' || !query.trim()) return [];
+    const common = searchCiqual(basics, query);
+    const codes = new Set(common.map(food => food.source_external_id));
+    const other = searchCiqual(ciqual, query)
+      .filter(food => !codes.has(food.source_external_id) && food.nutrition.calories != null);
+    return [
+      ...common.map(food => ({ food, source: 'basics' })),
+      ...other.map(food => ({ food, source: 'ciqual' })),
+    ].slice(0, 12);
+  }
+
+  $: { pickerTab; selectedIngredients = new Map(); }
 
   // Track ingredient images that fail to load so we fall back to the placeholder
   let failedImgs = new Set();
   function onImgError(url) { failedImgs.add(url); failedImgs = failedImgs; }
 
-  function toggleIngredient(food) {
+  function toggleIngredient(food, source) {
     if (selectedIngredients.has(food)) selectedIngredients.delete(food);
-    else selectedIngredients.add(food);
+    else selectedIngredients.set(food, source);
     selectedIngredients = selectedIngredients;
   }
 
@@ -544,19 +559,15 @@
     // For non-local sources, persist every selected food to the local
     // catalogue first so each ingredient has a real food_id reference.
     // Sequential to avoid hammering the server / OFF in parallel.
-    let foods = [...selectedIngredients];
-    if (pickerTab === 0 && _pickerSource !== 'local') {
-      _pickerSavingPick = true;
-      try {
-        const persisted = [];
-        for (const f of foods) {
-          const saved = await _maybePersistPickedFood(f);
-          if (saved) persisted.push(saved);
-        }
-        foods = persisted;
-      } finally { _pickerSavingPick = false; }
-      if (foods.length === 0) return;
-    }
+    const foods = [];
+    _pickerSavingPick = true;
+    try {
+      for (const [food, source] of selectedIngredients) {
+        const saved = await _maybePersistPickedFood(food, source);
+        if (saved) foods.push(saved);
+      }
+    } finally { _pickerSavingPick = false; }
+    if (foods.length === 0) return;
     multiPortionItems = foods.map(food => ({
       food,
       portion: food.portion || 100,
@@ -586,7 +597,7 @@
     showMultiPortionSheet = false;
     showPicker = false;
     pickerSearch = '';
-    selectedIngredients = new Set();
+    selectedIngredients = new Map();
     multiPortionItems = [];
   }
 
@@ -596,13 +607,10 @@
   // shared), persist it to the local catalogue first so the recipe ingredient
   // has a real food_id to reference. Mirrors Foods.svelte's pickFood flow.
   // Returns the saved (local) food, or null if the save failed.
-  async function _maybePersistPickedFood(food) {
-    if (pickerTab !== 0) return food;                 // Meals/Recipes are always local
-    if (food.source_app === 'ciqual') return food;   // Shared references are copied into the recipe as ingredient values
-    if (_pickerSource === 'local') return food;
-    _pickerSavingPick = true;
+  async function _maybePersistPickedFood(food, source) {
+    if (source === 'local' || source === 'basics' || source === 'ciqual') return food;
     try {
-      if (_pickerSource === 'shared' && food._shared_by != null) {
+      if (source === 'shared' && food._shared_by != null) {
         const mine = await NtApi.copyFood(food.id);
         if (!mine) throw new Error('Copy returned no food');
         showSuccess('Saved to your catalog');
@@ -610,8 +618,8 @@
         pickerFoods = await NtApi.getFoods();
         return mine;
       }
-      if (_pickerSource === 'off' || _pickerSource === 'usda' || _pickerSource === 'mealie') {
-        if (_pickerSource === 'off') {
+      if (source !== 'shared') {
+        if (source === 'off') {
           // #241: an OFF product with no "as sold" values would become a
           // 0 kcal ingredient. Search results leave some values out, so ask
           // for the full product first: if it has them, use them.
@@ -626,6 +634,12 @@
             return null;
           }
         }
+        if (source === 'mealie') {
+          const recipe = await Mealie.getRecipe(food.slug);
+          if (!recipe) throw new Error('Recipe unavailable');
+          food = Mealie.mapRecipe(recipe);
+        }
+        if (source === 'ctpantry') food = { ...food, imgUrl: food.img_url || '' };
         // OFF / USDA / Mealie items arrive without a numeric id — strip
         // whatever placeholder is there and createFood to mint a real row.
         const { id: _drop, ...rest } = food;
@@ -639,12 +653,18 @@
     } catch (e) {
       showError('Could not save to catalog: ' + (e?.message || 'unknown error'));
       return null;
-    } finally { _pickerSavingPick = false; }
+    }
   }
 
-  async function pickIngredient(food) {
-    const persisted = await _maybePersistPickedFood(food);
+  async function pickIngredient(food, source) {
+    _pickerSavingPick = true;
+    let persisted;
+    try { persisted = await _maybePersistPickedFood(food, source); }
+    finally { _pickerSavingPick = false; }
     if (!persisted) return;
+    showPicker = false;
+    pickerSearch = '';
+    selectedIngredients = new Map();
     portionFood   = persisted;
     portionAmount = persisted.portion || 100;
     portionUnit   = persisted.unit || 'g';
@@ -665,7 +685,7 @@
     const existingLocal = pickerFoods.find(f => f.barcode === code);
     if (existingLocal) {
       _pickerSource = 'local';
-      await pickIngredient(existingLocal);
+      await pickIngredient(existingLocal, 'local');
       return;
     }
     // OFF lookup
@@ -678,10 +698,8 @@
       const offFood = await API.lookupBarcode(code);
       if (!offFood) { showError('Scan: barcode not found.'); return; }
       _pickerSource = 'off';
-      _pickerApiResults = [offFood];
-      pickerSearch = '';   // results display directly, no name search
       // Auto-pick the single match
-      await pickIngredient(offFood);
+      await pickIngredient(offFood, 'off');
     } catch (e) {
       showError('Scan failed: ' + (e?.message || 'unknown error'));
     } finally { _pickerLoadingExt = false; }
@@ -1267,9 +1285,9 @@
 
 <!-- ── Ingredient picker overlay ── -->
 {#if showPicker}
-  <div class="picker-overlay" role="dialog" aria-modal="true" use:closeOnBack={() => { showPicker = false; pickerSearch = ''; selectedIngredients = new Set(); }}>
+  <div class="picker-overlay" role="dialog" aria-modal="true" use:closeOnBack={() => { showPicker = false; pickerSearch = ''; selectedIngredients = new Map(); }}>
     <div class="picker-header">
-      <button class="btn-icon" on:click={() => { showPicker = false; pickerSearch = ''; selectedIngredients = new Set(); }} title={$_('meal_editor.back')}>
+      <button class="btn-icon" on:click={() => { showPicker = false; pickerSearch = ''; selectedIngredients = new Map(); }} title={$_('meal_editor.back')}>
         <span class="material-symbols-rounded">arrow_back</span>
       </button>
       {#if selectedIngredients.size > 0}
@@ -1299,16 +1317,16 @@
       <div class="picker-source-row">
         {#each _pickerSourceOptions as opt}
           <button class="picker-source-chip" class:active={_pickerSource === opt.value}
-            on:click={() => { _pickerSource = opt.value; pickerSearch = ''; }}>
+            on:click={() => { _pickerSource = opt.value; }}>
             {opt.label}
           </button>
         {/each}
       </div>
     {/if}
     <div class="picker-list">
-      {#if pickerLoading || _pickerLoadingExt || (_pickerSource === 'basics' && basicsLoading)}
+      {#if pickerLoading || (!pickerFiltered.length && (_pickerLoadingExt || (_pickerUsesReference && basicsLoading)))}
         <Spinner block size="sm" />
-      {:else if _pickerSource === 'basics' && basicsError}
+      {:else if (_pickerSource === 'basics' || _pickerSource === 'ciqual') && basicsError}
         <div class="picker-empty">
           <p>{$_('ciqual.unavailable')}</p>
           <button class="btn btn-secondary" type="button" on:click={refreshBasics}>{$_('foods_deep.retry')}</button>
@@ -1316,9 +1334,9 @@
       {:else if pickerFiltered.length === 0}
         <div class="picker-empty">
           {#if _isExternalSearch && !pickerSearch}
-            {$_('meal_editor.picker_search_source', { values: { source: _pickerSource === 'off' ? 'Open Food Facts' : _pickerSource === 'usda' ? 'USDA' : 'Mealie' } })}
+            {$_('meal_editor.picker_search_source', { values: { source: _pickerSourceOptions.find(opt => opt.value === _pickerSource)?.label } })}
           {:else if _isExternalSearch}
-            {$_('meal_editor.picker_no_source_results', { values: { source: _pickerSource === 'off' ? 'Open Food Facts' : _pickerSource === 'usda' ? 'USDA' : 'Mealie', query: pickerSearch } })}
+            {$_('meal_editor.picker_no_source_results', { values: { source: _pickerSourceOptions.find(opt => opt.value === _pickerSource)?.label, query: pickerSearch } })}
           {:else if _pickerSource === 'shared'}
             {$_('meal_editor.picker_no_shared')}
           {:else if pickerSearch}
@@ -1328,11 +1346,11 @@
           {/if}
         </div>
       {:else}
-        {#each pickerFiltered as food, _fi (food.id ?? food.barcode ?? food.fdcId ?? food.slug ?? food.source_external_id ?? `${_pickerSource}:${_fi}`)}
+        {#each pickerFiltered as { food, source } (food)}
           {@const _sel = selectedIngredients.has(food)}
           {@const _pickEnergy = Nutrition.displayEnergy(food.nutrition?.calories || 0, $energyUnit)}
           <div class="picker-item-row" class:picker-item-selected={_sel}>
-            <button class="picker-select-btn" on:click={() => toggleIngredient(food)} aria-label="Select"
+            <button class="picker-select-btn" on:click={() => toggleIngredient(food, source)} aria-label="Select"
               disabled={_pickerSavingPick}>
               <span class="material-symbols-rounded picker-check" class:picker-check-on={_sel}>
                 {_sel ? 'check_circle' : 'radio_button_unchecked'}
@@ -1340,7 +1358,7 @@
             </button>
             <button class="picker-item-btn"
               disabled={_pickerSavingPick}
-              on:click={() => { showPicker = false; pickerSearch = ''; selectedIngredients = new Set(); pickIngredient(food); }}>
+              on:click={() => pickIngredient(food, source)}>
               {#if food.imgUrl && !failedImgs.has(food.imgUrl)}
                 <img src={resolveAssetUrl(food.imgUrl)} alt={food.name} class="picker-thumb"
                      on:error={() => onImgError(food.imgUrl)} />
@@ -1355,7 +1373,10 @@
                 <span class="picker-name">{food.name}</span>
                 {#if food.brand}<span class="text-3" style="font-size:12px">{food.brand}</span>{/if}
                 {#if pickerTab === 0}
-                  <span class="text-3" style="font-size:12px">{amountAndUnit(food.portion||100, food.unit)} · {_pickEnergy.value.toLocaleString()} {_pickEnergy.unit}</span>
+                  <span class="text-3" style="font-size:12px">
+                    {amountAndUnit(food.portion || 100, food.unit, $_)} · {_pickEnergy.value.toLocaleString()} {_pickEnergy.unit}
+                    {#if _pickerSource === 'all'} · {_pickerSourceOptions.find(opt => opt.value === source)?.label}{/if}
+                  </span>
                 {:else}
                   <span class="text-3" style="font-size:12px">{_pickEnergy.value.toLocaleString()} {_pickEnergy.unit}</span>
                 {/if}

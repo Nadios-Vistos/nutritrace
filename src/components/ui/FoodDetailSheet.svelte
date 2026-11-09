@@ -44,6 +44,7 @@
   import NutritionFactsBox from './NutritionFactsBox.svelte';
   import { resolveAssetUrl } from '../../lib/platform.js';
   import { Nutrition, energyUnitSuffix } from '../../lib/nutrition.js';
+  import { mealLabel } from '../../lib/mealIcon.js';
   import { energyUnit, mealNames, disableAnimations } from '../../stores/settings.js';
   import { NtApi } from '../../lib/api.js';
   import { confirmDialog } from '../../stores/confirmDialog.js';
@@ -82,7 +83,7 @@
   // common case.
   let _mealPickerOpen = false;
   $: _mealActions = (($mealNames || ['Breakfast','Lunch','Dinner','Snacks'])
-    .map((label, value) => ({ label, value })));
+    .map((name, value) => ({ label: mealLabel(name, $_), value })));
 
   // Image URL: NT foods carry `imgUrl` (camelCase). OFF / USDA picker rows
   // that haven't been saved yet may carry `img_url` (snake_case) or one of
