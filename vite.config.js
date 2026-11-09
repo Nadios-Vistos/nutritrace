@@ -46,7 +46,7 @@ export default defineConfig({
         // with a connection anyway. So are the install icons, which the browser
         // fetches from the manifest. The icon font stays, or every button in the
         // app would read as a word offline.
-        globIgnores: ['vendor/**', 'icons/**', '**/*.map'],
+        globIgnores: ['vendor/**', 'icons/**', '**/*.map', 'portions/atlas/**'],
         // Chart, zip and emoji chunks are over the 2 MiB default.
         maximumFileSizeToCacheInBytes: 6 * 1024 * 1024,
         // Navigation still prefers the network (see the NetworkFirst route
@@ -61,6 +61,16 @@ export default defineConfig({
         skipWaiting: true,
         clientsClaim: true,
         runtimeCaching: [
+          {
+            urlPattern: ({ url, sameOrigin, request }) =>
+              sameOrigin && request.destination === 'image' && /\/portions\/atlas\/[^/]+\.png$/.test(url.pathname),
+            handler: 'CacheFirst',
+            options: {
+              cacheName: 'portion-atlas',
+              expiration: { maxEntries: 150, maxAgeSeconds: 60 * 60 * 24 * 60 },
+              cacheableResponse: { statuses: [200] },
+            }
+          },
           {
             // Navigation: network first (3s timeout), cache index.html for
             // offline use. Deploys are picked up instantly because the

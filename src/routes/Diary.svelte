@@ -29,6 +29,7 @@
   import Dialog       from '../components/ui/Dialog.svelte';
   import ActionSheet  from '../components/ui/ActionSheet.svelte';
   import UnitPicker   from '../components/ui/UnitPicker.svelte';
+  import PortionPicker from '../components/ui/PortionPicker.svelte';
   import TimePicker   from '../components/ui/TimePicker.svelte';
   import { scaleFactor as _unitScaleFactor, amountAndUnit } from '../lib/units.js';
   import { showSuccess, showError, showInfo } from '../stores/toast.js';
@@ -2765,6 +2766,9 @@
         {/if}
         <button class="btn btn-primary w-full" style="margin-top:16px" on:click={saveEditItem}>{$_('diary.edit_item.save')}</button>
       {:else}
+      <div style="margin-bottom:16px">
+        <PortionPicker food={editItem} bind:amount={editPortion} bind:unit={editUnit} bind:quantity={editQuantity} />
+      </div>
       <div style="display:flex;gap:12px;margin-bottom:16px">
         <div style="flex:1">
           <label class="form-label" style="font-size:11px;color:var(--text-3);display:block;margin-bottom:4px">{$_('diary_deep.serving_size')}</label>

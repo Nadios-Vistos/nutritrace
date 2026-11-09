@@ -2,10 +2,12 @@ import { BASIC_FOODS } from './catalogues/basics.js';
 
 const collator = new Intl.Collator('fr', { sensitivity: 'base' });
 
-function normalize(text) {
+export function normalizeReferenceText(text) {
   return text.toLowerCase().replaceAll('œ', 'oe').replaceAll('æ', 'ae')
     .normalize('NFD').replace(/\p{M}/gu, '').replace(/[^\p{L}\p{N}]+/gu, ' ').trim();
 }
+
+const normalize = normalizeReferenceText;
 
 let cataloguePromise;
 let basicsPromise;

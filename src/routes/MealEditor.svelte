@@ -8,6 +8,7 @@
   import { Mealie } from '../lib/mealieApi.js';
   import { CookTrace } from '../lib/cooktraceApi.js';
   import { loadBasics, loadCiqual, searchCiqual } from '../lib/ciqual.js';
+  import { isAtlasReference, loadPortionAtlas } from '../lib/portion-atlas.js';
   import BarcodeScanner from '../components/foods/BarcodeScanner.svelte';
   import { DB } from '../lib/db.js';
   import { takePhoto } from '../lib/camera.js';
@@ -16,6 +17,7 @@
   import Sheet from '../components/ui/Sheet.svelte';
   import Spinner from '../components/ui/Spinner.svelte';
   import UnitPicker from '../components/ui/UnitPicker.svelte';
+  import PortionPicker from '../components/ui/PortionPicker.svelte';
   import ImageCropper from '../components/ui/ImageCropper.svelte';
   import { scaleFactor as _unitScaleFactor, amountAndUnit } from '../lib/units.js';
   import { showSuccess, showError } from '../stores/toast.js';
@@ -108,6 +110,9 @@
   const _pickerCookTraceEnabled = DB.getSetting('cooktraceEnabled', false);
   let basicsCatalogue = null;
   let ciqualCatalogue = null;
+  let atlasCatalogue = null;
+  let atlasLoading = false;
+  let atlasError = false;
   let basicsLoading = false;
   let basicsError = false;
   $: _pickerSourceOptions = [
@@ -115,6 +120,7 @@
     { value: 'local', label: $_('foods.sources.local') },
     { value: 'basics', label: $_('ciqual.basics') },
     { value: 'ciqual', label: 'Ciqual' },
+    { value: 'atlas', label: $_('portions.atlas') },
     ...($offEnabled                          ? [{ value: 'off',    label: 'OFF'        }] : []),
     ...($usdaEnabled                         ? [{ value: 'usda',   label: 'USDA'       }] : []),
     ...(_pickerMealieEnabled                 ? [{ value: 'mealie', label: 'Mealie'     }] : []),
@@ -124,6 +130,8 @@
   ];
   $: _pickerUsesReference = pickerTab === 0 && ['all', 'basics', 'ciqual'].includes(_pickerSource);
   $: if (showPicker && _pickerUsesReference && !basicsCatalogue && !basicsLoading && !basicsError) refreshBasics();
+  $: if (showPicker && pickerTab === 0 && (_pickerSource === 'atlas' || (_pickerSource === 'all' && pickerSearch.trim()))
+    && !atlasCatalogue && !atlasLoading && !atlasError) refreshAtlas();
 
   async function refreshBasics() {
     basicsLoading = true;
@@ -131,6 +139,13 @@
     try { [basicsCatalogue, ciqualCatalogue] = await Promise.all([loadBasics(), loadCiqual()]); }
     catch { basicsError = true; }
     finally { basicsLoading = false; }
+  }
+  async function refreshAtlas() {
+    atlasLoading = true;
+    atlasError = false;
+    try { atlasCatalogue = await loadPortionAtlas(); }
+    catch { atlasError = true; }
+    finally { atlasLoading = false; }
   }
   async function _refreshPickerSharing() {
     try {
@@ -511,7 +526,7 @@
   $: _pickerList = pickerTab === 0 ? pickerFoods : pickerTab === 1 ? pickerMeals : pickerRecipes;
   $: _pickerLocalRows = localPickerRows(_pickerList, 'local', _pickerSortMode, pickerSearch);
   $: _pickerSharedRows = localPickerRows(_pickerSharedFoods, 'shared', _pickerSortMode, pickerSearch);
-  $: _pickerReferenceRows = referencePickerRows(_pickerSource, basicsCatalogue, ciqualCatalogue, pickerSearch);
+  $: _pickerReferenceRows = referencePickerRows(_pickerSource, basicsCatalogue, ciqualCatalogue, atlasCatalogue, pickerSearch);
   $: _isExternalSearch = pickerTab === 0 && Object.hasOwn(_pickerSearches, _pickerSource);
   $: pickerFiltered = pickerTab !== 0 || _pickerSource === 'local' ? _pickerLocalRows
     : _pickerSource === 'all' ? [
@@ -527,19 +542,21 @@
       .map(food => ({ food, source }));
   }
 
-  function referencePickerRows(source, basics, ciqual, query) {
+  function referencePickerRows(source, basics, ciqual, atlas, query) {
     if (source === 'basics') return searchCiqual(basics, query).map(food => ({ food, source }));
     if (source === 'ciqual') return searchCiqual(ciqual, query)
       .filter(food => food.nutrition.calories != null).map(food => ({ food, source }));
+    if (source === 'atlas') return searchCiqual(atlas, query).slice(0, 80).map(food => ({ food, source }));
     if (source !== 'all' || !query.trim()) return [];
     const common = searchCiqual(basics, query);
     const codes = new Set(common.map(food => food.source_external_id));
     const other = searchCiqual(ciqual, query)
       .filter(food => !codes.has(food.source_external_id) && food.nutrition.calories != null);
-    return [
+    const ciqualRows = [
       ...common.map(food => ({ food, source: 'basics' })),
       ...other.map(food => ({ food, source: 'ciqual' })),
     ].slice(0, 12);
+    return [...ciqualRows, ...searchCiqual(atlas, query).slice(0, 8).map(food => ({ food, source: 'atlas' }))];
   }
 
   $: { pickerTab; selectedIngredients = new Map(); }
@@ -608,7 +625,7 @@
   // has a real food_id to reference. Mirrors Foods.svelte's pickFood flow.
   // Returns the saved (local) food, or null if the save failed.
   async function _maybePersistPickedFood(food, source) {
-    if (source === 'local' || source === 'basics' || source === 'ciqual') return food;
+    if (source === 'local' || source === 'basics' || source === 'ciqual' || isAtlasReference(food)) return food;
     try {
       if (source === 'shared' && food._shared_by != null) {
         const mine = await NtApi.copyFood(food.id);
@@ -624,7 +641,7 @@
           // 0 kcal ingredient. Search results leave some values out, so ask
           // for the full product first: if it has them, use them.
           let info = API.offNutritionInfo(food.barcode);
-          if (needsFullLookup(info)) {
+          if (food.barcode && (needsFullLookup(info) || (!food._offHydrated && !food.offServing))) {
             const full = await API.fetchProductByCode(food.barcode).catch(() => null);
             info = API.offNutritionInfo(food.barcode);
             if (full && offNutritionStatus(full, info) === 'ok') food = { ...food, ...full };
@@ -647,7 +664,7 @@
         if (!saved) throw new Error('Create returned no food');
         showSuccess('Saved to your catalog');
         pickerFoods = await NtApi.getFoods();
-        return saved;
+        return source === 'off' ? { ...saved, offServing: food.offServing, offPackUnit: food.offPackUnit } : saved;
       }
       return food;
     } catch (e) {
@@ -699,7 +716,7 @@
       if (!offFood) { showError('Scan: barcode not found.'); return; }
       _pickerSource = 'off';
       // Auto-pick the single match
-      await pickIngredient(offFood, 'off');
+      await pickIngredient({ ...offFood, _offHydrated: true }, 'off');
     } catch (e) {
       showError('Scan failed: ' + (e?.message || 'unknown error'));
     } finally { _pickerLoadingExt = false; }
@@ -1324,12 +1341,17 @@
       </div>
     {/if}
     <div class="picker-list">
-      {#if pickerLoading || (!pickerFiltered.length && (_pickerLoadingExt || (_pickerUsesReference && basicsLoading)))}
+      {#if pickerLoading || (!pickerFiltered.length && (_pickerLoadingExt || atlasLoading || (_pickerUsesReference && basicsLoading)))}
         <Spinner block size="sm" />
       {:else if (_pickerSource === 'basics' || _pickerSource === 'ciqual') && basicsError}
         <div class="picker-empty">
           <p>{$_('ciqual.unavailable')}</p>
           <button class="btn btn-secondary" type="button" on:click={refreshBasics}>{$_('foods_deep.retry')}</button>
+        </div>
+      {:else if _pickerSource === 'atlas' && atlasError}
+        <div class="picker-empty">
+          <p>{$_('portions.atlas_unavailable')}</p>
+          <button class="btn btn-secondary" type="button" on:click={refreshAtlas}>{$_('foods_deep.retry')}</button>
         </div>
       {:else if pickerFiltered.length === 0}
         <div class="picker-empty">
@@ -1397,6 +1419,7 @@
 <Sheet bind:open={portionSheet} title={portionFood ? portionFood.name : $_('meal_editor.set_portion')}
   on:close={() => { editingIndex = null; }}>
   <div style="display:flex;flex-direction:column;gap:16px;padding-top:8px">
+    <PortionPicker food={portionFood} bind:amount={portionAmount} bind:unit={portionUnit} bind:quantity={portionQty} />
     <div style="display:flex;gap:12px">
       <div style="flex:1">
         <label class="form-label" style="font-size:11px;color:var(--text-3);display:block;margin-bottom:6px">{$_('meal_editor.field_serving_size')}</label>
@@ -1428,6 +1451,7 @@
       {#if i > 0}<div style="height:1px;background:var(--border);margin:4px 0"></div>{/if}
       <div style="display:flex;flex-direction:column;gap:10px">
         <span style="font-size:13px;font-weight:600;color:var(--text-1)">{item.food.name}</span>
+        <PortionPicker food={item.food} bind:amount={item.portion} bind:unit={item.unit} bind:quantity={item.qty} />
         <div style="display:flex;gap:10px">
           <div style="flex:1">
             <label class="form-label" style="font-size:11px;color:var(--text-3);display:block;margin-bottom:5px">{$_('meal_editor.field_serving_size')}</label>

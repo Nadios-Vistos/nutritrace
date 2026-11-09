@@ -500,12 +500,33 @@ const API = {
       if (raw) importPortion = JSON.parse(raw);
     } catch {}
     const servingQty = parseFloat(p.serving_quantity);
+    const servingText = String(p.serving_size || '').trim();
+    const servingUnit = String(p.serving_quantity_unit || servingText.match(/(?:\d|\s)(kg|ml|g|l)\s*\)?\s*$/i)?.[1] || '').toLowerCase();
+    const offServing = Number.isFinite(servingQty) && servingQty > 0 && ['g', 'kg', 'ml', 'l'].includes(servingUnit)
+      ? { amount: servingQty * (servingUnit === 'kg' || servingUnit === 'l' ? 1000 : 1),
+        unit: servingUnit === 'ml' || servingUnit === 'l' ? 'ml' : 'g' }
+      : null;
+    // Use only an explicit count × quantity. Net pack weight alone says
+    // nothing about how many individual portions the pack contains.
+    const pack = /^(\d{1,2})\s*[x×]\s*(\d+(?:[.,]\d+)?)\s*(kg|g|ml|cl|l)\s*℮?$/iu.exec(String(p.quantity || '').trim());
+    let offPackUnit = null;
+    if (pack && Number(pack[1]) >= 2) {
+      const perUnit = Number(pack[2].replace(',', '.'));
+      const measure = pack[3].toLowerCase();
+      const factor = measure === 'kg' || measure === 'l' ? 1000 : measure === 'cl' ? 10 : 1;
+      const amount = perUnit * factor;
+      const unit = measure === 'g' || measure === 'kg' ? 'g' : 'ml';
+      const net = Number(p.product_quantity);
+      const conflictsWithNet = net > 0 && p.product_quantity_unit === unit
+        && Math.abs(amount * Number(pack[1]) - net) > 1;
+      if (Number.isFinite(amount) && amount > 0 && !conflictsWithNet) offPackUnit = { amount, unit };
+    }
     const useServing = importPortion === 'perServing'
       && Number.isFinite(servingQty) && servingQty > 0
       && (n['energy-kcal_serving'] != null || n.energy_serving != null);
     const suffix = useServing ? '_serving' : '_100g';
     const portion = useServing ? servingQty : 100;
-    const unit    = useServing ? (p.serving_quantity_unit || 'g') : 'g';
+    const unit    = useServing ? (servingUnit || 'g') : p.nutrition_data_per === '100ml' ? 'ml' : 'g';
     const g = (baseKey, mult) => {
       // Skip values OFF flags as "approximately/estimated" via the _modifier
       // field. These don't appear on the product label table and are usually
@@ -520,40 +541,43 @@ const API = {
     };
     const kcal = g('energy-kcal')
       || (n['energy' + suffix] ? (parseFloat(n['energy' + suffix])||0) / 4.184 : 0);
-    // Issues #69 + #70: capture nutrition_basis + first alt_units entry from
-    // OFF's serving metadata. Both fields are nullable; downstream code
+    // Issues #69 + #70: capture nutrition_basis and alt_units from
+    // OFF's serving and package metadata. Both fields are nullable; downstream code
     // falls back to existing behavior when they're absent.
     //   nutrition_basis = 'g' or 'ml' per p.nutrition_data_per ('100g' /
     //     '100ml' / 'serving'). For 'serving' we can't know the basis without
     //     a unit on serving_quantity, so we treat the unit field on the
     //     serving as the hint; default null when unclear.
-    //   alt_units = first row built from serving_size + serving_quantity.
+    //   alt_units can include a serving built from serving_size + serving_quantity.
     //     e.g. "1 slice (35 g)" with serving_quantity=35 + serving_size
-    //     "1 slice" → {abbr: "slice", grams: 35}. We only add the row when
-    //     the parsed abbr is a recognizable discrete portion (not "g"/"ml").
+    //     "1 slice" → {abbr: "slice", grams: 35}. The table stores masses,
+    //     so volume portions are kept as separate hints from the lookup.
     const basis = (() => {
       const raw = String(p.nutrition_data_per || '').toLowerCase();
       if (raw === '100g') return 'g';
       if (raw === '100ml') return 'ml';
       // Per-serving — fall back to the unit on serving_quantity if present.
-      const su = String(p.serving_quantity_unit || '').toLowerCase();
+      const su = servingUnit;
       if (su === 'g' || su === 'kg') return 'g';
       if (su === 'ml' || su === 'l') return 'ml';
       return null;
     })();
     const altUnits = (() => {
-      const ss = String(p.serving_size || '').trim();
-      const sq = parseFloat(p.serving_quantity);
-      if (!ss || !Number.isFinite(sq) || sq <= 0) return null;
+      const measures = [];
       // OFF serving_size strings look like "1 slice (35 g)" or "2 biscuits
       // (24 g)". Extract the discrete-portion label: first non-numeric word
       // before any open paren. Skip if it's a base mass/volume unit (the
       // serving_quantity itself already carries that case).
-      const m = ss.match(/^\s*\d+\s*([a-zA-ZÀ-ÿ]+)/);
+      const m = servingText.match(/^\s*\d+\s*([a-zA-ZÀ-ÿ]+)/);
       const label = m ? m[1].toLowerCase() : '';
       const BASE_UNITS = new Set(['g','mg','kg','ml','l','oz','lb','cup','tbsp','tsp']);
-      if (!label || BASE_UNITS.has(label)) return null;
-      return [{ abbr: label, grams: Math.round(sq * 10) / 10 }];
+      if (offServing?.unit === 'g') {
+        measures.push({ abbr: label && !BASE_UNITS.has(label) ? label : 'serving', grams: offServing.amount });
+      }
+      if (offPackUnit?.unit === 'g' && !measures.some(row => row.grams === offPackUnit.amount)) {
+        measures.push({ abbr: 'package_unit', grams: offPackUnit.amount });
+      }
+      return measures.length ? measures : null;
     })();
     // Quality signals lifted from the OFF product/hit shape. Used by the
     // Foods search UI to rank results (more complete + graded entries
@@ -631,6 +655,8 @@ const API = {
       categories: [],
       nutrition_basis: basis,
       alt_units:       altUnits,
+      offServing,
+      offPackUnit,
       completeness,
       nutriscore,
       nova,

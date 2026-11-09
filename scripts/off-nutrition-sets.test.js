@@ -17,7 +17,7 @@ import { offNutritionStatus } from '../src/lib/off-nutrition.js';
 import { Nutrition } from '../src/lib/nutrition.js';
 import { offProductName } from '../src/lib/off-name.js';
 
-const read = (p) => readFileSync(new URL(p, import.meta.url), 'utf8');
+const read = (p) => readFileSync(new URL(p, import.meta.url), 'utf8').replace(/\r\n/g, '\n');
 const { products: P } = JSON.parse(read('./fixtures/off-nutrition-sets.json'));
 
 // The real mapper, registry and full lookup, lifted out of api.js (which
@@ -47,6 +47,30 @@ function realApi({ perServing = false, fetchSets = async () => ({ ok: false }) }
 }
 const reply = (body) => async () => ({ ok: true, json: async () => body });
 const setsOf = (name) => reply({ status: 'success', product: P[name].v3_5 });
+
+test('packaged serving measures keep their mass or volume unit', () => {
+  const { api } = realApi();
+  const base = { product_name: 'Fixture', nutriments: { 'energy-kcal_100g': 40 } };
+  const solid = api._mapOFFProduct({ ...base, serving_quantity: 30, serving_size: '30 g', nutrition_data_per: '100g' });
+  assert.deepEqual(solid.offServing, { amount: 30, unit: 'g' });
+  assert.deepEqual(solid.alt_units, [{ abbr: 'serving', grams: 30 }]);
+  const drink = api._mapOFFProduct({ ...base, serving_quantity: 250, serving_quantity_unit: 'ml', nutrition_data_per: '100ml' });
+  assert.deepEqual(drink.offServing, { amount: 250, unit: 'ml' });
+  assert.equal(drink.alt_units, null);
+  assert.equal(drink.unit, 'ml');
+  assert.equal(api._mapOFFProduct({ ...base, serving_quantity: 2, serving_size: '2 biscuits' }).offServing, null);
+});
+
+test('explicit multipacks provide one unit without guessing from net weight', () => {
+  const { api } = realApi();
+  const base = { product_name: 'Fixture', nutriments: { 'energy-kcal_100g': 40 } };
+  const cups = api._mapOFFProduct({ ...base, quantity: '4 × 125 g', product_quantity: '500', product_quantity_unit: 'g' });
+  assert.deepEqual(cups.offPackUnit, { amount: 125, unit: 'g' });
+  assert.deepEqual(cups.alt_units, [{ abbr: 'package_unit', grams: 125 }]);
+  assert.deepEqual(api._mapOFFProduct({ ...base, quantity: '6 x 25 cl' }).offPackUnit, { amount: 250, unit: 'ml' });
+  assert.equal(api._mapOFFProduct({ ...base, quantity: '500 g' }).offPackUnit, null);
+  assert.equal(api._mapOFFProduct({ ...base, quantity: '4 x 125 g', product_quantity: '600', product_quantity_unit: 'g' }).offPackUnit, null);
+});
 
 // Keys the mapper reads, for the product "as sold".
 const asSoldKeys = (n) => Object.keys(n).filter(k => /^[a-z0-9-]+_(100g|serving|modifier)$/.test(k)
