@@ -1836,6 +1836,24 @@
     }
   },
   "meal_editor": {
+    "ingredients": "Ingredients",
+    "ingredient_count": "{count, plural, =0 {No ingredients} one {# ingredient} other {# ingredients}}",
+    "picker_title": "Add ingredients",
+    "finish_adding": "Done",
+    "search_ingredient": "Search for an ingredient",
+    "select_ingredient": "Select {name}",
+    "unselect_ingredient": "Remove {name} from selection",
+    "adjust_ingredients": "{count, plural, one {Set quantity (# ingredient)} other {Set quantities (# ingredients)}}",
+    "edit_ingredient": "Edit quantity for {name}",
+    "remove_ingredient": "Remove {name}",
+    "show_all_nutrients": "Show all nutrients",
+    "show_fewer_nutrients": "Show fewer nutrients",
+    "remove_photo": "Remove photo",
+    "add_favorite": "Add to favorites",
+    "remove_favorite": "Remove from favorites",
+    "imported_from": "Imported from {source}",
+    "open_original": "View original",
+    "saved_to_catalog": "Saved to your catalog",
     "new_meal": "New meal",
     "edit_meal": "Edit meal",
     "new_recipe": "New recipe",
@@ -1883,6 +1901,7 @@
     "field_quantity": "Quantity",
     "servings": {
       "title": "Servings",
+      "total_weight": "Total recipe weight",
       "amount_placeholder": "Auto from ingredients",
       "total_weight_hint": "Total weight. Auto from ingredients; override for cooking changes (e.g. boil-off).",
       "yields_unit": "servings",
@@ -1890,6 +1909,10 @@
       "per_serving_label": "Per serving:"
     },
     "errors": {
+      "save_to_catalog": "Could not save to the catalog.",
+      "scan_off_disabled": "No local match. Open Food Facts is disabled in Settings.",
+      "barcode_not_found": "No food found for this barcode.",
+      "scan_failed": "Could not look up this barcode.",
       "no_ingredients": "Please add at least one ingredient",
       "off_no_values": "Open Food Facts has no values \"as sold\" for {name}. Add it under Foods with the values from the label, then pick it here."
     }

@@ -2158,12 +2158,13 @@
       <h1 class="select-mode-title">{manageSelected.size} selected</h1>
     {:else}
       <h1>{$_('routes.foods.title')}</h1>
-      <button class="btn-icon accent" on:click={() => {
+      <button class={activeTab === 2 ? 'btn btn-primary' : 'btn-icon accent'} on:click={() => {
         if (activeTab === 0) openEditor(null, 'foodList');
         else if (activeTab === 1) openMealEditor(null, false);
         else openMealEditor(null, true);
-      }} aria-label={$_('foods.add_new')} title={$_('foods.add_new')}>
-        <span class="material-symbols-rounded">add</span>
+      }} aria-label={TABS[activeTab].add} title={TABS[activeTab].add}>
+        <span class="material-symbols-rounded" aria-hidden="true">add</span>
+        {#if activeTab === 2}{TABS[activeTab].add}{/if}
       </button>
     {/if}
   </header>

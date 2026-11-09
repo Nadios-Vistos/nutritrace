@@ -1076,6 +1076,24 @@
     }
   },
   "meal_editor": {
+    "ingredients": "Ingrédients",
+    "ingredient_count": "{count, plural, =0 {Aucun ingrédient} one {# ingrédient} other {# ingrédients}}",
+    "picker_title": "Ajouter des ingrédients",
+    "finish_adding": "Terminer",
+    "search_ingredient": "Rechercher un ingrédient",
+    "select_ingredient": "Sélectionner {name}",
+    "unselect_ingredient": "Retirer {name} de la sélection",
+    "adjust_ingredients": "{count, plural, one {Régler la quantité (# ingrédient)} other {Régler les quantités (# ingrédients)}}",
+    "edit_ingredient": "Modifier la quantité de {name}",
+    "remove_ingredient": "Retirer {name}",
+    "show_all_nutrients": "Afficher tous les nutriments",
+    "show_fewer_nutrients": "Afficher moins de nutriments",
+    "remove_photo": "Supprimer la photo",
+    "add_favorite": "Ajouter aux favoris",
+    "remove_favorite": "Retirer des favoris",
+    "imported_from": "Importé depuis {source}",
+    "open_original": "Voir l’original",
+    "saved_to_catalog": "Enregistré dans votre catalogue",
     "new_meal": "Nouveau repas",
     "edit_meal": "Modifier le repas",
     "new_recipe": "Nouvelle recette",
@@ -1093,6 +1111,7 @@
     "recipe_name_placeholder": "Nom de la recette",
     "servings": {
       "title": "Portions",
+      "total_weight": "Poids total de la recette",
       "amount_placeholder": "Auto d'après les ingrédients",
       "total_weight_hint": "Poids total. Auto d'après les ingrédients ; modifiez pour les changements liés à la cuisson (ex. évaporation).",
       "yields_unit": "portions",
@@ -1101,6 +1120,10 @@
     },
     "errors": {
       "no_ingredients": "Veuillez ajouter au moins un ingrédient",
+      "save_to_catalog": "Impossible d’enregistrer dans le catalogue.",
+      "scan_off_disabled": "Aucun aliment local ne correspond. Open Food Facts est désactivé dans les paramètres.",
+      "barcode_not_found": "Aucun aliment trouvé pour ce code-barres.",
+      "scan_failed": "Impossible de rechercher ce code-barres.",
       "off_no_values": "Open Food Facts ne fournit aucune valeur pour « {name} » tel que vendu. Créez sa fiche dans Aliments à partir de l’étiquette, puis sélectionnez-le ici."
     },
     "card_photo": "Photo",
