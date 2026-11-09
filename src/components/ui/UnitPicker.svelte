@@ -14,10 +14,11 @@
    */
   import { onMount, onDestroy, tick, createEventDispatcher } from 'svelte';
   import { get } from 'svelte/store';
+  import { _ } from 'svelte-i18n';
   import { fold } from '../../lib/fold.js';
   import { placeAnchoredMenu } from '../../lib/fold-core.js';
   import { fade } from 'svelte/transition';
-  import { unitGroupsWithCustoms } from '../../lib/units.js';
+  import { displayUnit, unitGroupsWithCustoms } from '../../lib/units.js';
   import { customUnits } from '../../stores/settings.js';
   import { portal } from '../../lib/portal.js';
   import { foldText } from '../../lib/search-text.js';
@@ -25,7 +26,7 @@
 
   /** Stored abbreviation. Must be a member of the merged catalog. */
   export let value = '';
-  export let placeholder = 'unit';
+  export let placeholder = '';
   export let disabled = false;
 
   const dispatch = createEventDispatcher();
@@ -40,7 +41,18 @@
   // never escapes into the saved value.
   let _query = '';
 
-  $: orderedGroups = unitGroupsWithCustoms($customUnits);
+  $: orderedGroups = unitGroupsWithCustoms($customUnits).map(group => ({
+    ...group,
+    label: $_(`unit_picker.groups.${group.id}`, { default: group.label }),
+    units: group.units.map(unit => ({
+      ...unit,
+      display: group.id === 'custom' ? unit.abbr : displayUnit(unit.abbr, $_),
+      label: group.id === 'custom' ? unit.full
+        : $_(`unit_picker.names.${unit.abbr.replace(' ', '_')}`, { default: unit.full }),
+    })),
+  }));
+  $: customSelected = orderedGroups.find(group => group.id === 'custom')?.units.some(unit => unit.abbr === value);
+  $: displayedValue = customSelected ? value : displayUnit(value, $_) || '';
 
   $: filteredGroups = _query
     ? orderedGroups
@@ -48,7 +60,9 @@
           ...g,
           units: g.units.filter(u =>
             foldText(u.abbr).includes(foldText(_query)) ||
-            foldText(u.full).includes(foldText(_query))
+            foldText(u.full).includes(foldText(_query)) ||
+            foldText(u.label).includes(foldText(_query)) ||
+            foldText(u.display).includes(foldText(_query))
           ),
         }))
         .filter(g => g.units.length > 0)
@@ -157,9 +171,9 @@
     bind:this={inputEl}
     class="input unit-input"
     type="text"
-    {placeholder}
+    placeholder={placeholder || $_('common.unit')}
     {disabled}
-    value={open ? _query : (value || '')}
+    value={open ? _query : displayedValue}
     on:input={onInput}
     on:focus={onFocus}
     on:blur={onBlur}
@@ -176,7 +190,7 @@
   <div use:portal class="popover" bind:this={popoverEl} role="listbox"
     style={popStyle} transition:fade={{ duration: 80 }}>
     {#if filteredGroups.length === 0}
-      <p class="empty-line">No matches. Add custom units in Settings → Foods → Custom Units.</p>
+      <p class="empty-line">{$_('unit_picker.empty')}</p>
     {:else}
       {#each filteredGroups as group}
         <p class="group-label">{group.label}</p>
@@ -191,8 +205,8 @@
             on:mousedown|preventDefault={() => pick(u)}
             on:mouseenter={() => highlight = idx}
           >
-            <span class="opt-full">{u.full}</span>
-            <span class="opt-abbr">{u.abbr}</span>
+            <span class="opt-full">{u.label}</span>
+            {#if u.display !== u.label}<span class="opt-abbr">{u.display}</span>{/if}
           </button>
         {/each}
       {/each}

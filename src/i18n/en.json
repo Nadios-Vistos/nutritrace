@@ -1528,7 +1528,44 @@
     "badge_water": "Water",
     "badge_not_found": "Not Found"
   },
+  "unit_picker": {
+    "groups": {
+      "metric_mass": "Mass — Metric",
+      "us_mass": "Mass — US",
+      "metric_volume": "Volume — Metric",
+      "us_volume": "Volume — US",
+      "count": "Count",
+      "custom": "Custom"
+    },
+    "names": {
+      "g": "gram",
+      "mg": "milligram",
+      "kg": "kilogram",
+      "oz": "ounce",
+      "lb": "pound",
+      "ml": "milliliter",
+      "l": "liter",
+      "tsp": "teaspoon",
+      "tbsp": "tablespoon",
+      "fl_oz": "fluid ounce",
+      "cup": "cup",
+      "piece": "piece",
+      "slice": "slice"
+    },
+    "short": {
+      "tsp": "tsp",
+      "tbsp": "tbsp",
+      "fl_oz": "fl oz",
+      "cup": "cup",
+      "piece": "piece",
+      "slice": "slice",
+      "serving": "serving"
+    },
+    "empty": "No matches. Add custom units in Settings → Foods → Custom Units."
+  },
   "foods_deep": {
+    "nutrition_per_100": "Nutrition per 100 {unit}",
+    "unit_mismatch": "Nutrition is per 100 {basis}. Converting from {unit} uses 1 ml ≈ 1 g. For oils, honey and similar foods, set the density (g/ml) for a more accurate conversion.",
     "cant_reach_retry_msg": "Could not reach server, ",
     "retry": "Retry",
     "serving_size": "Serving Size",

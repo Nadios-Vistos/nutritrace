@@ -1,7 +1,7 @@
 <script>
   import { onMount, onDestroy, tick } from 'svelte';
   import { push, location } from 'svelte-spa-router';
-  import { _ } from 'svelte-i18n';
+  import { _, locale } from 'svelte-i18n';
   import { closeOnBack } from '../lib/back-stack.js';
   import { fade, fly, slide } from 'svelte/transition';
 
@@ -61,12 +61,14 @@
   $: if (activeTab !== _prevTab) {
     _prevTab = activeTab;
     activeCategoryFilter = '';
+    pinnedSources = new Set();
     // Re-poll sharing counts so the From Others filter appears for the new
     // tab's category if a peer just shared something.
     refreshSharingStatus();
     // Non-foods tabs only support local + shared — silently reset if the
     // current source isn't valid here (toast removed; common-sense reset).
-    if (activeTab !== 0 && searchSource !== 'local' && searchSource !== 'shared'
+    if (activeTab === 0) searchSource = foodsDefaultSource.get() || 'all';
+    else if (searchSource !== 'local' && searchSource !== 'shared'
         && !(activeTab === 2 && ['cooktrace', 'mealieLibrary'].includes(searchSource))) searchSource = 'local';
     if (searchSource === 'shared' && !_tabHasShared) searchSource = 'local';
   }
@@ -97,7 +99,7 @@
   // foods frequently prefer 'all' so it fans out to OFF/USDA/Mealie on
   // every visit rather than starting on My Foods. Existing users default
   // to 'local' (unchanged behaviour).
-  let searchSource = foodsDefaultSource.get() || 'local';
+  let searchSource = foodsDefaultSource.get() || 'all';
   const _mealieEnabled = DB.getSetting('mealieEnabled',  false);
   // CookTrace serves recipes, so its chip only makes sense on the Recipes
   // tab (activeTab === 2). Mirrors Mealie's Foods-tab-only gate: an
@@ -2958,7 +2960,7 @@
          that implies it). -->
     {#if promptFood?.nutrition_basis && ($showUnitMetadata || $warnUnitMismatch)}
       <div class="qty-basis-label">
-        Nutrition per 100 {promptFood.nutrition_basis}
+        {$_('foods_deep.nutrition_per_100', { values: { unit: promptFood.nutrition_basis } })}
       </div>
     {/if}
     {#if promptFood && (promptFood.notes || '').trim()}
@@ -2977,7 +2979,7 @@
           <button type="button" class="qty-quickpick"
             class:active={promptUnit === au.abbr && parseDecimal(promptPortion) === 1}
             on:click={() => { promptPortion = 1; promptUnit = au.abbr; }}>
-            1 {au.abbr} <span class="qty-quickpick-g">({au.grams} g)</span>
+            {amountAndUnit(1, au.abbr, $_)} <span class="qty-quickpick-g">({au.grams} g)</span>
           </button>
         {/each}
       </div>
@@ -3004,7 +3006,7 @@
       <div class="qty-mismatch-warn">
         <span class="material-symbols-rounded">warning</span>
         <span>
-          Nutrition is per 100 {promptFood.nutrition_basis}. Converting from {_unitSystem(promptUnit) === 'g' ? 'grams' : 'milliliters'} uses 1 ml ≈ 1 g, rough for oils, honey, etc. Add a <strong>Density (g/ml)</strong> value to the food for accurate conversion.
+          {$_('foods_deep.unit_mismatch', { values: { basis: promptFood.nutrition_basis, unit: _unitSystem(promptUnit) } })}
         </span>
       </div>
     {/if}
@@ -3016,7 +3018,7 @@
     </div>
     <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 14px;background:var(--surface-2);border-radius:var(--radius-md)">
       <span style="font-size:13px;color:var(--text-3)">{$_('foods_deep.total_amount')}</span>
-      <span style="font-size:14px;font-weight:500">{Math.round((parseDecimal(promptPortion) || 100) * (parseDecimal(promptServings) || 1) * 10) / 10}{promptUnit || 'g'}</span>
+      <span style="font-size:14px;font-weight:500">{amountAndUnit((Math.round((parseDecimal(promptPortion) || 100) * (parseDecimal(promptServings) || 1) * 10) / 10).toLocaleString($locale), promptUnit, $_)}</span>
     </div>
     <!-- Live nutrition preview (#30) — recomputes with portion/unit/servings changes.
          Color scheme mirrors the Nutrition Summary sheet + diary totals so the
@@ -3028,15 +3030,15 @@
       </div>
       <div class="qty-macro-pill" style="background:var(--macro-protein-dim)">
         <span class="qty-macro-val" style="color:var(--macro-protein)">{Math.round((qtyCalc.proteins || 0) * 10) / 10}g</span>
-        <span class="qty-macro-label">protein</span>
+        <span class="qty-macro-label">{$_('nutrient_names.proteins')}</span>
       </div>
       <div class="qty-macro-pill" style="background:var(--macro-carbs-dim)">
         <span class="qty-macro-val" style="color:var(--macro-carbs)">{Math.round((qtyCalc.carbohydrates || 0) * 10) / 10}g</span>
-        <span class="qty-macro-label">carbs</span>
+        <span class="qty-macro-label">{$_('nutrient_names.carbohydrates')}</span>
       </div>
       <div class="qty-macro-pill" style="background:var(--macro-fat-dim)">
         <span class="qty-macro-val" style="color:var(--macro-fat)">{Math.round((qtyCalc.fat || 0) * 10) / 10}g</span>
-        <span class="qty-macro-label">fat</span>
+        <span class="qty-macro-label">{$_('nutrient_names.fat')}</span>
       </div>
     </div>
     {/if}

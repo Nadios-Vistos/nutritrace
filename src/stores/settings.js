@@ -651,7 +651,7 @@ export const recipesSort            = createSettingStore('recipesSort',         
 // switch to 'all' to fan out across OFF/USDA/Mealie every visit
 // (requested via #128). Foods.svelte reads this on mount and initialises
 // searchSource from it.
-export const foodsDefaultSource     = createSettingStore('foodsDefaultSource',     'local');
+export const foodsDefaultSource     = createSettingStore('foodsDefaultSource',     'all');
 
 // Hours between automatic update checks. 0 = manual only (Settings →
 // Updates → Check now is the only way). Also gates the visibility-change

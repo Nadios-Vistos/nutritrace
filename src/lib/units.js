@@ -15,6 +15,7 @@
 
 export const UNIT_GROUPS = [
   {
+    id: 'metric_mass',
     label: 'Mass — Metric',
     units: [
       { abbr: 'g',  full: 'gram' },
@@ -23,6 +24,7 @@ export const UNIT_GROUPS = [
     ],
   },
   {
+    id: 'us_mass',
     label: 'Mass — US',
     units: [
       { abbr: 'oz', full: 'ounce' },
@@ -30,6 +32,7 @@ export const UNIT_GROUPS = [
     ],
   },
   {
+    id: 'metric_volume',
     label: 'Volume — Metric',
     units: [
       { abbr: 'ml', full: 'milliliter' },
@@ -37,6 +40,7 @@ export const UNIT_GROUPS = [
     ],
   },
   {
+    id: 'us_volume',
     label: 'Volume — US',
     units: [
       { abbr: 'tsp',   full: 'teaspoon' },
@@ -46,6 +50,7 @@ export const UNIT_GROUPS = [
     ],
   },
   {
+    id: 'count',
     label: 'Count',
     units: [
       { abbr: 'piece', full: 'piece' },
@@ -94,7 +99,7 @@ export function unitGroupsWithCustoms(customs) {
   const list = Array.isArray(customs) ? customs.filter(c => c && c.abbr) : [];
   if (list.length === 0) return UNIT_GROUPS;
   return [
-    { label: 'Custom', units: list.map(c => ({ abbr: c.abbr, full: c.full || c.abbr })) },
+    { id: 'custom', label: 'Custom', units: list.map(c => ({ abbr: c.abbr, full: c.full || c.abbr })) },
     ...UNIT_GROUPS,
   ];
 }
@@ -135,15 +140,25 @@ const _NO_SPACE_UNITS = new Set([
   'g','mg','kg','ml','l','oz','lb','mcg','µg','kcal','kj','iu','%',
 ]);
 
+const UNIT_DISPLAY_KEYS = {
+  tsp: 'tsp', tbsp: 'tbsp', 'fl oz': 'fl_oz', cup: 'cup',
+  piece: 'piece', slice: 'slice', serving: 'serving',
+};
+
+export function displayUnit(unit, translate) {
+  const code = String(unit || '').toLowerCase();
+  if (!translate || !Object.hasOwn(UNIT_DISPLAY_KEYS, code)) return unit;
+  return translate(`unit_picker.short.${UNIT_DISPLAY_KEYS[code]}`, { default: unit });
+}
+
 /**
  * Format an amount + unit for display. Uses no separator for short SI
- * abbreviations (500g, 250ml, 100kcal) and a single space for word /
- * named units (8 Nugget(s), 1 cup, 3 slices). Bug #143 (@javydekoning).
+ * abbreviations (500g, 250ml, 100kcal) and a single space for named units.
  */
-export function amountAndUnit(amount, unit) {
+export function amountAndUnit(amount, unit, translate) {
   const u = (unit || 'g').toString();
   const sep = _NO_SPACE_UNITS.has(u.toLowerCase()) ? '' : ' ';
-  return `${amount}${sep}${u}`;
+  return `${amount}${sep}${displayUnit(u, translate)}`;
 }
 
 /** Lookup factor; returns null for unknown / non-convertible units. */

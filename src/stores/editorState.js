@@ -9,6 +9,7 @@ export const editorState = {
   mealPrefill:    null,
   mealIsRecipe:   false,
   lastMealAdded:  null,  // meal index to scroll to after adding food
+  familyMealOverride: null, // manual meal selection to restore on return to Diary
   diaryScrollY:   null,  // scroll position to restore when returning to Diary after adding food
   foodsScrollY:   null,  // scroll position to restore when returning to Foods
   foodsActiveTab: null,  // tab index to restore when returning to Foods

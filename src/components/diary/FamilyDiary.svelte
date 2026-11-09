@@ -6,9 +6,12 @@
   import FamilyAvatarEditor from './FamilyAvatarEditor.svelte';
   import Sheet from '../ui/Sheet.svelte';
   import { familyAvatar } from '../../stores/settings.js';
+  import { currentUser } from '../../stores/auth.js';
+  import { editorState } from '../../stores/editorState.js';
   import { normalizeAvatar } from '../../lib/family-avatar.js';
   import { localDateStr } from '../../lib/db.js';
   import { formatWater } from '../../lib/water-volume.js';
+  import { mealIndexForSlot, mealSlotAt } from '../../lib/mealIcon.js';
 
   export let calories = 0;
   export let budget = null;
@@ -25,14 +28,19 @@
 
   let editingBudget = false;
   let draftBudget;
-  let mealIndex = 0;
+  let mealOverride = editorState.familyMealOverride;
   let photoTarget = null;
   let editingAvatar = false;
   let now = new Date();
 
   onMount(() => {
-    const timer = setInterval(() => { now = new Date(); }, 60_000);
-    return () => clearInterval(timer);
+    const refreshClock = () => { now = new Date(); };
+    const timer = setInterval(refreshClock, 60_000);
+    document.addEventListener('visibilitychange', refreshClock);
+    return () => {
+      clearInterval(timer);
+      document.removeEventListener('visibilitychange', refreshClock);
+    };
   });
 
   $: hasBudget = Number.isSafeInteger(budget) && budget > 0;
@@ -48,8 +56,32 @@
   $: waterAmount = waterTotal == null ? '' : formatWater(waterTotal, waterUnit, $locale);
   $: waterTarget = hasWaterGoal ? formatWater(waterGoal, waterUnit, $locale) : '';
   $: format = new Intl.NumberFormat($locale || undefined);
-  $: targetMeal = mealIndex < meals.length ? mealIndex : 0;
+  $: targetMeal = selectedMeal(now, date, $currentUser?.id, meals, mealOverride);
   $: avatar = normalizeAvatar($familyAvatar);
+
+  function selectedMeal(clock, diaryDate, userId, mealNames, override) {
+    const slot = mealSlotAt(clock.getHours());
+    if (override?.slot === slot && override.day === localDateStr(clock)
+        && override.date === diaryDate && override.userId === userId
+        && mealNames[override.index] === override.name) {
+      return override.index;
+    }
+    return mealIndexForSlot(mealNames, slot);
+  }
+
+  function chooseMeal(event) {
+    now = new Date();
+    const index = Number(event.currentTarget.value);
+    mealOverride = editorState.familyMealOverride = {
+      index, name: meals[index], date, userId: $currentUser?.id,
+      day: localDateStr(now), slot: mealSlotAt(now.getHours()),
+    };
+  }
+
+  function mealForAction() {
+    now = new Date();
+    return selectedMeal(now, date, $currentUser?.id, meals, mealOverride);
+  }
 
   function editBudget() {
     draftBudget = hasBudget ? budget : undefined;
@@ -142,26 +174,26 @@
     <div class="quick-add">
       <label>
         {$_('family_diary.meal_slot')}
-        <select class="select" value={targetMeal} on:change={(event) => mealIndex = Number(event.currentTarget.value)}>
+        <select class="select" value={targetMeal} on:change={chooseMeal}>
           {#each meals as meal, index}
             <option value={index}>{meal}</option>
           {/each}
         </select>
       </label>
       <div class="quick-actions">
-        <button type="button" class="quick-button primary" aria-label={$_('diary.add_food')} on:click={() => onAdd(targetMeal, 'food')}>
+        <button type="button" class="quick-button primary" aria-label={$_('diary.add_food')} on:click={() => onAdd(mealForAction(), 'food')}>
           <span class="material-symbols-rounded" aria-hidden="true">add_circle</span>
           {$_('family_diary.action_food')}
         </button>
-        <button type="button" class="quick-button" aria-label={$_('foods.scan_barcode')} on:click={() => onAdd(targetMeal, 'scan')}>
+        <button type="button" class="quick-button" aria-label={$_('foods.scan_barcode')} on:click={() => onAdd(mealForAction(), 'scan')}>
           <span class="material-symbols-rounded" aria-hidden="true">qr_code_scanner</span>
           {$_('family_diary.scan')}
         </button>
-        <button type="button" class="quick-button" aria-label={$_('family_diary.saved_meals')} on:click={() => onAdd(targetMeal, 'meals')}>
+        <button type="button" class="quick-button" aria-label={$_('family_diary.saved_meals')} on:click={() => onAdd(mealForAction(), 'meals')}>
           <span class="material-symbols-rounded" aria-hidden="true">dinner_dining</span>
           {$_('family_diary.action_meals')}
         </button>
-        <button type="button" class="quick-button" aria-label={$_('meal_photo.open')} on:click={() => photoTarget = { date, meal: targetMeal }}>
+        <button type="button" class="quick-button" aria-label={$_('meal_photo.open')} on:click={() => photoTarget = { date, meal: mealForAction() }}>
           <span class="material-symbols-rounded" aria-hidden="true">photo_camera</span>
           {$_('family_diary.action_photo')}
         </button>

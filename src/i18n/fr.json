@@ -1241,7 +1241,44 @@
     "serving_size": "Taille de la portion",
     "amount_per": "Quantité par portion"
   },
+  "unit_picker": {
+    "groups": {
+      "metric_mass": "Masse · système métrique",
+      "us_mass": "Masse · système américain",
+      "metric_volume": "Volume · système métrique",
+      "us_volume": "Volume · système américain",
+      "count": "À l’unité",
+      "custom": "Unités personnalisées"
+    },
+    "names": {
+      "g": "Gramme",
+      "mg": "Milligramme",
+      "kg": "Kilogramme",
+      "oz": "Once",
+      "lb": "Livre",
+      "ml": "Millilitre",
+      "l": "Litre",
+      "tsp": "Cuillère à café",
+      "tbsp": "Cuillère à soupe",
+      "fl_oz": "Once liquide",
+      "cup": "Tasse",
+      "piece": "Pièce",
+      "slice": "Tranche"
+    },
+    "short": {
+      "tsp": "c. à c.",
+      "tbsp": "c. à s.",
+      "fl_oz": "oz liq.",
+      "cup": "tasse",
+      "piece": "pièce",
+      "slice": "tranche",
+      "serving": "portion"
+    },
+    "empty": "Aucun résultat. Vous pouvez ajouter des unités dans Paramètres → Aliments → Unités personnalisées."
+  },
   "foods_deep": {
+    "nutrition_per_100": "Valeurs nutritionnelles pour 100 {unit}",
+    "unit_mismatch": "Les valeurs nutritionnelles sont données pour 100 {basis}. La conversion depuis l’unité {unit} suppose que 1 ml ≈ 1 g. Pour l’huile, le miel et les aliments similaires, renseignez la densité (g/ml) pour une conversion plus précise.",
     "cant_reach_retry_msg": "Serveur injoignable.",
     "retry": "Réessayer",
     "serving_size": "Taille de la portion",
