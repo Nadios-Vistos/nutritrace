@@ -13,6 +13,8 @@
   import { FAMILY_AI_QUOTA_CODE } from '../../lib/family-ai.js';
   import { NtApi } from '../../lib/api.js';
   import { dataUrlToFile, rememberMealPhoto } from '../../lib/food-photos.js';
+  import { pictogramPortions } from '../../lib/portion-pictograms.js';
+  import { pictogramMarkup } from '../../lib/portion-pictogram-art.js';
 
   export let date;
   export let meal;
@@ -163,8 +165,17 @@
                 <input class="input" type="number" min="0.1" max="10000" step="any" inputmode="decimal" bind:value={row.grams} required />
               </label>
               <div class="review-actions">
-                {#each [50, 100, 150] as grams}
-                  <button type="button" class="btn btn-secondary btn-sm" on:click={() => row.grams = grams}>{grams} g</button>
+                {#each pictogramPortions(row.food) as option (option.pictogram)}
+                  <button type="button" class="btn btn-secondary btn-sm visual-portion" aria-pressed={row.grams === option.amount}
+                    on:click={() => row.grams = option.amount}>
+                    <svg viewBox="0 0 64 64" aria-hidden="true">{@html pictogramMarkup(option.pictogram)}</svg>
+                    <span>{$_(`portions.labels.${option.label}`)}</span>
+                    <small>{option.amount} g</small>
+                  </button>
+                {:else}
+                  {#each [50, 100, 150] as grams}
+                    <button type="button" class="btn btn-secondary btn-sm" on:click={() => row.grams = grams}>{grams} g</button>
+                  {/each}
                 {/each}
                 <button type="button" class="btn-icon" aria-label={$_('meal_photo.remove')}
                   on:click={() => rows = rows.filter(other => other.uuid !== row.uuid)}>
@@ -194,6 +205,10 @@
   .meal-photo, .review, .food-review, .food-review label { display: grid; gap: 10px; }
   .meal-photo { padding-block: 8px; }
   .meal-photo p { margin: 0; color: var(--text-2); }
+  .visual-portion { display: grid; justify-items: center; gap: 1px; height: auto; padding: 6px 8px; line-height: 1.15; }
+  .visual-portion svg { width: 38px; height: 38px; color: var(--text-1); }
+  .visual-portion small { color: var(--text-2); }
+  .visual-portion[aria-pressed="true"] { border-color: var(--accent); box-shadow: inset 0 0 0 1px var(--accent); }
   .review-actions { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
   .keep-photo { display: flex; align-items: flex-start; gap: 8px; font-size: .86rem; }
   .keep-photo input { margin-top: 3px; }

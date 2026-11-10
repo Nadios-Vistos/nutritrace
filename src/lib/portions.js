@@ -1,6 +1,7 @@
 import references from './catalogues/portion-references.json' with { type: 'json' };
 import { parseAltUnits, unitSystem } from './units.js';
 import { atlasFoodId } from './portion-atlas.js';
+import { pictogramPortions } from './portion-pictograms.js';
 
 const byFdcId = new Map();
 for (const reference of Object.values(references)) {
@@ -17,7 +18,7 @@ function referenceFor(food) {
   return byFdcId.get(fdcId);
 }
 
-export function portionOptions(food, { unit = food?.unit || 'g', referenceSteps = false, atlasMeasures } = {}) {
+export function portionOptions(food, { unit = food?.unit || 'g', referenceSteps = false, atlasMeasures, category } = {}) {
   if (!food) return [];
   const options = [];
   const baseUnit = food.unit || 'g';
@@ -50,6 +51,13 @@ export function portionOptions(food, { unit = food?.unit || 'g', referenceSteps 
     const measures = atlasFoodId(food) ? (food.portionMeasures ?? atlasMeasures) : reference?.portions;
     for (const [label, amount, image, localized] of measures || []) {
       add({ amount, unit: 'g', label, image, localized, source: reference?.cnf ? 'cnf' : 'usda' });
+    }
+  }
+  // Aliment Ciqual sans mesure ni photo : repères visuels usuels par famille.
+  if (!options.length && sameSystem === 'g' && food.nutrition_basis !== 'ml'
+      && (food.source_app === 'ciqual' || food.source === 'ciqual')) {
+    for (const row of pictogramPortions(food.category ? food : { ...food, category })) {
+      add({ ...row, unit: 'g', source: 'pictogram' });
     }
   }
   if (!options.length && referenceSteps) {
