@@ -108,7 +108,7 @@ Recipes pulled from Mealie retain their original terms.
 | ----- | ------- | ----- |
 | **Inter** (UI typeface) | [SIL Open Font License 1.1][ofl] | `public/fonts/inter-*.woff2` |
 | **Material Symbols Rounded** (icons) | [Apache License 2.0][apache] | `public/fonts/material-symbols-rounded.woff2` |
-| **ASA24® portion photos (NCI)** | The NCI states the images are freely available for use. Public redistribution terms are unconfirmed. | Selected PNGs under `public/portions/`, including `public/portions/atlas/`. |
+| **ASA24® portion photos (NCI)** | The NCI states: “These images are freely available for use.” Its page lists no further condition. | Selected PNGs under `public/portions/`, including `public/portions/atlas/`. |
 
 Fonts are served by your own instance, never from a CDN. One file per script
 subset, so a browser downloads only the scripts a page needs. Regenerate them
@@ -125,8 +125,12 @@ The collection describes the images as “freely available for use” and
 credits Baylor College of Medicine's Children's Nutrition Research Center
 and Westat for their development. The NCI's general policy distinguishes
 graphics credited to NCI from copyrighted graphics owned by third parties.
-The published guidance leaves redistribution of these PNGs in public
-repositories and packaged builds unconfirmed. [NCI graphics reuse policy][nci-reuse]
+The collection page states no condition, credit requirement or restriction
+beyond that sentence (checked on 10 November 2026); the fork redistributes the
+selected PNGs on that basis. [NCI graphics reuse policy][nci-reuse]
+
+When ASA24 illustrates a food with the photo of a close one (plain milk for
+goat milk), the portion picker says so.
 
 [ofl]: https://openfontlicense.org/
 [apache]: https://www.apache.org/licenses/LICENSE-2.0

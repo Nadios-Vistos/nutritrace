@@ -49,8 +49,9 @@ export function portionOptions(food, { unit = food?.unit || 'g', referenceSteps 
     }
     const reference = referenceFor(food);
     const measures = atlasFoodId(food) ? (food.portionMeasures ?? atlasMeasures) : reference?.portions;
-    for (const [label, amount, image, localized] of measures || []) {
-      add({ amount, unit: 'g', label, image, localized, source: reference?.cnf ? 'cnf' : 'usda' });
+    for (const [label, amount, image, localized, similar] of measures || []) {
+      add({ amount, unit: 'g', label, image, localized, source: reference?.cnf ? 'cnf' : 'usda',
+        ...(similar && image && { similar: true }) });
     }
   }
   // Aliment Ciqual sans mesure ni photo : repères visuels usuels par famille.

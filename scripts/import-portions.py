@@ -2,6 +2,7 @@
 
 import argparse
 import csv
+import io
 import json
 import math
 import re
@@ -224,10 +225,73 @@ def cup_labels(count):
             "fr": f"{amount} tasse" + ("s" if count > 1 else "")}
 
 
+# Household measures other than cups, with their French label (singular, plural).
+# Ounces have no everyday French equivalent: the weight shown beside the photo
+# is the useful figure, so the label stays generic.
+FRENCH_MEASURES = {
+    "piece": ("pièce", "pièces"), "slice": ("tranche", "tranches"), "bar": ("barre", "barres"),
+    "roll": ("petit pain", "petits pains"), "sandwich": ("sandwich", "sandwichs"), "fruit": ("fruit", "fruits"),
+    "whole vegetable": ("légume entier", "légumes entiers"), "medium whole vegetable": ("légume moyen", "légumes moyens"),
+    "head": ("tête", "têtes"), "pastry": ("pâtisserie", "pâtisseries"), "package": ("paquet", "paquets"),
+    "bag": ("sachet", "sachets"), "patty": ("galette", "galettes"), "cookie": ("biscuit", "biscuits"),
+    "muffin": ("muffin", "muffins"), "doughnut": ("beignet", "beignets"), "link": ("saucisse", "saucisses"),
+    "scoop": ("boule", "boules"), "waffle": ("gaufre", "gaufres"), "pancake": ("pancake", "pancakes"),
+    "bagel": ("bagel", "bagels"), "biscuit": ("petit pain rond", "petits pains ronds"), "omelet": ("omelette", "omelettes"),
+    "potato": ("pomme de terre", "pommes de terre"), "cracker": ("cracker", "crackers"),
+    "breadstick": ("gressin", "gressins"), "pita": ("pain pita", "pains pita"), "wedge": ("quartier", "quartiers"),
+    "tablespoon": ("cuillère à soupe", "cuillères à soupe"), "teaspoon": ("cuillère à café", "cuillères à café"),
+    "small": ("petit", "petits"), "medium": ("moyen", "moyens"), "large": ("grand", "grands"),
+    "pie": ("tourte", "tourtes"), "egg": ("œuf", "œufs"), "strip": ("lanière", "lanières"),
+    "stick": ("bâtonnet", "bâtonnets"), "tortilla": ("tortilla", "tortillas"), "taco": ("taco", "tacos"),
+    "burrito": ("burrito", "burritos"), "nugget": ("nugget", "nuggets"), "wing": ("aile", "ailes"),
+    "drumstick": ("pilon", "pilons"), "thigh": ("cuisse", "cuisses"), "breast": ("blanc", "blancs"),
+    "fillet": ("filet", "filets"), "chop": ("côtelette", "côtelettes"), "meatball": ("boulette", "boulettes"),
+    "hot dog": ("hot-dog", "hot-dogs"), "frankfurter": ("saucisse", "saucisses"), "ear": ("épi", "épis"),
+    "spear": ("pointe", "pointes"), "stalk": ("branche", "branches"), "leaf": ("feuille", "feuilles"),
+    "can": ("canette", "canettes"), "bottle": ("bouteille", "bouteilles"), "glass": ("verre", "verres"),
+    "container": ("pot", "pots"), "cone": ("cornet", "cornets"), "cupcake": ("cupcake", "cupcakes"),
+    "brownie": ("brownie", "brownies"), "square": ("carré", "carrés"), "ounce": ("portion", "portions"),
+    "fluid ounce": ("portion", "portions"),
+}
+FRACTION_SYMBOLS = {Fraction(1, 4): "¼", Fraction(1, 2): "½", Fraction(3, 4): "¾", Fraction(1, 3): "⅓",
+                    Fraction(2, 3): "⅔", Fraction(1, 8): "⅛", Fraction(3, 8): "⅜", Fraction(5, 8): "⅝",
+                    Fraction(7, 8): "⅞"}
+
+
+def parse_measure(label):
+    """Split "1 1/2 slices, thin" into (Fraction(3, 2), "slice"). None when it has no leading quantity."""
+    match = re.match(r"^\s*(\d+(?:[- ]\d+/\d+|/\d+)?|\d*\.\d+)\s+([^,(]+)", label or "")
+    if not match:
+        return None
+    try:
+        count = (Fraction(match[1]) if "." in match[1]
+                 else sum(Fraction(part) for part in re.split(r"[- ]", match[1])))
+    except (ValueError, ZeroDivisionError):
+        return None
+    unit = normalized(match[2])
+    unit = {"fo": "fluid ounce", "fl oz": "fluid ounce", "oz": "ounce", "tbsp": "tablespoon", "tsp": "teaspoon"}.get(unit, unit)
+    unit = " ".join(parts[:-1] + [singular(parts[-1])]) if (parts := unit.split()) else ""
+    return (count, unit) if count > 0 and unit else None
+
+
+def measure_labels(count, unit):
+    if unit == "cup":
+        return cup_labels(count)
+    whole = count.numerator // count.denominator
+    fraction = count - whole
+    amount = str(whole) if whole else ""
+    if fraction:
+        amount += FRACTION_SYMBOLS.get(fraction, f"{' ' if whole else ''}{fraction}")
+    plural = count > 1
+    french = FRENCH_MEASURES.get(unit)
+    english = unit + ("s" if plural and not unit.endswith(("s", "medium", "large", "small")) else "")
+    return {"en": f"{amount} {english}", "fr": f"{amount} {french[plural]}" if french else ""}
+
+
 def food_photos(archive, pictures):
     index = defaultdict(list)
     with zipfile.ZipFile(archive.open(zip_entry(archive, "ASA24_ImageMetadata.xlsx"))) as book:
-        aerial = {row["B"]: (row.get("F", ""), cup_count(row.get("H", ""))) for row in asa_sheet(book, 1)
+        aerial = {row["B"]: (row.get("F", ""), parse_measure(row.get("H", ""))) for row in asa_sheet(book, 1)
                   if row.get("G") == "Aerial" and row.get("B") in pictures}
         for row in asa_sheet(book, 2):
             if row.get("J") != "PORTION" or row.get("E") != "0" or row.get("H") != "0":
@@ -250,30 +314,41 @@ def atlas_portions(food, images):
         if not re.match(r"^\d", label) or len(label) > 64 or re.match(r"^\d+\s+g(?:rams?)?$", label, re.I):
             continue
         measures[str(measure["modifier"])] = (label, grams)
-        count = cup_count(label)
-        text = cup_labels(count)["fr"] if count else ""
+        parsed = parse_measure(label)
+        text = measure_labels(*parsed)["fr"] if parsed else ""
         rows.setdefault(grams, ["reference", grams, None, {"en": label, "fr": text}])
 
     name = food["description"]
     core = set(words(name.split(",")[0]))
     qualifiers = set(words(name)) & PHOTO_QUALIFIERS
     photos = {}
-    for code, multiplier, filename, title, count in sorted(set(images)):
+    similar = {}
+    for code, multiplier, filename, title, count in sorted(set(images), key=lambda row: row[:3]):
         if code not in measures:
             continue
         label, base_grams = measures[code]
-        base_cups = cup_count(label)
-        title_words = set(words(title))
-        # Exact food code and measure, plus a matching quantity and food title.
-        # A link to a differently prepared food is useful for dietary recalls
-        # but should not be shown as a photo of this exact portion.
-        if not base_cups or not math.isclose(float(count / base_cups), multiplier, abs_tol=0.001):
+        base = parse_measure(label)
+        # ASA24 links each photo to a food code, a measure and a multiplier.
+        # The unit and the quantity must agree with the FNDDS measure.
+        if not base or not count or base[1] != count[1]:
             continue
-        if not core or not core <= title_words or (title_words & PHOTO_QUALIFIERS) != qualifiers:
+        if not math.isclose(float(count[0] / base[0]), multiplier, abs_tol=0.001):
             continue
         grams = round(base_grams * multiplier, 1)
-        if 0 < grams <= 750:
-            photos.setdefault(grams, ["reference", grams, f"atlas/{filename}", cup_labels(count)])
+        if not 0 < grams <= 750:
+            continue
+        title_words = set(words(title))
+        # A photo whose title names this food and preparation is shown as is.
+        # ASA24 also reuses the photo of a close food (milk for goat milk):
+        # it still shows the volume, and is kept, flagged, when nothing better exists.
+        exact = bool(core) and core <= title_words and (title_words & PHOTO_QUALIFIERS) == qualifiers
+        row = ["reference", grams, f"atlas/{filename}", measure_labels(*count)]
+        if exact:
+            photos.setdefault(grams, row)
+        else:
+            similar.setdefault(grams, row + [1])
+    if not photos:
+        photos = similar
     selected_photos = spread([photos[g] for g in sorted(photos)])
     for row in selected_photos:
         rows.pop(row[1], None)
@@ -442,6 +517,62 @@ def import_catalogue(args, atlas):
                                                 for key, old in existing.items())}))
 
 
+class RemoteFile(io.RawIOBase):
+    """Read a remote file through HTTP range requests, so that zipfile can
+    fetch the index and the selected members of a large archive without
+    downloading the whole of it."""
+
+    BLOCK = 1 << 18
+
+    def __init__(self, url):
+        self.url = url
+        self.position = 0
+        self.blocks = {}
+        with self._request(0, 0) as response:
+            total = re.fullmatch(r"bytes 0-0/(\d+)", response.headers.get("Content-Range", ""))
+            if response.status != 206 or not total:
+                raise ValueError("The server does not support partial downloads")
+            self.size = int(total[1])
+
+    def _request(self, start, end):
+        return urlopen(Request(self.url, headers={"User-Agent": "NutriTrace portion catalogue importer",
+                                                  "Range": f"bytes={start}-{end}"}), timeout=60)
+
+    def readable(self):
+        return True
+
+    def seekable(self):
+        return True
+
+    def tell(self):
+        return self.position
+
+    def seek(self, offset, whence=io.SEEK_SET):
+        base = {io.SEEK_SET: 0, io.SEEK_CUR: self.position, io.SEEK_END: self.size}[whence]
+        self.position = max(0, base + offset)
+        return self.position
+
+    def _block(self, index):
+        if index not in self.blocks:
+            start = index * self.BLOCK
+            end = min(self.size, start + self.BLOCK) - 1
+            with self._request(start, end) as response:
+                data = response.read()
+            if response.status != 206 or len(data) != end - start + 1:
+                raise ValueError("Unexpected partial download")
+            self.blocks[index] = data
+        return self.blocks[index]
+
+    def readinto(self, buffer):
+        if self.position >= self.size:
+            return 0
+        index, offset = divmod(self.position, self.BLOCK)
+        chunk = self._block(index)[offset:offset + len(buffer)]
+        buffer[:len(chunk)] = chunk
+        self.position += len(chunk)
+        return len(chunk)
+
+
 def download_zip(url, path, expected_file):
     if path.exists() and zipfile.is_zipfile(path):
         with zipfile.ZipFile(path) as archive:
@@ -470,6 +601,8 @@ def main():
     parser.add_argument("--full-atlas", action="store_true", help="Import the complete USDA source separately")
     parser.add_argument("--download-dir", type=Path, help="Download and reuse official archives in this directory")
     parser.add_argument("--with-photos", action="store_true", help="Download the ASA24 archive if no --asa24 is supplied")
+    parser.add_argument("--remote-photos", action="store_true",
+                        help="Read the ASA24 archive online and fetch only the selected photos (about 13 MB of index)")
     parser.add_argument("--apply", action="store_true", help="Write the catalogue and new images")
     args = parser.parse_args()
     if not args.fndds and not args.download_dir:
@@ -483,7 +616,10 @@ def main():
         if args.with_photos and not args.asa24:
             args.asa24 = download_zip(ASA24_DOWNLOAD, args.download_dir / "asa24-images.zip", "ASA24_ImageMetadata.xlsx")
     operation = import_full_atlas if args.full_atlas else import_catalogue
-    if args.asa24:
+    if args.remote_photos and not args.asa24:
+        with zipfile.ZipFile(io.BufferedReader(RemoteFile(ASA24_DOWNLOAD), RemoteFile.BLOCK)) as atlas:
+            operation(args, atlas)
+    elif args.asa24:
         with zipfile.ZipFile(args.asa24) as atlas:
             operation(args, atlas)
     else:

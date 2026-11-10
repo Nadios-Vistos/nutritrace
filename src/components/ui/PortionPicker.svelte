@@ -43,6 +43,7 @@
   $: hasCnf = options.some(row => row.source === 'cnf');
   $: hasPhotos = options.some(row => row.image);
   $: hasPictograms = options.some(row => row.pictogram);
+  $: hasSimilarPhotos = options.some(row => row.similar && !unavailableImages.has(row.image));
 
   async function recoverMeasures(id) {
     try {
@@ -118,6 +119,7 @@
         {#if hasUsda} · <a href="https://fdc.nal.usda.gov/data-documentation/" target="_blank" rel="noreferrer">USDA FNDDS</a>{/if}
         {#if hasCnf} · <a href="https://www.canada.ca/en/health-canada/services/food-nutrition/healthy-eating/nutrient-data/canadian-nutrient-file-2015-download-files.html" target="_blank" rel="noreferrer">{$_('portions.cnf')}</a>{/if}
         {#if hasPhotos} · <a href="https://epi.grants.cancer.gov/asa24/resources/portionsize.html" target="_blank" rel="noreferrer">Photos ASA24 (NCI)</a>{/if}
+        {#if hasSimilarPhotos} · {$_('portions.similar_photo')}{/if}
       </small>
     {/if}
   </section>

@@ -40,8 +40,29 @@ subsequent runs. The original ASA24 archive is about 670 MB. Only the
 selected PNGs and the compact catalogue are included in the application.
 
 The full import requires a food code and a measured serving. A photo is
-included only if its linked measure, household quantity and description
-agree with the selected FNDDS food. This automated check currently covers
-cup measures. The catalogue includes the measured quantities for foods
-whose photos could not be matched. The report lists the count of portion
-choices and photos for each FNDDS ID.
+included only if ASA24 links it to the food and if its unit and quantity
+agree with the FNDDS household measure (cups, slices, pieces, ounces and the
+other measures of the image index). A photo whose title names the food and
+its preparation is preferred. When none exists, the photo ASA24 uses for a
+close food (plain milk for goat milk) is kept and flagged, and the portion
+picker says the photos show a similar food. The catalogue includes the
+measured quantities for foods whose photos could not be matched. The report
+lists the count of portion choices and photos for each FNDDS ID.
+
+`--remote-photos` reads the ASA24 archive online through partial downloads:
+the image index (about 13 MB) and the selected PNGs only, instead of the
+670 MB archive.
+
+```sh
+python3 scripts/import-portions.py --full-atlas --fndds fndds.zip --remote-photos --report atlas.csv --apply
+```
+
+## Visual cues without photos
+
+Ciqual foods with neither a household measure nor a photo get usual visual
+cues by food family: plate fractions, palm, glass, bowl, spoon, 125 g pot,
+30 g cheese portion, bread slice, handful, 80 g fruit or vegetable portion,
+ice-cream scoop. The rules are in `src/lib/portion-pictograms.js` and the
+drawings in `src/lib/portion-pictogram-art.js`. They are orders of magnitude,
+presented as approximate, and foods outside these families keep the
+reference quantities.

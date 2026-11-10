@@ -61,6 +61,11 @@ from the client to the provider. In shared AI mode it goes through your
 NutriTrace server. The provider's privacy and retention terms apply to the
 image. This feature writes the foods and portions you confirm to the diary.
 
+When “Keep this photo” is ticked (the default), the same JPEG is also uploaded
+to your NutriTrace server's uploads directory. It then illustrates those diary
+entries and the matching catalogue foods for your account, and is included in
+full backups. Untick the box to log the meal without keeping the photo.
+
 The optional portrait analysis for avatar customization uses the same
 provider route. NutriTrace saves the avatar options you confirm as settings.
 

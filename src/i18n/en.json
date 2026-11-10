@@ -1642,6 +1642,7 @@
     "multiplier": "Adjust the selected portion",
     "estimate": "Approximate weights",
     "pictogram_note": "Usual visual cues, approximate weights",
+    "similar_photo": "The photos show a similar food",
     "labels": {
       "reference": "Reference amount",
       "package": "Serving on the label",

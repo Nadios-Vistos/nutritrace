@@ -1372,6 +1372,7 @@
     "multiplier": "Ajuster la portion choisie",
     "estimate": "Poids indicatifs",
     "pictogram_note": "Repères visuels usuels, poids approximatifs",
+    "similar_photo": "Les photos montrent un aliment proche",
     "labels": {
       "reference": "Quantité de référence",
       "package": "Portion de l’emballage",
