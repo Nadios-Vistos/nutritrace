@@ -18,7 +18,8 @@
     "grams": "Weight in grams",
     "add_row": "Add another food",
     "total": "Meal total",
-    "save_error": "Could not save the meal. Your selection is still here."
+    "save_error": "Could not save the meal. Your selection is still here.",
+    "keep": "Keep this photo on your server to illustrate these foods"
   },
   "mealie_mirror": {
     "title": "Mealie shared library",

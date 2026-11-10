@@ -23,7 +23,8 @@
     "grams": "Poids en grammes",
     "add_row": "Ajouter un autre aliment",
     "total": "Total du repas",
-    "save_error": "Impossible d’enregistrer le repas. Ta sélection est toujours affichée."
+    "save_error": "Impossible d’enregistrer le repas. Ta sélection est toujours affichée.",
+    "keep": "Garder cette photo sur ton serveur pour illustrer ces aliments"
   },
   "mealie_mirror": {
     "title": "Bibliothèque Mealie commune",

@@ -1,4 +1,5 @@
 import { BASIC_FOODS } from './catalogues/basics.js';
+import { withFoodPhotos } from './food-photos.js';
 
 const collator = new Intl.Collator('fr', { sensitivity: 'base' });
 
@@ -74,7 +75,7 @@ export function searchCiqual(catalogue, query, category = '') {
   const foods = catalogue?.foods ?? [];
   const candidates = category ? foods.filter(food => food.category === category) : foods;
   const term = normalize(query);
-  if (!term) return candidates;
+  if (!term) return withFoodPhotos(candidates);
 
   const words = term.split(' ');
   const prefix = [];
@@ -84,5 +85,5 @@ export function searchCiqual(catalogue, query, category = '') {
     else if (food.source_external_id === term ||
         words.every(word => food.searchName.includes(word) || food.searchAliases?.includes(word))) other.push(food);
   }
-  return [...prefix, ...other];
+  return withFoodPhotos([...prefix, ...other]);
 }

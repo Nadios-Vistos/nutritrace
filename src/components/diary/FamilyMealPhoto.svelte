@@ -3,7 +3,7 @@
   import { _ } from 'svelte-i18n';
   import AttachImageButton from '../ai/AttachImageButton.svelte';
   import Sheet from '../ui/Sheet.svelte';
-  import { aiEffectivelyEnabled, aiProvider, aiApiKey, aiModel, aiBaseUrl, envLocks } from '../../stores/settings.js';
+  import { aiEffectivelyEnabled, aiProvider, aiApiKey, aiModel, aiBaseUrl, envLocks, familyFoodPhotos } from '../../stores/settings.js';
   import { _newUuid, addReviewedMeal } from '../../stores/diary.js';
   import { showSuccess } from '../../stores/toast.js';
   import { loadCiqual, searchCiqual } from '../../lib/ciqual.js';
@@ -11,6 +11,8 @@
   import { prepareVisionPhoto } from '../../lib/photo-vision.js';
   import { acquireScreenWakeLock } from '../../lib/wake-lock.js';
   import { FAMILY_AI_QUOTA_CODE } from '../../lib/family-ai.js';
+  import { NtApi } from '../../lib/api.js';
+  import { dataUrlToFile, rememberMealPhoto } from '../../lib/food-photos.js';
 
   export let date;
   export let meal;
@@ -21,6 +23,7 @@
   let analysing = false;
   let saving = false;
   let reviewed = false;
+  let keepPhoto = true;
   let rows = [];
   let catalogue;
   let errorKey = '';
@@ -85,6 +88,12 @@
     saving = true;
     errorKey = '';
     try {
+      // La photo gardée illustre le journal et le catalogue. Si l'envoi
+      // échoue, le repas est enregistré quand même, sans image.
+      let imgUrl = '';
+      if (keepPhoto) {
+        try { imgUrl = await NtApi.uploadImage(dataUrlToFile(photo, 'repas.jpg')); } catch { /* sans photo */ }
+      }
       const items = rows.map(({ food, grams, uuid }) => ({
         uuid,
         name: food.name,
@@ -93,9 +102,11 @@
         quantity: 1,
         source: food.source,
         source_external_id: food.source_external_id,
+        ...(imgUrl && { imgUrl }),
         nutrition: Object.fromEntries(Object.entries(food.nutrition).map(([key, value]) => [key, value * grams / 100])),
       }));
       await addReviewedMeal(items, meal, date);
+      if (imgUrl) familyFoodPhotos.update(photos => rememberMealPhoto(photos, rows.map(row => row.food), imgUrl));
       if (active) {
         showSuccess($_('foods.toast.added_to_diary'));
         onClose();
@@ -167,6 +178,10 @@
               {$_('meal_photo.add_row')}
             </button>
           {/if}
+          <label class="keep-photo">
+            <input type="checkbox" bind:checked={keepPhoto} disabled={saving} />
+            <span>{$_('meal_photo.keep')}</span>
+          </label>
           <strong aria-live="polite">{$_('meal_photo.total')} · {Math.round(calories)} kcal</strong>
           <button type="submit" class="btn btn-primary" disabled={!canSave || saving}>{$_('foods.add_to_diary')}</button>
         </form>
@@ -180,6 +195,8 @@
   .meal-photo { padding-block: 8px; }
   .meal-photo p { margin: 0; color: var(--text-2); }
   .review-actions { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+  .keep-photo { display: flex; align-items: flex-start; gap: 8px; font-size: .86rem; }
+  .keep-photo input { margin-top: 3px; }
   .meal-preview { max-height: 170px; max-width: 100%; margin-inline: auto; border-radius: var(--radius-md); }
   .food-review { min-width: 0; margin: 0; padding: 10px; border: 1px solid var(--border); border-radius: var(--radius-md); }
   .food-review .select { width: 100%; text-overflow: ellipsis; }

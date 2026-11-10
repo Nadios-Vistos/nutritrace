@@ -2495,7 +2495,11 @@
             {#each ciqualMatches.slice(0, ciqualLimit) as food (food.source_external_id)}
               <li class="food-item card">
                 <button class="food-item-btn" type="button" disabled={food.nutrition.calories == null} on:click={() => pickFood(food, searchSource)}>
-                  <div class="food-thumb-placeholder"><span class="material-symbols-rounded" aria-hidden="true">restaurant</span></div>
+                  {#if food.imgUrl}
+                    <img class="food-thumb" src={resolveAssetUrl(food.imgUrl)} alt="" loading="lazy" on:error={event => event.currentTarget.hidden = true} />
+                  {:else}
+                    <div class="food-thumb-placeholder"><span class="material-symbols-rounded" aria-hidden="true">restaurant</span></div>
+                  {/if}
                   <div class="food-info">
                     <span class="food-name">{food.name}</span>
                     <span class="food-brand text-3 text-sm">{food.category}</span>
