@@ -28,6 +28,7 @@
   import { loadBasics, loadCiqual, searchCiqual } from '../lib/ciqual.js';
   import { isAtlasReference, loadPortionAtlas } from '../lib/portion-atlas.js';
   import { Mealie } from '../lib/mealieApi.js';
+  import { mealieMirrorImage } from '../lib/mealie-mirror-image.js';
   import { CookTrace } from '../lib/cooktraceApi.js';
   import { offlineState } from '../lib/offline-api.js';
   import { offNutritionStatus, needsFullLookup } from '../lib/off-nutrition.js';
@@ -140,6 +141,7 @@
   let mealieLibraryLoading = false;
   let mealieLibraryError = false;
   let selectedMealieRecipe = null;
+  let importingMealieRecipe = false;
   let mealiePortions = '1';
   $: if (activeTab === 2 && $userMgmtActive && ['mealieLibrary', 'all'].includes(searchSource)) refreshMealieLibrary();
   $: mealieMatches = mealieLibrary.filter(recipe => _fuzzyMatch(recipe, search));
@@ -156,6 +158,22 @@
   function openMealieRecipe(recipe) {
     selectedMealieRecipe = recipe;
     mealiePortions = '1';
+  }
+
+  async function saveMealieRecipeToFoods() {
+    const recipe = selectedMealieRecipe;
+    if (!recipe || importingMealieRecipe) return;
+    importingMealieRecipe = true;
+    try {
+      await API.importMirroredRecipe(recipe);
+      if (selectedMealieRecipe === recipe) selectedMealieRecipe = null;
+      showSuccess($_('food_editor.saved'));
+      await load();
+    } catch {
+      showError($_('common.errors.save_failed'));
+    } finally {
+      importingMealieRecipe = false;
+    }
   }
 
   async function logMealieRecipe() {
@@ -2350,6 +2368,9 @@
                 {:else if (isCookTrace || isCtPantry) && item.img_url}
                   <img class="food-thumb" src={item.img_url} alt=""
                     loading="lazy" referrerpolicy="no-referrer" on:error={e => e.target.style.display='none'} />
+                {:else if source === 'mealieLibrary' && item.imgUrl}
+                  <img class="food-thumb" use:mealieMirrorImage={item.imgUrl} alt="" loading="lazy"
+                    on:error={event => event.currentTarget.hidden = true} />
                 {:else if item.imgUrl}
                   <img class="food-thumb" src={item.imgUrl} alt="" loading="lazy" referrerpolicy="no-referrer" on:error={e => e.target.style.display='none'} />
                 {:else}
@@ -2479,7 +2500,7 @@
           {#each mealieMatches as recipe (recipe.source_external_id)}
             <li class="food-item card">
               <button class="food-item-btn" type="button" on:click={() => openMealieRecipe(recipe)}>
-                {#if recipe.imgUrl}<img class="food-thumb" src={recipe.imgUrl} alt="" loading="lazy" on:error={event => event.currentTarget.hidden = true} />{/if}
+                {#if recipe.imgUrl}<img class="food-thumb" use:mealieMirrorImage={recipe.imgUrl} alt="" loading="lazy" on:error={event => event.currentTarget.hidden = true} />{/if}
                 <span class="food-info">
                   <span class="food-name">{recipe.name}</span>
                   <span class="food-kcal text-sm">{$_(recipe.nutrition.calories == null ? 'mealie_mirror.missing' : 'mealie_mirror.per_serving', { values: { kcal: recipe.nutrition.calories } })}</span>
@@ -2974,6 +2995,11 @@
         </ul>
       {/if}
       {#if selectedMealieRecipe.notes}<p class="mealie-recipe-notes">{selectedMealieRecipe.notes}</p>{/if}
+      {#if !pickMode}
+        <button class="btn btn-secondary" type="button" on:click={saveMealieRecipeToFoods} disabled={importingMealieRecipe}>
+          {$_('foods.save_to_foods')}
+        </button>
+      {/if}
     </div>
   {/if}
 </Sheet>

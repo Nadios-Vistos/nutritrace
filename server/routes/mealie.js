@@ -4,7 +4,8 @@ import { requireAdmin, requireAuth, userMgmtActive } from '../middleware/auth.js
 import db from '../db.js';
 import { fetchChecked, serviceBase, readBody } from '../lib/ssrf-guard.js';
 import { apiPathFor, MEALIE_API } from '../lib/service-paths.js';
-import { configureMirror, mirrorRecipes, mirrorStatus, syncMealieMirror } from '../lib/mealie-mirror.js';
+import { configureMirror, fetchMirrorRecipeImage, mirrorRecipes, mirrorStatus, syncMealieMirror } from '../lib/mealie-mirror.js';
+import { UPLOAD_RESPONSE_HEADERS } from '../lib/upload-paths.js';
 
 const router = Router();
 router.use(requireAuth);
@@ -12,6 +13,17 @@ router.use(requireAuth);
 router.get('/library', wrap((req, res) => {
   if (!req.user) return res.status(401).json({ error: 'Sign in required' });
   res.json(mirrorRecipes());
+}));
+
+router.get('/library/:id/image', wrap(async (req, res) => {
+  if (!req.user) return res.status(401).end();
+  const image = await fetchMirrorRecipeImage(req.params.id);
+  if (image.status !== 200) return res.status(image.status).end();
+  res.vary('Cookie');
+  res.vary('Authorization');
+  res.set('Cache-Control', 'private, max-age=300');
+  res.set(UPLOAD_RESPONSE_HEADERS);
+  res.type(image.type).send(image.bytes);
 }));
 
 router.get('/mirror', requireAdmin, wrap((req, res) => res.json(mirrorStatus())));

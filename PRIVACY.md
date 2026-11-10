@@ -79,8 +79,10 @@ at rest in the server's SQLite configuration and excluded from full backups.
 When enabled by an administrator, the NutriTrace server reads recipes from
 the configured Mealie instance on a schedule or on demand. It copies recipe
 names, source IDs, servings, ingredients and quantities, descriptions and
-instructions, and available nutrition values. For photos, the mirror stores
-links to images hosted by Mealie.
+instructions, and available nutrition values. When a signed-in account
+requests a photo, the NutriTrace server fetches it from Mealie with the
+configured token. Saving the recipe as a personal food uploads a copy of
+its photo to NutriTrace's uploads directory.
 
 The recipes are stored in the `mealie_recipes` table of the NutriTrace
 server's SQLite database (`DB_PATH`, `/data/db/nutritrace.db` in the supplied

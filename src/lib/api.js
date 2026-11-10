@@ -469,13 +469,30 @@ const API = {
     return true;
   },
 
-  // Fetch any imgUrl (relative server path, absolute URL, or data: URI)
-  // as a Blob so it can be sent in the multipart OFF upload. Returns null
-  // on failure — callers treat the image as optional.
-  async _fetchImageBlob(imgUrl) {
+  async importMirroredRecipe({ name, portion, unit, nutrition, notes, source_app, source_external_id, imgUrl }) {
+    let uploadedImage = '';
+    if (imgUrl) {
+      const blob = await this._fetchImageBlob(imgUrl);
+      if (!blob) throw new Error('mealie_mirror_image_unavailable');
+      uploadedImage = await NtApi.uploadImage(blob);
+    }
+    return NtApi.createFood({
+      name, portion, unit, nutrition, notes, source_app, source_external_id,
+      imgUrl: uploadedImage, visibility: 'private',
+    });
+  },
+
+  // Fetch a photo for upload. Only the exact server-relative mirror route
+  // uses our native Bearer token. External images keep their own auth.
+  async _fetchImageBlob(imgUrl, { signal } = {}) {
     if (!imgUrl) return null;
     try {
-      const res = await fetch(imgUrl, { credentials: 'include' });
+      const mirror = /^\/api\/mealie\/library\/[\da-f]{8}(?:-[\da-f]{4}){3}-[\da-f]{12}\/image$/i.test(imgUrl);
+      const token = mirror && isNative && getServerUrl() && getAuthToken();
+      const res = await fetch(mirror ? apiUrl(imgUrl) : imgUrl, {
+        credentials: 'include', signal,
+        ...(token && { headers: { Authorization: `Bearer ${token}` } }),
+      });
       if (!res.ok) return null;
       return await res.blob();
     } catch {

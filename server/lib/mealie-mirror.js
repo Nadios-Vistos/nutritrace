@@ -1,12 +1,16 @@
 import db from '../db.js';
 import { fetchChecked, readBody, serviceBase } from './ssrf-guard.js';
 import { MEALIE_MIRROR_KEY, readSharedConfig, writeSharedConfig } from './shared-config-secrets.js';
+import { detectImageTypeFromBuffer } from './image-magic.js';
 
 const STATUS = 'mealie_mirror_status';
 const PAGE_SIZE = 100;
+const MAX_IMAGE_BYTES = 10 * 1024 * 1024;
+const RECIPE_ID = /^[\da-f]{8}(?:-[\da-f]{4}){3}-[\da-f]{12}$/i;
 const readConfig = db.prepare('SELECT value FROM app_config WHERE key = ?');
 const writeConfig = db.prepare(`INSERT INTO app_config (key, value) VALUES (?, ?)
   ON CONFLICT(key) DO UPDATE SET value = excluded.value`);
+const recipeById = db.prepare('SELECT payload FROM mealie_recipes WHERE id = ?');
 let running = null;
 
 function read(key) {
@@ -40,8 +44,41 @@ export function configureMirror({ url, token, enabled }) {
 }
 
 export function mirrorRecipes() {
-  return db.prepare('SELECT payload FROM mealie_recipes ORDER BY name COLLATE NOCASE').all()
-    .map(row => JSON.parse(row.payload));
+  return db.prepare('SELECT id, payload FROM mealie_recipes ORDER BY name COLLATE NOCASE').all()
+    .map(({ id, payload }) => {
+      // Existing rows and backups may still carry the old internal URL.
+      const recipe = JSON.parse(payload);
+      return { ...recipe, imgUrl: recipe.imgUrl && RECIPE_ID.test(id) ? imageUrl(id) : '' };
+    });
+}
+
+const imageUrl = id => `/api/mealie/library/${encodeURIComponent(id)}/image`;
+
+export async function fetchMirrorRecipeImage(id) {
+  const row = RECIPE_ID.test(id) && recipeById.get(id);
+  if (!row || !JSON.parse(row.payload)?.imgUrl) return { status: 404 };
+  const config = readSharedConfig(MEALIE_MIRROR_KEY)?.config;
+  const url = serviceBase(config?.url);
+  if (!config?.enabled || !config.token || !url) return { status: 404 };
+
+  try {
+    const response = await fetchMirror(
+      { url, token: config.token },
+      `/api/media/recipes/${encodeURIComponent(id)}/images/original.webp`,
+      'image/*',
+    );
+    const contentType = response.headers.get('content-type')?.toLowerCase();
+    const size = Number(response.headers.get('content-length'));
+    if (!response.ok || !contentType?.startsWith('image/') || size > MAX_IMAGE_BYTES) {
+      await response.body?.cancel();
+      return { status: response.status === 404 ? 404 : 502 };
+    }
+    const bytes = await readBody(response, MAX_IMAGE_BYTES);
+    const type = detectImageTypeFromBuffer(bytes);
+    return type ? { status: 200, type: `image/${type}`, bytes } : { status: 502 };
+  } catch {
+    return { status: 502 };
+  }
 }
 
 const nutritionKeys = {
@@ -66,7 +103,7 @@ function nutrient(value, key) {
   if (/^[µμu]g$/.test(unit)) return amount / (mass === 'g' ? 1e6 : 1e3);
 }
 
-function mapRecipe(detail, base) {
+function mapRecipe(detail) {
   const nutrition = {};
   for (const [key, name] of Object.entries(nutritionKeys)) {
     const value = nutrient(detail.nutrition?.[key], name);
@@ -85,16 +122,20 @@ function mapRecipe(detail, base) {
     name: detail.name, portion: 1, unit: 'serving', servings, nutrition, items: ingredients,
     notes: [detail.description, ...steps.map((step, index) => `${index + 1}. ${step}`)].filter(Boolean).join('\n\n'),
     source_app: 'mealie-mirror', source_external_id: detail.id,
-    imgUrl: detail.image ? `${base}/api/media/recipes/${encodeURIComponent(detail.id)}/images/original.webp` : '',
+    imgUrl: detail.image ? imageUrl(detail.id) : '',
     is_recipe: true, _shared_by: 'Mealie',
   };
 }
 
-async function request(config, path) {
-  const response = await fetchChecked(config.url + path, {
-    headers: { Authorization: `Bearer ${config.token}`, Accept: 'application/json' },
+function fetchMirror(config, path, accept) {
+  return fetchChecked(config.url + path, {
+    headers: { Authorization: `Bearer ${config.token}`, Accept: accept },
     signal: AbortSignal.timeout(15000),
   }, { allowPrivate: true, sameOrigin: true, maxRedirects: 2 });
+}
+
+async function request(config, path) {
+  const response = await fetchMirror(config, path, 'application/json');
   if (!response.ok) {
     await response.body?.cancel();
     throw new Error([401, 403].includes(response.status) ? 'unauthorized' : 'unavailable');
@@ -111,7 +152,7 @@ async function synchronise(config) {
     if (!Array.isArray(data.items) || !Number.isInteger(pages) || pages < 0 || pages > 500 ||
         !Number.isInteger(total) || total < 0 || (pages === 0 && total > 0)) throw new Error('invalid');
     for (const recipe of data.items) {
-      if (!/^[\da-f]{8}(?:-[\da-f]{4}){3}-[\da-f]{12}$/i.test(recipe?.id) ||
+      if (!RECIPE_ID.test(recipe?.id) ||
           typeof recipe.slug !== 'string' || !/^[\p{L}\p{N}_-]+$/u.test(recipe.slug) ||
           recipes.has(recipe.id)) throw new Error('invalid');
       recipes.set(recipe.id, recipe);
@@ -132,7 +173,7 @@ async function synchronise(config) {
     if (detail?.id !== id || typeof detail.name !== 'string' || !detail.name.trim() ||
         !Array.isArray(detail.recipeIngredient) ||
         (detail.recipeInstructions != null && !Array.isArray(detail.recipeInstructions))) throw new Error('invalid');
-    const mapped = mapRecipe(detail, config.url);
+    const mapped = mapRecipe(detail);
     changes.push([id, mapped.name, revision, JSON.stringify(mapped)]);
   }
 
