@@ -1,10 +1,10 @@
 # Privacy Policy: NutriTrace
 
-**Last updated:** August 3, 2026
+**Last updated:** November 10, 2026
 
 ## Overview
 
-NutriTrace is a self-hosted nutrition and wellness tracker. Your data is stored on **your own server**, not on any central server, not in the cloud, and not shared with third parties.
+NutriTrace is a self-hosted nutrition and wellness tracker. Your instance stores its data on **your own server**, with local storage also available in the Android app. Optional integrations send the data needed for the feature to the service you or your administrator configured.
 
 ## Data Collection
 
@@ -30,34 +30,72 @@ NutriTrace is a self-hosted nutrition and wellness tracker. Your data is stored 
 - We do not operate any central server that receives your data
 - We do not collect analytics, telemetry, or usage statistics
 - We do not serve advertisements
-- We do not sell, share, or transmit your data to third parties
+- We do not sell your personal data
 - We do not use tracking cookies or fingerprinting
 - We do not load fonts, scripts, or styles from a CDN; the page is served entirely by your instance
 
 ## Third-Party Services
 
-NutriTrace connects to the following external services **only when you explicitly enable them**:
+NutriTrace connects to these services when you use the corresponding feature or your administrator enables a shared integration.
 
 - **GitHub.** Update checks, off until you turn them on: setup asks, and Settings, Updates can change it at any time. When on, your server asks github.com for the latest release every few hours, and the Android app asks for the latest app version, so you hear about new features, fixes and security updates. Nothing about you, your instance or your data is sent. Set `UPDATE_CHECK=off` to keep it off whatever the setting says.
 - **Open Food Facts.** Food product lookups by barcode or name. Subject to [OFF privacy policy](https://world.openfoodfacts.org/privacy). See [LICENSES.md](LICENSES.md) for ODbL attribution notes (including the opt-in local mirror obligations for multi-user operators).
 - **USDA FoodData Central.** Food nutrition lookups. Subject to [USDA privacy policy](https://www.usda.gov/privacy-policy).
-- **Mealie** (per user). Live queries against the user's own Mealie instance for recipe import. User provides URL + API token.
+- **Mealie.** Per-user recipe import sends live queries to the Mealie instance the user configures with a URL and API token. An administrator can also enable the [shared Mealie mirror](#shared-mealie-mirror).
 - **Google Health (Fitbit and Google-Health-native sources).** Wellness data sync via Google Cloud OAuth. This is the current path for Fitbit data (Fitbit's own Web API was retired). Subject to [Google Health privacy policy](https://policies.google.com/privacy). OAuth client id + secret are configured via env vars; tokens are AES-encrypted at rest with the deploy's `JWT_SECRET`.
 - **Withings.** Body composition data via OAuth. Subject to [Withings privacy policy](https://www.withings.com/privacy).
 - **Garmin.** Activity data via OAuth (experimental). Subject to [Garmin privacy policy](https://www.garmin.com/privacy).
 - **Health Connect (Android).** On-device health data (steps, sleep, heart rate, weight, exercise). Data stays on the device and is only read when the user explicitly grants Health Connect permission to the NutriTrace Android app.
 - **OIDC providers (Authentik, Keycloak, Pocket-ID, Authelia, Google, Auth0, or any OIDC 1.0 provider).** If admins configure SSO, sign-in is delegated to your chosen identity provider. Client secrets are stored encrypted at rest.
-- **AI providers (Claude, OpenAI, Gemini, OpenAI-compatible).** If Trace is enabled, your conversation and relevant diary / wellness / goals context is sent to the provider you choose. Subject to their respective privacy policies. Your API key is stored on your server, not ours. The "OpenAI Compatible" provider (Ollama, LM Studio, LocalAI, vLLM, DeepSeek, Groq, and similar) connects directly from the browser to the endpoint you configure; the NutriTrace server never sees those requests in per-user mode.
+- **AI providers (Claude, OpenAI, Gemini, OpenAI-compatible).** Trace sends your conversation and relevant diary, wellness or goals context to the configured provider. The provider's privacy and retention terms apply. In per-user mode the client sends requests directly to that provider or endpoint. A server-managed configuration routes requests through your NutriTrace server.
 - **Push notification services (Apprise, Gotify, ntfy).** Optional. If configured, notification content (meal reminders, water reminders, weigh-in reminders, weekly summary, goal celebration, fasting-complete alert, wellness alerts, backup-failed alert) is sent to your self-hosted push server. Only one provider is active at a time.
 - **SMTP (email).** Optional. If configured, password reset emails, user invites, weekly summary emails, and food/meal share-notification emails are sent via your SMTP provider. See the [Email / SMTP docs](https://traceapps.github.io/docs/integrations/smtp/) for details.
 - **Sibling TraceApps (CookTrace, LiftTrace).** When you (or your operator) issues a Federation API token, the holding app can read food data (`read:foods`) or post workout entries (`write:workouts`) against your NutriTrace instance. Tokens are scoped, revocable, and never leave your NutriTrace server.
+
+### Meal photo recognition
+
+Selecting a photo prepares a preview on your device. When you start analysis,
+NutriTrace sends a resized JPEG and instructions to the configured AI provider
+to identify the foods visible in the image. In per-user mode this goes directly
+from the client to the provider. In shared AI mode it goes through your
+NutriTrace server. The provider's privacy and retention terms apply to the
+image. This feature writes the foods and portions you confirm to the diary.
+
+The optional portrait analysis for avatar customization uses the same
+provider route. NutriTrace saves the avatar options you confirm as settings.
+
+### Shared AI
+
+An administrator can enable shared AI for all signed-in accounts. AI requests
+from those accounts, including Trace context or meal photos when used, pass
+through your NutriTrace server to the configured provider. For providers that
+require a key, all accounts use the administrator's API key and the provider
+associates the requests with that API account. NutriTrace applies the daily
+quota separately for each account. The shared copy of the key is encrypted
+at rest in the server's SQLite configuration and excluded from full backups.
+
+### Shared Mealie mirror
+
+When enabled by an administrator, the NutriTrace server reads recipes from
+the configured Mealie instance on a schedule or on demand. It copies recipe
+names, source IDs, servings, ingredients and quantities, descriptions and
+instructions, and available nutrition values. For photos, the mirror stores
+links to images hosted by Mealie.
+
+The recipes are stored in the `mealie_recipes` table of the NutriTrace
+server's SQLite database (`DB_PATH`, `/data/db/nutritrace.db` in the supplied
+Compose configuration). Signed-in accounts on the instance can browse this
+shared library. The copy remains available after sync is disabled and is
+included in full backups. The configured Mealie token is encrypted in
+the server's SQLite configuration. The mirror configuration is excluded
+from full backups.
 
 ## Data Retention
 
 Your data is retained on your server until you delete it. You can:
 
 - Delete individual diary entries, foods, meals, recipes, wellness data, IF sessions, or shares at any time
-- Export all your data via JSON export or full backup (ZIP)
+- Export your records as JSON or make a full backup (ZIP)
 - Delete your account and all associated data
 - Wipe the database entirely
 

@@ -1,9 +1,22 @@
 <h1 align="center">NutriTrace</h1>
 
+## Ce fork
+
+La branche `mode-familial` adapte NutriTrace à un usage familial auto-hébergé.
+Projet d’origine — [TraceApps/nutritrace](https://github.com/TraceApps/nutritrace).
+
+- Journal simplifié en français avec jauge calorique verticale, suivi de l’hydratation, mascottes personnalisables et sélection automatique du repas.
+- Questionnaire de démarrage pour estimer le budget calorique et fixer un objectif de poids, avec recalcul depuis les objectifs.
+- Catalogue commun d’aliments de base Ciqual, atlas des portions avec poids et photos de référence, et miroir Mealie de l’instance source vers NutriTrace.
+- Reconnaissance des aliments par photo et IA familiale configurable par l’administrateur, avec quota quotidien par compte.
+
+Les sources des catalogues et des images, ainsi que les flux de données,
+sont détaillés dans [Licences et sources](LICENSES.md) et [Confidentialité](PRIVACY.md).
+
 <p align="center"><b>Trace Every Bite</b></p>
 
 <p align="center">A self-hosted personal nutrition tracker.<br/>
-No accounts, no telemetry, no cloud sync unless you opt in.</p>
+Local accounts, no telemetry, optional external integrations.</p>
 
 <p align="center">
   <img src="public/icons/logo-transparent.png" alt="NutriTrace" width="180" />
@@ -35,7 +48,7 @@ No accounts, no telemetry, no cloud sync unless you opt in.</p>
 
 ## What NutriTrace is
 
-NutriTrace runs as a single Docker container on your own hardware, with a PWA for the browser and a native Android app for your phone. No accounts on external services, no data leaving your network, no subscriptions.
+NutriTrace runs as a single Docker container on your own hardware, with a PWA for the browser and a native Android app for your phone. It supports local accounts and optional integrations with external services.
 
 ## Principles
 
