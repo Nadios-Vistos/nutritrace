@@ -145,12 +145,16 @@ async function request(config, path) {
 
 async function synchronise(config) {
   const recipes = new Map();
+  let expected = null;
   for (let page = 1; ; page++) {
     const data = await request(config, `/api/recipes?perPage=${PAGE_SIZE}&page=${page}&orderBy=id&orderDirection=asc`);
     const pages = data.total_pages ?? data.totalPages;
     const total = data.total;
     if (!Array.isArray(data.items) || !Number.isInteger(pages) || pages < 0 || pages > 500 ||
         !Number.isInteger(total) || total < 0 || (pages === 0 && total > 0)) throw new Error('invalid');
+    // The catalogue changed between two pages: this snapshot cannot be trusted.
+    expected ??= { pages, total };
+    if (expected.pages !== pages || expected.total !== total) throw new Error('invalid');
     for (const recipe of data.items) {
       if (!RECIPE_ID.test(recipe?.id) ||
           typeof recipe.slug !== 'string' || !/^[\p{L}\p{N}_-]+$/u.test(recipe.slug) ||

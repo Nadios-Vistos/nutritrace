@@ -267,12 +267,18 @@ const Nutrition = {
 
 export function beverageVolume(item) {
   if (item?.is_recipe || item?._splitItems?.length) return 0;
-  const volume = Number(item?.nutrition?.beverage_ml) * Number(item?.quantity ?? 1);
-  return Number.isFinite(volume) && volume > 0 ? volume : 0;
+  const perUnit = Number(item?.nutrition?.beverage_ml);
+  const quantity = Number(item?.quantity ?? 1);
+  // Each input is checked on its own: two negatives must not make a positive.
+  return Number.isFinite(perUnit) && perUnit > 0 && Number.isFinite(quantity) && quantity > 0
+    ? perUnit * quantity : 0;
 }
 
 export function hydrationTotal(items = [], water = []) {
-  const direct = water.reduce((sum, log) => sum + (Number(log.amount) || 0), 0);
+  const direct = water.reduce((sum, log) => {
+    const amount = Number(log?.amount);
+    return Number.isFinite(amount) && amount > 0 ? sum + amount : sum;
+  }, 0);
   return Math.round(direct + items.reduce((sum, item) => sum + beverageVolume(item), 0));
 }
 

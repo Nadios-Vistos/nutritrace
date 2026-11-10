@@ -191,9 +191,7 @@ test('Mealie handles a catalogue change mid-pagination', async t => {
   f.feed([first, page([], 100, 1)], []);
   await syncMealieMirror();
   assert.deepEqual(f.requests.map(url => url.searchParams.get('page')), ['1', '2']);
-  await t.test('the partial snapshot must preserve the entire cache', {
-    todo: 'The final page can change the total and make an incomplete snapshot look complete',
-  }, () => {
+  await t.test('the partial snapshot must preserve the entire cache', () => {
     assert.ok(snapshot().some(row => row.id === last.id), 'the last recipe still exists in Mealie');
     assert.equal(mirrorStatus().count, 101);
     assert.equal(mirrorStatus().error, 'invalid');

@@ -26,7 +26,7 @@ test('hydration ignores missing, malformed and non-positive drink totals', () =>
   assert.equal(hydrationTotal([...invalid, drink(75)], [{}, { amount: 'invalid' }]), 75);
 });
 
-test('invalid direct water amounts are ignored', { todo: 'Negative and non-finite water amounts currently affect the sum' }, () => {
+test('invalid direct water amounts are ignored', () => {
   const water = [{ amount: 250 }];
   assert.deepEqual([
     hydrationTotal([], [...water, { amount: -50 }]),
@@ -34,10 +34,10 @@ test('invalid direct water amounts are ignored', { todo: 'Negative and non-finit
   ], [250, 250]);
 });
 
-test('null direct water entries are ignored', { todo: 'A null log currently throws when reading its amount' }, () => {
+test('null direct water entries are ignored', () => {
   assert.equal(hydrationTotal([], [null, { amount: 250 }]), 250);
 });
 
-test('two negative beverage inputs do not create positive hydration', { todo: 'The product is validated instead of each input' }, () => {
+test('two negative beverage inputs do not create positive hydration', () => {
   assert.equal(hydrationTotal([drink(-100, -1)]), 0);
 });

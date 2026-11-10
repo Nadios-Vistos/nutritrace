@@ -132,9 +132,7 @@ test('PUT onboarding recalculates a goal in pounds while keeping the canonical t
   assert.deepEqual(settings.goals.weight.days, Array(7).fill(159.4));
 });
 
-test('PUT onboarding rejects an account with a known underage birthday despite a conflicting declaration', {
-  todo: 'The route currently trusts the submitted age instead of checking the saved birthday',
-}, async () => {
+test('PUT onboarding rejects an account with a known underage birthday despite a conflicting declaration', async () => {
   const birthday = new Date();
   birthday.setUTCFullYear(birthday.getUTCFullYear() - 15);
   const user = account('minor-birthday', birthday.toISOString().slice(0, 10));

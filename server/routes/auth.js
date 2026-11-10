@@ -192,6 +192,13 @@ router.put('/onboarding', requireAuth, wrap((req, res) => {
     if (body.skip !== true) {
       const estimate = estimateFamilyGoals(profile);
       if (body.adult !== true || estimate.error) return null;
+      // A saved birthday outranks the declared age: no automatic budget for a minor.
+      const born = /^\d{4}-\d{2}-\d{2}/.test(current.birthday ?? '') ? new Date(current.birthday.slice(0, 10) + 'T00:00:00Z') : null;
+      if (born && !Number.isNaN(born.getTime())) {
+        const now = new Date();
+        const eighteenth = new Date(Date.UTC(born.getUTCFullYear() + 18, born.getUTCMonth(), born.getUTCDate()));
+        if (now < eighteenth) return null;
+      }
       const row = db.prepare(`SELECT value FROM user_settings
         WHERE user_id = ? AND key = 'goals' AND deleted_at IS NULL`).get(id);
       let goals = {};
