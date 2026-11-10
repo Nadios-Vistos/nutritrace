@@ -12,6 +12,8 @@ Projet d’origine — [TraceApps/nutritrace](https://github.com/TraceApps/nutri
 
 Les sources des catalogues et des images, ainsi que les flux de données,
 sont détaillés dans [Licences et sources](LICENSES.md) et [Confidentialité](PRIVACY.md).
+Les écarts avec le projet d’origine et la procédure de mise à jour sont dans
+[FORK.md](FORK.md).
 
 <p align="center"><b>Trace Every Bite</b></p>
 

@@ -29,6 +29,7 @@
   import { isAtlasReference, loadPortionAtlas } from '../lib/portion-atlas.js';
   import { Mealie } from '../lib/mealieApi.js';
   import { mealieMirrorImage } from '../lib/mealie-mirror-image.js';
+  import MealieRecipeSheet from '../components/foods/MealieRecipeSheet.svelte';
   import { CookTrace } from '../lib/cooktraceApi.js';
   import { offlineState } from '../lib/offline-api.js';
   import { offNutritionStatus, needsFullLookup } from '../lib/off-nutrition.js';
@@ -141,8 +142,6 @@
   let mealieLibraryLoading = false;
   let mealieLibraryError = false;
   let selectedMealieRecipe = null;
-  let importingMealieRecipe = false;
-  let mealiePortions = '1';
   $: if (activeTab === 2 && $userMgmtActive && ['mealieLibrary', 'all'].includes(searchSource)) refreshMealieLibrary();
   $: mealieMatches = mealieLibrary.filter(recipe => _fuzzyMatch(recipe, search));
 
@@ -157,45 +156,6 @@
 
   function openMealieRecipe(recipe) {
     selectedMealieRecipe = recipe;
-    mealiePortions = '1';
-  }
-
-  async function saveMealieRecipeToFoods() {
-    const recipe = selectedMealieRecipe;
-    if (!recipe || importingMealieRecipe) return;
-    importingMealieRecipe = true;
-    try {
-      await API.importMirroredRecipe(recipe);
-      if (selectedMealieRecipe === recipe) selectedMealieRecipe = null;
-      showSuccess($_('food_editor.saved'));
-      await load();
-    } catch {
-      showError($_('common.errors.save_failed'));
-    } finally {
-      importingMealieRecipe = false;
-    }
-  }
-
-  async function logMealieRecipe() {
-    const recipe = selectedMealieRecipe;
-    const quantity = parseDecimal(mealiePortions);
-    if (!recipe || recipe.nutrition.calories == null || !Number.isFinite(quantity) || quantity <= 0 || _addingToDiary) return;
-    _addingToDiary = true;
-    try {
-      const { addDiaryItem } = await import('../stores/diary.js');
-      await addDiaryItem({
-        name: recipe.name, portion: 1, unit: 'serving', quantity,
-        nutrition: recipe.nutrition, source_app: recipe.source_app, source_external_id: recipe.source_external_id,
-      }, Number(pickMeal) || 0, pickDate || undefined);
-      showSuccess($_('foods.toast.added_to_diary'));
-      editorState.lastMealAdded = Number(pickMeal) || 0;
-      selectedMealieRecipe = null;
-      history.back();
-    } catch {
-      showError($_('mealie_mirror.log_error'));
-    } finally {
-      _addingToDiary = false;
-    }
   }
 
   let ciqualCatalogue = null;
@@ -2971,38 +2931,7 @@
   on:addToDiary={onDetailAddToDiary}
   on:deleted={() => { detailSheetFood = null; load(); }} />
 
-<Sheet open={selectedMealieRecipe != null} title={selectedMealieRecipe?.name || ''} on:close={() => selectedMealieRecipe = null}>
-  {#if selectedMealieRecipe}
-    <div class="mealie-recipe">
-      {#if selectedMealieRecipe.nutrition.calories == null}
-        <p>{$_('mealie_mirror.missing')}</p>
-      {:else if pickMode}
-        <form on:submit|preventDefault={logMealieRecipe}>
-          <label>{$_('foods_deep.num_servings')}
-            <input class="input" type="text" inputmode="decimal" use:decimalInput bind:value={mealiePortions} />
-          </label>
-          <p>{$_('mealie_mirror.per_serving', { values: { kcal: selectedMealieRecipe.nutrition.calories } })}</p>
-          <button class="btn btn-primary" type="submit" disabled={_addingToDiary || !(parseDecimal(mealiePortions) > 0)}>{$_('foods.add_to_diary')}</button>
-        </form>
-      {:else}
-        <p>{$_('mealie_mirror.per_serving', { values: { kcal: selectedMealieRecipe.nutrition.calories } })}</p>
-      {/if}
-      {#if selectedMealieRecipe.items.length}
-        <ul>
-          {#each selectedMealieRecipe.items as ingredient}
-            <li>{ingredient.portion} {ingredient.unit} {ingredient.name}{ingredient.notes ? ' · ' + ingredient.notes : ''}</li>
-          {/each}
-        </ul>
-      {/if}
-      {#if selectedMealieRecipe.notes}<p class="mealie-recipe-notes">{selectedMealieRecipe.notes}</p>{/if}
-      {#if !pickMode}
-        <button class="btn btn-secondary" type="button" on:click={saveMealieRecipeToFoods} disabled={importingMealieRecipe}>
-          {$_('foods.save_to_foods')}
-        </button>
-      {/if}
-    </div>
-  {/if}
-</Sheet>
+<MealieRecipeSheet bind:recipe={selectedMealieRecipe} {pickMode} {pickMeal} {pickDate} on:saved={load} />
 
 <!-- Quantity prompt sheet -->
 <Sheet bind:open={showQtyPrompt} title={promptFood ? promptFood.name : $_('foods.add_to_diary')}>
@@ -3332,10 +3261,6 @@
 {/if}
 
 <style>
-  .mealie-recipe { display: grid; gap: 12px; padding: 8px 0; }
-  .mealie-recipe form { display: grid; gap: 8px; }
-  .mealie-recipe ul { padding-inline-start: 22px; }
-  .mealie-recipe-notes { white-space: pre-wrap; overflow-wrap: anywhere; }
   .ciqual-toolbar { display: grid; gap: 8px; }
   .ciqual-toolbar a { color: var(--accent); font-size: 0.85rem; }
   /* Live-preview macro pills inside the qty-prompt sheet (#30).
