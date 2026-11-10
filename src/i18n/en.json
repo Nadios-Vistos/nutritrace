@@ -124,6 +124,23 @@
     "dinner": "Dinner",
     "snacks": "Snacks"
   },
+  "family_balance": {
+    "title": "Budget gap",
+    "week": "Last 7 days",
+    "month": "Last 30 days",
+    "over": "{kcal} kcal over",
+    "under": "{kcal} kcal under",
+    "even": "On budget",
+    "weight": "≈ {kg} kg",
+    "days": "{count, plural, one {# logged day} other {# logged days}}",
+    "none": "No logged days yet",
+    "help_open": "How to read this gap",
+    "help_title": "How to read this gap",
+    "help_sum": "This is the total of what you ate minus your budget, over the days where you logged at least one meal. Today is left out because the day is not finished.",
+    "help_weight": "The weight figure is an estimate: about 7,700 kcal for one kilogram. Water, salt and digestion move the scale far more from one day to the next, so read it as a trend.",
+    "help_budget": "Past days are compared with your current budget, because earlier budgets are not kept.",
+    "help_balance": "A day over budget is not a failure. A few lighter days bring the gap back down."
+  },
   "nav": {
     "diary": "Diary",
     "foods": "Foods",

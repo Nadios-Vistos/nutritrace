@@ -82,6 +82,23 @@
     "dinner": "Dîner",
     "snacks": "Collations"
   },
+  "family_balance": {
+    "title": "Écart au budget",
+    "week": "7 derniers jours",
+    "month": "30 derniers jours",
+    "over": "{kcal} kcal au-dessus",
+    "under": "{kcal} kcal en dessous",
+    "even": "À l’équilibre",
+    "weight": "≈ {kg} kg",
+    "days": "{count, plural, one {# jour renseigné} other {# jours renseignés}}",
+    "none": "Aucun jour renseigné",
+    "help_open": "Comment lire cet écart",
+    "help_title": "Comment lire cet écart",
+    "help_sum": "C’est le total de ce que tu as mangé moins ton budget, sur les jours où tu as saisi au moins un repas. Aujourd’hui n’est pas compté, car la journée n’est pas finie.",
+    "help_weight": "Le poids affiché est une estimation : environ 7 700 kcal pour un kilo. L’eau, le sel et la digestion font bouger la balance bien davantage d’un jour à l’autre : lis-le comme une tendance.",
+    "help_budget": "Les jours passés sont comparés à ton budget actuel, car les anciens budgets ne sont pas conservés.",
+    "help_balance": "Un jour au-dessus du budget n’est pas un échec. Quelques jours plus légers font redescendre l’écart."
+  },
   "family_avatar": {
     "edit": "Changer d’avatar",
     "kind": {

@@ -497,6 +497,8 @@
     ? resolveGoalFor($goals?.calories, $currentDate)
     : $familyCalorieBudget);
 
+  $: _familyBudgetFor = (g => date => _guidedBudget ? resolveGoalFor(g, date) : $familyCalorieBudget)($goals?.calories);
+
   function saveFamilyBudget(budget) {
     if (!_guidedBudget) {
       familyCalorieBudget.set(budget);
@@ -2068,6 +2070,7 @@
       <FamilyDiary
         calories={$currentEntry?.date === $currentDate ? totals.calories : 0}
         budget={_familyBudget}
+        budgetFor={_familyBudgetFor}
         adaptiveBudget={_familyAdaptive != null}
         {meals}
         date={$currentDate}

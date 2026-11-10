@@ -4,6 +4,7 @@
   import FamilyMealPhoto from './FamilyMealPhoto.svelte';
   import FamilyMascot from './FamilyMascot.svelte';
   import FamilyAvatarEditor from './FamilyAvatarEditor.svelte';
+  import FamilyBalance from './FamilyBalance.svelte';
   import Sheet from '../ui/Sheet.svelte';
   import { familyAvatar } from '../../stores/settings.js';
   import { currentUser } from '../../stores/auth.js';
@@ -25,6 +26,7 @@
   export let waterGoal = 0;
   export let waterUnit = 'ml';
   export let onWater;
+  export let budgetFor = () => null;
 
   let editingBudget = false;
   let draftBudget;
@@ -201,6 +203,8 @@
     </div>
   {/if}
 </section>
+
+<FamilyBalance {budgetFor} refresh={`${date}|${consumed}`} />
 
 {#if photoTarget}
   <FamilyMealPhoto date={photoTarget.date} meal={photoTarget.meal} onClose={() => photoTarget = null} />
