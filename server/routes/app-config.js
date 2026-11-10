@@ -4,7 +4,8 @@ import db from '../db.js';
 import { wrap } from '../logger.js';
 import { requireAuth, requireAdmin, userMgmtActive } from '../middleware/auth.js';
 import { testSmtp, isSmtpEnvLocked } from '../email.js';
-import { FAMILY_AI_KEY, isAiEnvLocked, isFamilyAiEnabled } from '../ai.js';
+import { getFamilyAiStatus, isAiEnvLocked } from '../ai.js';
+import { FAMILY_AI_KEY, MEALIE_MIRROR_KEY } from '../lib/shared-config-secrets.js';
 
 const router = Router();
 
@@ -34,7 +35,8 @@ router.get('/env-locks', requireAuth, wrap(async (req, res) => {
   // env operator wanted AI ON or OFF — the toggle just sticks at the
   // per-user setting, which is OFF by default. Fixes #36.
   const aiEnv = isAiEnvLocked();
-  const aiShared = !aiEnv && isFamilyAiEnabled();
+  const family = aiEnv ? null : getFamilyAiStatus();
+  const aiShared = !!family?.enabled;
   const aiLocked = aiEnv || aiShared;
   let ai_enabled = false;
   if (aiEnv) {
@@ -79,6 +81,7 @@ router.get('/env-locks', requireAuth, wrap(async (req, res) => {
     ai: aiLocked,
     ai_enabled: ai_enabled || aiShared,
     ai_shared: aiShared,
+    ai_shared_secret_unreadable: req.user?.role === 'admin' && !!family?.unreadable,
     off_local,
     off_local_only,
     oidc_provider_ids: getEnvLockedProviderIds(),
@@ -134,7 +137,7 @@ router.get('/', requireAuth, requireAdmin, wrap((req, res) => {
   const rows = db.prepare('SELECT key, value FROM app_config').all();
   const out = {};
   for (const { key, value } of rows) {
-    if (key === 'mealie_mirror_config' || key === FAMILY_AI_KEY) continue;
+    if (key === MEALIE_MIRROR_KEY || key === FAMILY_AI_KEY) continue;
     const redacted = key === 'smtp_pass' || key === 'ai_api_key' || key === 'fitbit_client_secret' || key === 'withings_client_secret';
     out[key] = redacted ? (value ? '••••••••' : '') : (value || '');
   }

@@ -10,6 +10,7 @@ import { logger } from '../logger.js';
 import { seedSmtpFromEnv } from '../email.js';
 import { seedAiFromEnv } from '../ai.js';
 import { requireAuth, requireAdmin } from '../middleware/auth.js';
+import { FAMILY_AI_KEY, MEALIE_MIRROR_KEY, readSharedConfig } from '../lib/shared-config-secrets.js';
 
 const router = express.Router();
 router.use(requireAuth);
@@ -267,7 +268,9 @@ function restoreFromZip(zip) {
     const insConfig = db.prepare(`
       INSERT OR REPLACE INTO app_config (key, value) VALUES (@key, @value)
     `);
-    for (const c of data.app_config || []) insConfig.run(c);
+    for (const c of data.app_config || []) {
+      if (c.key !== FAMILY_AI_KEY && c.key !== MEALIE_MIRROR_KEY) insConfig.run(c);
+    }
     const insMealie = db.prepare('INSERT INTO mealie_recipes (id, name, revision, payload) VALUES (@id, @name, @revision, @payload)');
     for (const recipe of data.mealie_recipes || []) insMealie.run(recipe);
 
@@ -390,6 +393,21 @@ function restoreFromZip(zip) {
   seedAiFromEnv();
 }
 
+function dumpUserSettings() {
+  const ai = readSharedConfig(FAMILY_AI_KEY);
+  const mealie = readSharedConfig(MEALIE_MIRROR_KEY);
+  return db.prepare('SELECT * FROM user_settings').all().filter(({ key, value }) => {
+    const shared = key === 'aiApiKey' ? ai : key === 'mealieApiToken' ? mealie : null;
+    if (!shared) return true;
+    if (shared.unreadable) return false;
+    const secret = key === 'aiApiKey' ? shared.config.ai_api_key : shared.config.token;
+    if (!secret) return true;
+    let personal = value;
+    try { personal = JSON.parse(value); } catch { /* Legacy settings may contain raw strings. */ }
+    return typeof personal !== 'string' || personal.trim() !== secret;
+  });
+}
+
 function dumpDatabase() {
   // ── Coverage audit (2026-07) ─────────────────────────────────────────────
   // Every user-content table in server/db.js is included below. Deliberate
@@ -403,6 +421,12 @@ function dumpDatabase() {
   //       cross-deploy wearable continuity, revisit this — the trade-off is
   //       shipping the token-crypto key alongside the archive (or moving to
   //       a passphrase-derived key at backup time).
+  //   app_config.ai_family_config, app_config.mealie_mirror_config
+  //     — Shared credentials encrypted with the deployment key. Restore
+  //       leaves both integrations disabled, including for older archives.
+  //       Matching copies in user_settings are omitted too. If the shared
+  //       credential cannot be decrypted, omit the corresponding personal
+  //       credential field because equality cannot be checked.
   //   password_reset_tokens
   //     — 30-min-lived; capturing them adds security surface without value.
   //       The restore path explicitly DELETEs any stale rows.
@@ -424,8 +448,8 @@ function dumpDatabase() {
     food_shares:      db.prepare('SELECT * FROM food_shares').all(),
     meal_shares:      db.prepare('SELECT * FROM meal_shares').all(),
     diary:            db.prepare('SELECT * FROM diary').all(),
-    user_settings:    db.prepare('SELECT * FROM user_settings').all(),
-    app_config:       db.prepare('SELECT * FROM app_config').all(),
+    user_settings:    dumpUserSettings(),
+    app_config:       db.prepare('SELECT * FROM app_config WHERE key NOT IN (?, ?)').all(FAMILY_AI_KEY, MEALIE_MIRROR_KEY),
     mealie_recipes:   db.prepare('SELECT * FROM mealie_recipes').all(),
     ai_chat_history:  db.prepare('SELECT * FROM ai_chat_history').all(),
     // wellness_data holds BOTH raw wearable metrics AND Trace-computed

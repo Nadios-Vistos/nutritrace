@@ -259,6 +259,7 @@
         </button>
       </div>
       {#if familyError}<p class="setting-desc" role="alert" style="padding:0 14px 10px">{$_('settings_trace.family.error')}</p>{/if}
+      {#if envLocks.ai_shared_secret_unreadable}<p class="setting-desc" role="alert" style="padding:0 14px 10px">{$_('settings_trace.family.secret_unreadable')}</p>{/if}
     </div>
   {/if}
   <div class="card settings-card">

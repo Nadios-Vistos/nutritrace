@@ -1,11 +1,12 @@
 import db from './db.js';
 import { serviceBase } from './lib/ssrf-guard.js';
+import { FAMILY_AI_KEY, readSharedConfig, writeSharedConfig } from './lib/shared-config-secrets.js';
 
-export const FAMILY_AI_KEY = 'ai_family_config';
 const providers = new Set(['claude', 'openai', 'gemini', 'oai-compat']);
 
-export function isFamilyAiEnabled() {
-  return !!db.prepare('SELECT 1 FROM app_config WHERE key = ?').get(FAMILY_AI_KEY);
+export function getFamilyAiStatus() {
+  const family = readSharedConfig(FAMILY_AI_KEY);
+  return { enabled: !!family && !family.unreadable, unreadable: !!family?.unreadable };
 }
 
 export function setFamilyAiFromUser(userId, enabled) {
@@ -24,10 +25,9 @@ export function setFamilyAiFromUser(userId, enabled) {
   const apiKey = typeof settings.aiApiKey === 'string' ? settings.aiApiKey.trim() : '';
   const base = provider === 'oai-compat' ? serviceBase(settings.aiBaseUrl) : null;
   if (!providers.has(provider) || (provider === 'oai-compat' ? !base || !model : !apiKey)) return false;
-  db.prepare(`INSERT INTO app_config (key, value) VALUES (?, ?)
-    ON CONFLICT(key) DO UPDATE SET value = excluded.value`).run(FAMILY_AI_KEY, JSON.stringify({
+  writeSharedConfig(FAMILY_AI_KEY, {
     ai_enabled: 'true', ai_provider: provider, ai_model: model, ai_api_key: apiKey, ai_base_url: base,
-  }));
+  });
   return true;
 }
 
@@ -69,8 +69,9 @@ export function seedAiFromEnv() {
 
 export function getAiConfig() {
   if (!isAiEnvLocked()) {
-    const family = db.prepare('SELECT value FROM app_config WHERE key = ?').get(FAMILY_AI_KEY);
-    if (family) return { ...JSON.parse(family.value), familyManaged: true };
+    const family = readSharedConfig(FAMILY_AI_KEY);
+    if (family?.unreadable) return { ai_enabled: 'false' };
+    if (family) return { ...family.config, familyManaged: true };
   }
   const rows = db.prepare("SELECT key, value FROM app_config WHERE key LIKE 'ai_%'").all();
   const cfg = {};

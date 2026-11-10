@@ -38,6 +38,7 @@
     "saved": "Paramètres enregistrés",
     "error_settings": "Impossible de charger ou d’enregistrer les paramètres. Vérifie l’adresse et le jeton.",
     "error_unauthorized": "Mealie a refusé l’accès. Vérifie le jeton API.",
+    "error_secret_unreadable": "La synchronisation Mealie est désactivée car le jeton API enregistré ne peut pas être déchiffré. Saisis à nouveau le jeton, active la synchronisation, puis enregistre.",
     "error_unavailable": "Mealie est inaccessible. La dernière copie du catalogue reste disponible.",
     "error_invalid": "Mealie a renvoyé un catalogue incomplet ou inattendu. La dernière copie reste disponible.",
     "unavailable": "Impossible de charger la bibliothèque Mealie.",
@@ -1777,6 +1778,7 @@
       "enable": "Activer pour tous",
       "disable": "Désactiver le partage",
       "active": "L’IA est partagée par ce serveur NutriTrace.",
+      "secret_unreadable": "L’IA partagée est désactivée car la clé API enregistrée ne peut pas être déchiffrée. Saisis et enregistre la clé dans les paramètres de ton assistant, puis réactive le partage.",
       "error": "Impossible de modifier le partage. Vérifie que ta configuration IA personnelle est complète et enregistrée."
     },
     "toast": {

@@ -17,7 +17,7 @@ router.put('/family', requireAuth, requireAdmin, wrap((req, res) => {
   if (typeof enabled !== 'boolean' || !setFamilyAiFromUser(req.user.id, enabled)) {
     return res.status(400).json({ error: 'Incomplete personal AI settings' });
   }
-  res.json({ ai: enabled, ai_shared: enabled, ai_enabled: enabled });
+  res.json({ ai: enabled, ai_shared: enabled, ai_enabled: enabled, ai_shared_secret_unreadable: false });
 }));
 const aiChatLimit = makeRateLimiter({ max: 30, windowMs: 60_000, label: 'ai' });
 

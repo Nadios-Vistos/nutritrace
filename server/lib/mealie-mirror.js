@@ -1,7 +1,7 @@
 import db from '../db.js';
 import { fetchChecked, readBody, serviceBase } from './ssrf-guard.js';
+import { MEALIE_MIRROR_KEY, readSharedConfig, writeSharedConfig } from './shared-config-secrets.js';
 
-const CONFIG = 'mealie_mirror_config';
 const STATUS = 'mealie_mirror_status';
 const PAGE_SIZE = 100;
 const readConfig = db.prepare('SELECT value FROM app_config WHERE key = ?');
@@ -14,24 +14,26 @@ function read(key) {
 }
 
 export function mirrorStatus() {
-  const { url = '', token, enabled = false } = read(CONFIG);
+  const saved = readSharedConfig(MEALIE_MIRROR_KEY);
+  const { url = '', token, enabled = false } = saved?.config ?? {};
   return {
-    ...read(STATUS), url, enabled, hasToken: !!token, running: !!running,
+    ...(saved ? read(STATUS) : {}), url, enabled: enabled && !!token, hasToken: !!token, running: !!running,
+    ...(saved?.unreadable ? { error: 'secret_unreadable' } : {}),
     count: db.prepare('SELECT COUNT(*) AS n FROM mealie_recipes').get().n,
   };
 }
 
 export function configureMirror({ url, token, enabled }) {
-  const prior = read(CONFIG);
+  const prior = readSharedConfig(MEALIE_MIRROR_KEY)?.config ?? {};
   const base = serviceBase(typeof url === 'string' ? url.trim() : '');
   if (!base || typeof enabled !== 'boolean' || (token != null && typeof token !== 'string')) return false;
   const supplied = token?.trim();
   const nextToken = supplied || (base === prior.url ? prior.token : '');
   if (enabled && !nextToken) return false;
   if (nextToken && (nextToken.length > 4096 || /[\s\u0000-\u001f]/.test(nextToken))) return false;
-  const value = JSON.stringify({ url: base, token: nextToken, enabled });
-  if (value !== JSON.stringify(prior)) {
-    writeConfig.run(CONFIG, value);
+  const next = { url: base, token: nextToken, enabled };
+  if (JSON.stringify(next) !== JSON.stringify(prior)) {
+    writeSharedConfig(MEALIE_MIRROR_KEY, next);
     writeConfig.run(STATUS, '{}');
   }
   return true;
@@ -135,7 +137,7 @@ async function synchronise(config) {
   }
 
   // A partial download must never be mistaken for deletions in Mealie.
-  if (JSON.stringify(config) !== JSON.stringify(read(CONFIG))) return;
+  if (JSON.stringify(config) !== JSON.stringify(readSharedConfig(MEALIE_MIRROR_KEY)?.config)) return;
   db.transaction(() => {
     const upsert = db.prepare(`INSERT INTO mealie_recipes (id, name, revision, payload) VALUES (?, ?, ?, ?)
       ON CONFLICT(id) DO UPDATE SET name = excluded.name, revision = excluded.revision, payload = excluded.payload`);
@@ -148,10 +150,10 @@ async function synchronise(config) {
 
 export function syncMealieMirror() {
   if (running) return running;
-  const config = read(CONFIG);
-  if (!config.enabled || !config.token) return Promise.resolve();
+  const config = readSharedConfig(MEALIE_MIRROR_KEY)?.config;
+  if (!config?.enabled || !config.token) return Promise.resolve();
   running = synchronise(config).catch(error => {
-    if (JSON.stringify(config) !== JSON.stringify(read(CONFIG))) return;
+    if (JSON.stringify(config) !== JSON.stringify(readSharedConfig(MEALIE_MIRROR_KEY)?.config)) return;
     const reason = ['invalid', 'unauthorized'].includes(error.message) ? error.message : 'unavailable';
     writeConfig.run(STATUS, JSON.stringify({ ...read(STATUS), error: reason }));
   }).finally(() => { running = null; });

@@ -33,6 +33,7 @@
     "saved": "Settings saved",
     "error_settings": "Could not load or save the settings. Check the URL and token.",
     "error_unauthorized": "Mealie refused access. Check the API token.",
+    "error_secret_unreadable": "Mealie sync is disabled because the saved API token could not be decrypted. Enter the token again, enable sync and save.",
     "error_unavailable": "Mealie could not be reached. The previous library is still available.",
     "error_invalid": "Mealie returned an incomplete or unexpected catalogue. The previous library is still available.",
     "unavailable": "Could not load the Mealie library.",
@@ -2529,6 +2530,7 @@
       "enable": "Enable for everyone",
       "disable": "Disable sharing",
       "active": "AI is shared by this NutriTrace server.",
+      "secret_unreadable": "Shared AI is disabled because the saved API key could not be decrypted. Enter and save the key in your assistant settings, then enable sharing again.",
       "error": "Could not change sharing. Check that your personal AI configuration is complete and saved."
     },
     "toast": {
