@@ -4,6 +4,7 @@ import { wrap } from '../logger.js';
 import { requireAuth, userMgmtActive } from '../middleware/auth.js';
 import { isServerOnlyKey } from '../lib/server-only-keys.js';
 import { fetchChecked, serviceBase } from '../lib/ssrf-guard.js';
+import { refreshFamilyAi } from '../lib/family-ai.js';
 
 // Push services usually live on the home network, so that's allowed for
 // every account; the address is still checked, and a redirect only
@@ -46,9 +47,12 @@ router.put('/', wrap((req, res) => {
   const { key, value } = req.body;
   if (!key) return res.status(400).json({ error: 'key required' });
   if (isServerOnlyKey(key)) return res.status(403).json({ error: 'forbidden key' });
-  db.prepare(`INSERT INTO user_settings (user_id, key, value, updated_at) VALUES (?, ?, ?, datetime('now'))
-    ON CONFLICT(user_id, key) DO UPDATE SET value = excluded.value, updated_at = datetime('now'), deleted_at = NULL`)
-    .run(req.user.id, key, JSON.stringify(value));
+  db.transaction(() => {
+    db.prepare(`INSERT INTO user_settings (user_id, key, value, updated_at) VALUES (?, ?, ?, datetime('now'))
+      ON CONFLICT(user_id, key) DO UPDATE SET value = excluded.value, updated_at = datetime('now'), deleted_at = NULL`)
+      .run(req.user.id, key, JSON.stringify(value));
+    refreshFamilyAi(req.user, [key]);
+  })();
   res.json({ ok: true });
 }));
 
@@ -73,6 +77,7 @@ router.put('/bulk', wrap((req, res) => {
       upsert.run(req.user.id, key, JSON.stringify(value));
       written++;
     }
+    refreshFamilyAi(req.user, Object.keys(settings));
   })();
   res.json({ ok: true, written, skipped });
 }));

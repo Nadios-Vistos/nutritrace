@@ -10,6 +10,7 @@
   import { identifyMealPhoto } from '../../lib/meal-photo.js';
   import { prepareVisionPhoto } from '../../lib/photo-vision.js';
   import { acquireScreenWakeLock } from '../../lib/wake-lock.js';
+  import { FAMILY_AI_QUOTA_CODE } from '../../lib/family-ai.js';
 
   export let date;
   export let meal;
@@ -71,8 +72,8 @@
       catalogue = data;
       rows = names.map(name => newRow(name));
       reviewed = true;
-    } catch {
-      if (active) errorKey = 'meal_photo.analyse_error';
+    } catch (error) {
+      if (active) errorKey = error?.code === FAMILY_AI_QUOTA_CODE ? 'settings_trace.family.quota_exceeded' : 'meal_photo.analyse_error';
     } finally {
       analysing = false;
       await release();

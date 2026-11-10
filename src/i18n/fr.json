@@ -1778,6 +1778,13 @@
       "enable": "Activer pour tous",
       "disable": "Désactiver le partage",
       "active": "L’IA est partagée par ce serveur NutriTrace.",
+      "quota": "Requêtes par jour et par compte",
+      "quota_hint": "Trace et l’analyse photo utilisent le même quota. Il se réinitialise à minuit UTC. Saisis 0 pour un usage illimité.",
+      "quota_exceeded": "Tu as atteint ton quota quotidien d’IA partagée. Réessaie après minuit UTC.",
+      "quota_error": "Impossible d’enregistrer le quota quotidien.",
+      "link_notice": "Lie ce compte administrateur pour que l’IA partagée se mette à jour lorsque tu enregistres les réglages de ton assistant.",
+      "link": "Utiliser mes réglages",
+      "auto_update": "Les réglages enregistrés de ton assistant mettent à jour l’IA partagée. Si tu changes de fournisseur, enregistre sa clé API s’il en demande une.",
       "secret_unreadable": "L’IA partagée est désactivée car la clé API enregistrée ne peut pas être déchiffrée. Saisis et enregistre la clé dans les paramètres de ton assistant, puis réactive le partage.",
       "error": "Impossible de modifier le partage. Vérifie que ta configuration IA personnelle est complète et enregistrée."
     },

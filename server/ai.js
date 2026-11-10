@@ -1,35 +1,5 @@
 import db from './db.js';
-import { serviceBase } from './lib/ssrf-guard.js';
-import { FAMILY_AI_KEY, readSharedConfig, writeSharedConfig } from './lib/shared-config-secrets.js';
-
-const providers = new Set(['claude', 'openai', 'gemini', 'oai-compat']);
-
-export function getFamilyAiStatus() {
-  const family = readSharedConfig(FAMILY_AI_KEY);
-  return { enabled: !!family && !family.unreadable, unreadable: !!family?.unreadable };
-}
-
-export function setFamilyAiFromUser(userId, enabled) {
-  if (!enabled) {
-    db.prepare('DELETE FROM app_config WHERE key = ?').run(FAMILY_AI_KEY);
-    return true;
-  }
-  const rows = db.prepare(`SELECT key, value FROM user_settings
-    WHERE user_id = ? AND deleted_at IS NULL AND key IN ('aiProvider', 'aiModel', 'aiApiKey', 'aiBaseUrl')`).all(userId);
-  const settings = {};
-  for (const { key, value } of rows) {
-    try { settings[key] = JSON.parse(value); } catch { settings[key] = value; }
-  }
-  const provider = settings.aiProvider ?? 'claude';
-  const model = typeof settings.aiModel === 'string' ? settings.aiModel.trim() : '';
-  const apiKey = typeof settings.aiApiKey === 'string' ? settings.aiApiKey.trim() : '';
-  const base = provider === 'oai-compat' ? serviceBase(settings.aiBaseUrl) : null;
-  if (!providers.has(provider) || (provider === 'oai-compat' ? !base || !model : !apiKey)) return false;
-  writeSharedConfig(FAMILY_AI_KEY, {
-    ai_enabled: 'true', ai_provider: provider, ai_model: model, ai_api_key: apiKey, ai_base_url: base,
-  });
-  return true;
-}
+import { FAMILY_AI_KEY, readSharedConfig } from './lib/shared-config-secrets.js';
 
 /** Seed AI config from env vars at startup — env vars take priority over UI */
 export function seedAiFromEnv() {

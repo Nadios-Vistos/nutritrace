@@ -1,7 +1,9 @@
 import { Router } from 'express';
 import { requireAdmin, requireAuth, userMgmtActive } from '../middleware/auth.js';
 import { wrap } from '../logger.js';
-import { getAiConfig, isAiEnvLocked, setFamilyAiFromUser } from '../ai.js';
+import { getAiConfig, isAiEnvLocked } from '../ai.js';
+import { familyAiFlags, updateFamilyAi } from '../lib/family-ai.js';
+import { isFamilyDailyLimit, takeFamilyAiRequest } from '../lib/family-ai-quota.js';
 import { fetchChecked, readBody } from '../lib/ssrf-guard.js';
 import { makeRateLimiter } from '../middleware/rate-limit.js';
 import { getOpenAIChatParams } from '../lib/openai-chat-params.js';
@@ -13,11 +15,17 @@ const router = Router();
 router.put('/family', requireAuth, requireAdmin, wrap((req, res) => {
   if (!req.user) return res.status(401).json({ error: 'Sign in required' });
   if (isAiEnvLocked()) return res.status(409).json({ error: 'AI is managed by the server environment' });
-  const { enabled } = req.body ?? {};
-  if (typeof enabled !== 'boolean' || !setFamilyAiFromUser(req.user.id, enabled)) {
-    return res.status(400).json({ error: 'Incomplete personal AI settings' });
+  const { enabled, dailyLimit } = req.body ?? {};
+  if ((enabled === undefined && dailyLimit === undefined)
+      || (enabled !== undefined && typeof enabled !== 'boolean')
+      || (dailyLimit !== undefined && !isFamilyDailyLimit(dailyLimit))) {
+    return res.status(400).json({ code: 'invalid_family_ai_settings' });
   }
-  res.json({ ai: enabled, ai_shared: enabled, ai_enabled: enabled, ai_shared_secret_unreadable: false });
+  if (!updateFamilyAi.immediate(req.user.id, { enabled, dailyLimit })) {
+    return res.status(400).json({ code: 'incomplete_family_ai_settings' });
+  }
+  const flags = familyAiFlags(req.user.id);
+  res.json({ ...flags, ai: flags.ai_shared, ai_enabled: flags.ai_shared });
 }));
 const aiChatLimit = makeRateLimiter({ max: 30, windowMs: 60_000, label: 'ai' });
 
@@ -217,6 +225,15 @@ router.post('/chat', requireAuth, aiChatLimit, wrap(async (req, res) => {
   if (provider === 'oai-compat') {
     if (!baseUrl) return res.status(503).json({ error: 'AI_PROVIDER=oai-compat requires AI_BASE_URL in environment.' });
     if (!model)   return res.status(503).json({ error: 'AI_PROVIDER=oai-compat requires AI_MODEL in environment.' });
+  }
+
+  if (cfg.familyManaged) {
+    if (!req.user) return res.status(401).json({ error: 'Not authenticated' });
+    const retryAfter = takeFamilyAiRequest(req.user.id);
+    if (retryAfter) {
+      res.set('Retry-After', String(retryAfter));
+      return res.status(429).json({ code: 'family_ai_daily_quota' });
+    }
   }
 
   let result;

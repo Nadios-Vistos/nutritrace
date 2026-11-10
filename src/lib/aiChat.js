@@ -305,7 +305,7 @@ export async function callAIProxy({ messages, systemPrompt, tools, onToolCall })
     const data = await res.json().catch(() => ({}));
     if (!res.ok) {
       if (res.status === 401) throw new Error('Not signed in — sign in again to use AI features.');
-      throw new Error(data.error || `AI proxy error ${res.status}`);
+      throw Object.assign(new Error(data.error || `AI proxy error ${res.status}`), { code: data.code });
     }
 
     // No tools fired — final reply, return it.

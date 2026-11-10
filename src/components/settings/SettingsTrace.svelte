@@ -3,13 +3,14 @@
   import { _ } from 'svelte-i18n';
   import Toggle from './Toggle.svelte';
   import ConnectionStatus from './ConnectionStatus.svelte';
+  import FamilyAiSettings from './FamilyAiSettings.svelte';
   import { NtApi } from '../../lib/api.js';
   import { currentUser } from '../../stores/auth.js';
   import { showSuccess, showError } from '../../stores/toast.js';
   import {
     aiEnabled, aiProvider, aiApiKey, aiModel, aiBaseUrl, aiAssistantName,
     aiKeyVerified, quickLogEnabled, aiGoalInsights, smartLogVoiceLang,
-    activityAutoEstimate, diaryShowActivity, envLocks as serverEnvLocks,
+    activityAutoEstimate, diaryShowActivity,
   } from '../../stores/settings.js';
 
   // Smart Log voice-input language options. 'auto' uses navigator.language
@@ -46,23 +47,16 @@
   import { DB } from '../../lib/db.js';
   import { scheduleSave } from '../../stores/settings.js';
   import { isNative, getServerUrl } from '../../lib/platform.js';
+  import { FAMILY_AI_QUOTA_CODE } from '../../lib/family-ai.js';
 
   export let envLocks = { ai: false, ai_enabled: false };
-  let familyBusy = false;
-  let familyError = false;
+  $: isAdmin = $currentUser?.id != null && $currentUser.role === 'admin';
+  $: personalAiLocked = envLocks.ai && !(envLocks.ai_shared && isAdmin);
 
-  async function setFamilyAi(enabled) {
-    if (familyBusy) return;
-    familyBusy = true;
-    familyError = false;
-    try {
-      const flags = await NtApi.put('/api/ai/family', { enabled });
-      serverEnvLocks.update(locks => ({ ...locks, ...flags }));
-    } catch {
-      familyError = true;
-    } finally {
-      familyBusy = false;
-    }
+  function saveFamilySource() {
+    return NtApi.put('/api/settings/bulk', { settings: {
+      aiProvider: aiProviderVal, aiModel: aiModelVal, aiApiKey: aiApiKeyVal, aiBaseUrl: aiBaseUrlVal,
+    } });
   }
 
   function set(key, value) { DB.setSetting(key, value); scheduleSave(key, value); }
@@ -141,6 +135,14 @@
       : (aiModelSelectVal || '');
   }
   function _onProviderChange() {
+    if (envLocks.ai_shared && isAdmin) {
+      aiApiKeyVal = '';
+      if (aiProviderVal === 'oai-compat') {
+        aiModelVal = '';
+        _lastSavedApiKey = '';
+        set('aiApiKey', '');
+      }
+    }
     if (aiProviderVal === 'oai-compat') return;
     const isPreset = AI_MODELS[aiProviderVal]?.some(m => m.value === aiModelVal && m.value !== '__custom__');
     if (!aiModelVal || !isPreset) {
@@ -178,7 +180,7 @@
     if (aiApiKeyVal === _lastSavedApiKey) return;
     _lastSavedApiKey = aiApiKeyVal;
     set('aiApiKey', aiApiKeyVal);
-    await testConnection();
+    if (!envLocks.ai_shared) await testConnection();
   }
 
   async function saveAiBaseUrl() {
@@ -186,7 +188,7 @@
     if (trimmed === _lastSavedBaseUrl) return;
     _lastSavedBaseUrl = trimmed;
     set('aiBaseUrl', trimmed);
-    await testConnection();
+    if (!envLocks.ai_shared) await testConnection();
   }
 
   // Required fields the user must fill in for a meaningful test.
@@ -222,7 +224,9 @@
       aiKeyVerified.set(true);
       showSuccess($_('settings_trace.toast.connected'));
     } catch (e) {
-      testError = e.message || $_('settings_trace.toast.test_failed');
+      testError = e?.code === FAMILY_AI_QUOTA_CODE
+        ? $_('settings_trace.family.quota_exceeded')
+        : e.message || $_('settings_trace.toast.test_failed');
       aiKeyVerified.set(false);
       showError(testError);
     } finally {
@@ -247,20 +251,8 @@
       {$_(envLocks.ai_shared ? 'settings_trace.family.active' : 'settings_trace.env_lock_banner')}
     </div>
   {/if}
-  {#if $currentUser?.id != null && $currentUser.role === 'admin' && (!envLocks.ai || envLocks.ai_shared)}
-    <div class="card settings-card">
-      <div class="setting-row">
-        <div>
-          <span class="setting-label">{$_('settings_trace.family.title')}</span>
-          <div class="setting-desc">{$_('settings_trace.family.description')}</div>
-        </div>
-        <button type="button" class="btn btn-secondary" on:click={() => setFamilyAi(!envLocks.ai_shared)} disabled={familyBusy}>
-          {$_(envLocks.ai_shared ? 'settings_trace.family.disable' : 'settings_trace.family.enable')}
-        </button>
-      </div>
-      {#if familyError}<p class="setting-desc" role="alert" style="padding:0 14px 10px">{$_('settings_trace.family.error')}</p>{/if}
-      {#if envLocks.ai_shared_secret_unreadable}<p class="setting-desc" role="alert" style="padding:0 14px 10px">{$_('settings_trace.family.secret_unreadable')}</p>{/if}
-    </div>
+  {#if isAdmin && !personalAiLocked}
+    <FamilyAiSettings {envLocks} saveSource={saveFamilySource} />
   {/if}
   <div class="card settings-card">
     {#if _displayedAiEnabled}
@@ -284,7 +276,7 @@
       <div class="setting-divider"></div>
       <div class="setting-row">
         <span class="setting-label">{$_('settings_trace.labels.provider')}</span>
-        <select class="select sel-sm" style="width:auto" bind:value={aiProviderVal} on:change={_onProviderChange} disabled={envLocks.ai}>
+        <select class="select sel-sm" style="width:auto" bind:value={aiProviderVal} on:change={_onProviderChange} disabled={personalAiLocked}>
           {#each AI_PROVIDERS as p}
             <option value={p.value}>{p.label}</option>
           {/each}
@@ -300,7 +292,7 @@
             placeholder={$_('settings_trace.labels.base_url_ph')}
             bind:value={aiBaseUrlVal}
             on:blur={saveAiBaseUrl}
-            autocomplete="off" style="width:100%" />
+            autocomplete="off" style="width:100%" disabled={personalAiLocked} />
           <div class="setting-desc" style="margin-top:6px">
             {$_('settings_trace.labels.base_url_desc')}
           </div>
@@ -310,7 +302,7 @@
           <span class="setting-label">{$_('settings_trace.labels.model')}</span>
           <input class="input" style="width:220px;text-align:right"
             placeholder="llama3.1:8b"
-            bind:value={aiModelVal} disabled={envLocks.ai} />
+            bind:value={aiModelVal} disabled={personalAiLocked} />
         </div>
         <div class="setting-divider"></div>
         <div style="padding:10px 16px;display:flex;gap:8px;align-items:flex-start;background:color-mix(in srgb,#f59e0b 8%, transparent);border-left:3px solid #f59e0b">
@@ -322,7 +314,7 @@
       {:else}
         <div class="setting-row">
           <span class="setting-label">{$_('settings_trace.labels.model')}</span>
-          <select class="select sel-sm" style="width:auto" bind:value={aiModelSelectVal} on:change={_syncModelFromSelect} disabled={envLocks.ai}>
+          <select class="select sel-sm" style="width:auto" bind:value={aiModelSelectVal} on:change={_syncModelFromSelect} disabled={personalAiLocked}>
             {#each (AI_MODELS[aiProviderVal] || []) as m}
               <option value={m.value}>{m.label}</option>
             {/each}
@@ -334,7 +326,7 @@
             <span class="setting-label">{$_('settings_trace.labels.custom_model_id')}</span>
             <input class="input" style="width:220px;text-align:right"
               placeholder={aiProviderVal === 'gemini' ? 'gemini-3.8-flash' : aiProviderVal === 'claude' ? 'claude-sonnet-5-5' : 'gpt-5.6-terra'}
-              bind:value={aiCustomModelVal} on:input={_syncModelFromSelect} disabled={envLocks.ai} />
+              bind:value={aiCustomModelVal} on:input={_syncModelFromSelect} disabled={personalAiLocked} />
           </div>
           <div style="padding:8px 16px 12px;display:flex;gap:8px;align-items:flex-start">
             <span class="material-symbols-rounded" style="font-size:16px;color:var(--muted);flex-shrink:0;margin-top:2px">info</span>
@@ -345,7 +337,7 @@
         {/if}
       {/if}
 
-      {#if !envLocks.ai}
+      {#if !personalAiLocked}
         <div class="setting-divider"></div>
         <div class="form-group" style="padding:10px 16px">
           <label class="form-label" for="ai-api-key">

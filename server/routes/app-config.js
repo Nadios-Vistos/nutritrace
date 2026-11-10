@@ -4,7 +4,8 @@ import db from '../db.js';
 import { wrap } from '../logger.js';
 import { requireAuth, requireAdmin, userMgmtActive } from '../middleware/auth.js';
 import { testSmtp, isSmtpEnvLocked } from '../email.js';
-import { getFamilyAiStatus, isAiEnvLocked } from '../ai.js';
+import { isAiEnvLocked } from '../ai.js';
+import { familyAiFlags } from '../lib/family-ai.js';
 import { FAMILY_AI_KEY, MEALIE_MIRROR_KEY } from '../lib/shared-config-secrets.js';
 
 const router = Router();
@@ -35,8 +36,10 @@ router.get('/env-locks', requireAuth, wrap(async (req, res) => {
   // env operator wanted AI ON or OFF — the toggle just sticks at the
   // per-user setting, which is OFF by default. Fixes #36.
   const aiEnv = isAiEnvLocked();
-  const family = aiEnv ? null : getFamilyAiStatus();
-  const aiShared = !!family?.enabled;
+  const family = aiEnv
+    ? { ai_shared: false, ai_shared_secret_unreadable: false }
+    : familyAiFlags(req.user?.role === 'admin' ? req.user.id : null);
+  const aiShared = family.ai_shared;
   const aiLocked = aiEnv || aiShared;
   let ai_enabled = false;
   if (aiEnv) {
@@ -80,8 +83,7 @@ router.get('/env-locks', requireAuth, wrap(async (req, res) => {
     smtp: isSmtpEnvLocked(),
     ai: aiLocked,
     ai_enabled: ai_enabled || aiShared,
-    ai_shared: aiShared,
-    ai_shared_secret_unreadable: req.user?.role === 'admin' && !!family?.unreadable,
+    ...family,
     off_local,
     off_local_only,
     oidc_provider_ids: getEnvLockedProviderIds(),

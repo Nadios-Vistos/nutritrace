@@ -18,6 +18,7 @@
   import NutritionFactsBox from '../ui/NutritionFactsBox.svelte';
   import { readBodyStat, LENGTH_KEYS } from '../../lib/body-stats-unit.js';
   import { callAI, callAIProxy, TOOLS, setToolHandler } from '../../lib/aiChat.js';
+  import { FAMILY_AI_QUOTA_CODE } from '../../lib/family-ai.js';
   import { aiEnabled, aiEffectivelyEnabled, envLocks, aiKeyVerified, aiAssistantName, aiApiKey, aiProvider, aiModel, aiBaseUrl, goals, mealNames, energyUnit, dateFormat, timeFormat, tempUnit, quickLogEnabled, aiGoalInsights, healthConnectEnabled, smartLogVoiceLang } from '../../stores/settings.js';
 
   // Resolve the configured voice-input language. Shared with SmartLogModal:
@@ -1229,8 +1230,12 @@
       smartLogMeal = parsed.meal;
       showSmartLog = true;
     } catch (e) {
-      console.error('[trace-hold] parse failed:', e);
-      showError($_('trace.errors.parse_failed'));
+      if (e?.code === FAMILY_AI_QUOTA_CODE) {
+        showError($_('settings_trace.family.quota_exceeded'));
+      } else {
+        console.error('[trace-hold] parse failed:', e);
+        showError($_('trace.errors.parse_failed'));
+      }
     }
   }
 
@@ -1846,8 +1851,8 @@ Diary logging streak: ${ctx.streakText || '(unknown)'}`
       // Persist assistant reply to server (best-effort)
       NtApi.post('/api/ai/history', { role: 'assistant', content: reply }).catch(() => {});
       if (!panelOpen) hasUnread = true;
-    } catch {
-      showError($_('trace.errors.request_failed'));
+    } catch (error) {
+      showError($_(error?.code === FAMILY_AI_QUOTA_CODE ? 'settings_trace.family.quota_exceeded' : 'trace.errors.request_failed'));
     } finally {
       loading = false;
       _toolStatus = '';

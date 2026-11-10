@@ -19,6 +19,7 @@ import { localizeImage, isExternalUrl } from '../lib/image-localizer.js';
 import { mirrorWeightToBodyStats } from '../lib/wellness-mirror.js';
 import { cleanCreateKey, findByCreateKey, setCreateKey } from '../lib/create-keys.js';
 import { clientClock, parseUtc, pushWins as clockPushWins, editStamp, resolveNote } from '../lib/sync-clock.js';
+import { refreshFamilyAi } from '../lib/family-ai.js';
 
 // #199 (@tellis82): the POST /api/foods and POST /api/meals routes
 // localize incoming data URLs to /uploads/ (via image-localizer). This
@@ -703,6 +704,7 @@ router.post('/push', wrap(async (req, res) => {
         }
         result.settings.push({ key: s.key });
       }
+      refreshFamilyAi(req.user, result.settings.map(s => s.key));
     }
   });
 

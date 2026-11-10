@@ -2530,6 +2530,13 @@
       "enable": "Enable for everyone",
       "disable": "Disable sharing",
       "active": "AI is shared by this NutriTrace server.",
+      "quota": "Daily requests per account",
+      "quota_hint": "Trace and photo analysis share this quota. It resets at midnight UTC. Use 0 for unlimited.",
+      "quota_exceeded": "You’ve reached your daily limit for shared AI. Try again after midnight UTC.",
+      "quota_error": "Could not save the daily limit.",
+      "link_notice": "Link this administrator account to update the shared AI automatically when you save your assistant settings.",
+      "link": "Use my settings",
+      "auto_update": "Your saved assistant settings update the shared AI. If you switch providers, save the new provider’s API key when it requires one.",
       "secret_unreadable": "Shared AI is disabled because the saved API key could not be decrypted. Enter and save the key in your assistant settings, then enable sharing again.",
       "error": "Could not change sharing. Check that your personal AI configuration is complete and saved."
     },
