@@ -8,9 +8,9 @@
  */
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { readFileSync } from 'node:fs';
+import { readSource } from './fixtures/source-text.js';
 
-const read = (p) => readFileSync(new URL(p, import.meta.url), 'utf8');
+const read = (p) => readSource(new URL(p, import.meta.url));
 const pwa = read('../src/lib/pwa-update.js');
 const banner = read('../src/components/UpdateBanner.svelte');
 

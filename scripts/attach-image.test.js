@@ -28,7 +28,9 @@ test('a menu where both choices mean something, the file picker elsewhere', () =
   assert.match(button, /if \(!touch\) \{ fileInput\?\.click\(\); return; \}/);
   assert.match(button, /source: fromCamera \? CameraSource\.Camera : CameraSource\.Photos,/, 'Android goes straight to the camera or the photo picker');
   assert.doesNotMatch(button, /CameraSource\.Prompt/, 'never Android\'s generic chooser');
-  assert.match(button, /capture="environment"/, 'the web Camera choice asks for the camera');
+  assert.match(button, /export let capture = 'environment';/, 'the rear camera is the default');
+  assert.match(button, /\(fromCamera \? cameraInput : fileInput\)\?\.click\(\)/);
+  assert.match(button, /<input bind:this=\{cameraInput\}[^>]*\{capture\}/, 'the web Camera input applies the camera hint');
   assert.match(button, /on:pointerdown=\{onWindowPointer\} on:keydown=\{onWindowKey\}/, 'the menu closes on a tap outside or Escape');
 });
 

@@ -40,8 +40,9 @@ const IGNORED_INDIRECT = new Set([
   'programs.id',
 ]);
 
-const CALL_RE = /\$?_\(\s*(['"])([^'"]+)\1/g;
-const KEYISH_RE = /(['"])([a-z][a-zA-Z0-9_]*(?:\.[a-zA-Z0-9_]+)+)\1/g;
+// A quoted fragment followed by `+` is part of a computed key.
+const CALL_RE = /\$?_\(\s*(['"])([^'"]+)\1(?=\s*[,)])/g;
+const KEYISH_RE = /(['"])([a-z][a-zA-Z0-9_]*(?:\.[a-zA-Z0-9_]+)+)\1(?!\s*\+)/g;
 
 // Dotted string literals whose trailing segment matches one of these is a
 // filename, not an i18n key — e.g. 'foods.json' in local-backup.js. Kept as

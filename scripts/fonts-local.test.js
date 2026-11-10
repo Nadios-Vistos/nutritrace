@@ -8,16 +8,15 @@
  */
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { readFileSync, existsSync, readdirSync, statSync } from 'node:fs';
+import { readFileSync, existsSync } from 'node:fs';
 import { join } from 'node:path';
+import { listFiles, ROOT, SRC } from './fixtures/source-text.js';
 
-const ROOT = new URL('../', import.meta.url).pathname;
 const FONTS = join(ROOT, 'public/fonts');
 const css = readFileSync(join(FONTS, 'fonts.css'), 'utf8');
-const walk = (d) => readdirSync(d).flatMap((n) => { const p = join(d, n); return statSync(p).isDirectory() ? walk(p) : [p]; });
 
 test('nothing asks Google for fonts', () => {
-  const files = [join(ROOT, 'index.html'), ...walk(join(ROOT, 'src'))].filter((f) => /\.(html|css|svelte|js|ts)$/.test(f));
+  const files = [join(ROOT, 'index.html'), ...listFiles(SRC)].filter((f) => /\.(html|css|svelte|js|ts)$/.test(f));
   const offenders = files.filter((f) => /fonts\.(googleapis|gstatic)\.com/.test(readFileSync(f, 'utf8')));
   assert.deepEqual(offenders.map((f) => f.replace(ROOT, '')), []);
 });

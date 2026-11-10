@@ -9,12 +9,10 @@
  */
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { readFileSync, readdirSync, statSync } from 'node:fs';
 import { join } from 'node:path';
+import { listFiles, readSource, sourcePath, SRC } from './fixtures/source-text.js';
 
-const SRC = new URL('../src/', import.meta.url).pathname;
-const trace = readFileSync(join(SRC, 'components/ai/Trace.svelte'), 'utf8');
-const walk = (d) => readdirSync(d).flatMap((n) => { const p = join(d, n); return statSync(p).isDirectory() ? walk(p) : [p]; });
+const trace = readSource(join(SRC, 'components/ai/Trace.svelte'));
 
 const fabRule = trace.slice(trace.indexOf('  .ai-fab {'), trace.indexOf('}', trace.indexOf('  .ai-fab {')));
 const fabZ = Number((fabRule.match(/z-index: (\d+);/) || [])[1]);
@@ -32,16 +30,16 @@ const NOT_LAYERS = [
 
 test('no sheet or dialog backdrop sits below the Trace button', () => {
   const below = [];
-  for (const f of walk(SRC).filter((x) => x.endsWith('.svelte'))) {
-    const s = readFileSync(f, 'utf8');
+  for (const f of listFiles(SRC).filter((x) => x.endsWith('.svelte'))) {
+    const s = readSource(f);
     const style = s.slice(s.lastIndexOf('<style'));
     for (const m of style.matchAll(/\.([\w-]*(?:backdrop|overlay))[^{}]*\{([^}]*)\}/g)) {
       const z = Number((m[2].match(/z-index: (\d+);/) || [])[1]);
       // Only layers that cover the page: the ones with a fixed position.
       if (!Number.isFinite(z) || !/position: fixed/.test(m[2])) continue;
-      const where = `${f.split('/src/')[1]} .${m[1]}`;
+      const where = `${sourcePath(f)} .${m[1]}`;
       if (NOT_LAYERS.includes(where)) continue;
-      if (z <= fabZ) below.push(`${f.split('/src/')[1]} .${m[1]} z=${z}`);
+      if (z <= fabZ) below.push(`${where} z=${z}`);
     }
   }
   assert.deepEqual(below, []);

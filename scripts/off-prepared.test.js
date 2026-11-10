@@ -16,12 +16,12 @@
  */
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { readFileSync } from 'node:fs';
+import { readSource } from './fixtures/source-text.js';
 import { offNutritionStatus, needsFullLookup, applyOffPrepared, MAX_KCAL_PER_100 } from '../src/lib/off-nutrition.js';
 import { NUTRIMENTS, Nutrition } from '../src/lib/nutrition.js';
 import { offProductName } from '../src/lib/off-name.js';
 
-const read = (p) => readFileSync(new URL(p, import.meta.url), 'utf8');
+const read = (p) => readSource(new URL(p, import.meta.url));
 const IDS = NUTRIMENTS.map(n => n.id);
 const { products: REAL } = JSON.parse(read('./fixtures/off-prepared-samples.json'));
 const { product: BEANS } = JSON.parse(read('./fixtures/off-241-prepared-only.json'));
@@ -135,11 +135,12 @@ test('every place an OFF product enters NutriTrace checks it', () => {
   assert.match(editor, /if \(_offNotice\) \{\s*for \(const n of NUTRIMENTS\) if \(Number\(food\[n\.id\]\) === 0\) food\[n\.id\] = '';/, 'a new food with no values starts with empty fields, not zeros');
   assert.match(editor, /showSuccess\(changed\s*\? \$_\('food_editor\.toast\.off_prepared_used'[\s\S]*?: \$_\('food_editor\.toast\.off_up_to_date'\)\)/, 'using them again says it already matches');
 
-  assert.match(foods, /\{#if source === 'off' && _offNoValues\(item\)\}\{\$_\('foods\.off_no_values_listed'\)\}/, 'All-mode results say "No values listed", not 0 kcal');
+  assert.match(foods, /\{(?:#if|:else if) source === 'off' && _offNoValues\(item\)\}\{\$_\('foods\.off_no_values_listed'\)\}/, 'All-mode results say "No values listed", not 0 kcal');
   assert.match(foods, /\{#if searchSource === 'off' && _offNoValues\(food\)\}\{\$_\('foods\.off_no_values_listed'\)\}/, 'and so do OFF results');
   const multi = foods.slice(foods.indexOf('async function confirmMultiAdd'));
   const gateAt = multi.indexOf('foods = await _resolveOffPicks(foods);');
-  assert.ok(gateAt > 0 && gateAt < multi.indexOf('if ($diaryPromptQuantity)') && gateAt < multi.indexOf('_addFoodToDiaryNoNav'), 'ticked results are checked before either way of adding them');
+  const promptAt = multi.indexOf('if (foods.some(shouldChoosePortion))');
+  assert.ok(gateAt > 0 && gateAt < promptAt && promptAt < multi.indexOf('_addFoodToDiaryNoNav'), 'ticked results are checked before either way of adding them');
   assert.match(sheet, /\$: energyChip = \(\(\) => \{[\s\S]{0,120}if \(offStatus !== 'ok'\) return null;/, 'no "0 kcal" chip on the sheet');
   const meal = read('../src/routes/MealEditor.svelte').replace(/\r/g, '');
   const persist = meal.slice(meal.indexOf('async function _maybePersistPickedFood'));

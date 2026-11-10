@@ -16,13 +16,14 @@
  * End to end with the app's own code: scripts/android-sync.test.js.
  */
 import assert from 'node:assert/strict';
-import { readFileSync, mkdtempSync, rmSync } from 'node:fs';
+import { mkdtempSync, rmSync } from 'node:fs';
+import { readSource } from './fixtures/source-text.js';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { createRequire } from 'node:module';
 import test from 'node:test';
 
-const read = (p) => readFileSync(new URL(p, import.meta.url), 'utf8');
+const read = (p) => readSource(new URL(p, import.meta.url));
 
 let db = null, dir = null, sync = null, helpers = null, claim = null;
 try {

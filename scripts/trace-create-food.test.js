@@ -13,10 +13,10 @@
  */
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { readFileSync } from 'node:fs';
+import { readSource } from './fixtures/source-text.js';
 import { TOOLS } from '../src/lib/aiChat.js';
 
-const trace = readFileSync(new URL('../src/components/ai/Trace.svelte', import.meta.url), 'utf8');
+const trace = readSource(new URL('../src/components/ai/Trace.svelte', import.meta.url));
 const toolFilter = trace.slice(trace.indexOf('const _cardAwaitingUser'), trace.indexOf('const reply = aiEnvLocked'));
 const desc = (name) => TOOLS.find(t => t.name === name).description;
 

@@ -77,6 +77,21 @@ test('collectKeyRefs: reports the line of each reference', () => {
   assert.equal(direct.get('login.title').line, 2);
 });
 
+test('collectKeyRefs: computed key prefixes are not complete translation keys', () => {
+  const f = fixture('Dynamic.svelte', `
+    {$_('metric_names.' + key)}
+    {$_('mealie_mirror.error_' + status.error)}
+    {$_('family_onboarding.' + step)}
+    {$_('family_onboarding.level.' + activity)}
+    {$_('family_onboarding.level_hint.' + activity)}
+    {$_('family_onboarding.step', { values: { step } })}
+    {$_('family_onboarding.apply')}
+  `);
+  const { direct, indirect } = collectKeyRefs(new Set(['metric_names', 'mealie_mirror', 'family_onboarding']), [f]);
+  assert.deepEqual([...direct.keys()], ['family_onboarding.step', 'family_onboarding.apply']);
+  assert.equal(indirect.size, 0);
+});
+
 test('collectKeyRefs: finds key-shaped literals held in constants', () => {
   const f = fixture('C.svelte', `const META = { workout: { titleKey: 'settings_workout.title' } };`);
   const { direct, indirect } = collectKeyRefs(new Set(['settings_workout']), [f]);

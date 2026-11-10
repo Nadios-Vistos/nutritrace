@@ -5,11 +5,10 @@
  */
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { readFileSync, readdirSync, statSync } from 'node:fs';
-import { join } from 'node:path';
+import { listFiles, readSource, SRC } from './fixtures/source-text.js';
 import { copyText, copyWithSelection } from '../src/lib/clipboard.js';
 
-const read = (p) => readFileSync(new URL(p, import.meta.url), 'utf8');
+const read = (p) => readSource(new URL(p, import.meta.url));
 const html = read('../index.html');
 const css = read('../src/styles/base.css');
 
@@ -67,26 +66,18 @@ test('on iOS, text fields, text areas and selects get 16px; toggles and buttons 
 
 // Every CSS rule that sizes a real form field above 16px needs an html.ios
 // exception at the same size, or the 16px rule would shrink it on iOS.
-function walk(dir) {
-  return readdirSync(dir).flatMap((n) => {
-    const p = join(dir, n);
-    return statSync(p).isDirectory() ? walk(p) : [p];
-  });
-}
-
 test('fields that are larger than 16px on purpose keep their size on iOS', () => {
-  const srcDir = new URL('../src/', import.meta.url).pathname;
-  const files = walk(srcDir).filter((f) => /\.(svelte|css)$/.test(f));
+  const files = listFiles(SRC).filter((f) => /\.(svelte|css)$/.test(f));
   const fieldClasses = new Set();
   for (const f of files) {
-    const s = readFileSync(f, 'utf8');
+    const s = readSource(f);
     for (const m of s.matchAll(/<(?:input|textarea|select)\b[^>]*\bclass="([^"]+)"/g)) {
       for (const c of m[1].split(/\s+/)) if (/^[\w-]+$/.test(c)) fieldClasses.add(c);
     }
   }
   const large = [];
   for (const f of files) {
-    const s = readFileSync(f, 'utf8');
+    const s = readSource(f);
     for (const m of s.matchAll(/([^{}]+)\{([^{}]*)\}/g)) {
       const last = m[1].trim().split(',').map((x) => x.trim());
       const size = m[2].match(/font-size:\s*(\d+(?:\.\d+)?)px/);
@@ -105,10 +96,9 @@ test('fields that are larger than 16px on purpose keep their size on iOS', () =>
 });
 
 test('every Copy button goes through copyText', () => {
-  const srcDir = new URL('../src/', import.meta.url).pathname;
-  const offenders = walk(srcDir)
+  const offenders = listFiles(SRC)
     .filter((f) => /\.(svelte|js)$/.test(f) && !f.endsWith('clipboard.js'))
-    .filter((f) => /navigator\.clipboard\.writeText/.test(readFileSync(f, 'utf8')));
+    .filter((f) => /navigator\.clipboard\.writeText/.test(readSource(f)));
   assert.deepEqual(offenders, []);
 });
 

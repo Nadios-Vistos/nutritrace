@@ -5,10 +5,10 @@
  * gram-based preset resets percent mode after preserving prior goal settings.
  */
 import assert from 'node:assert/strict';
-import { readFileSync } from 'node:fs';
+import { readSource } from './fixtures/source-text.js';
 import test from 'node:test';
 
-const goalsSrc = readFileSync(new URL('../src/routes/Goals.svelte', import.meta.url), 'utf8');
+const goalsSrc = readSource(new URL('../src/routes/Goals.svelte', import.meta.url));
 const presetBlock = goalsSrc.match(/function applyMacroPreset\(name\) \{[\s\S]*?showSuccess\('Macros set'\);\n  \}/)?.[0];
 
 test('macro presets calculate gram targets using the correct calorie densities', () => {

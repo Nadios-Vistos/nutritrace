@@ -6,7 +6,7 @@ name: Checks
 on:
   pull_request:
   push:
-    branches: [ main, dev ]
+    branches: [ main, dev, mode-familial ]
 
 jobs:
   checks:

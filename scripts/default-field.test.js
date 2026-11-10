@@ -62,8 +62,11 @@ test('all three sheets mark both boxes and use the setting', () => {
   const foods = read('../src/routes/Foods.svelte');
   const diary = read('../src/routes/Diary.svelte');
   // Single add sheet, multi-food add sheet, Diary edit sheet.
-  assert.equal((foods.match(/data-field="portion"/g) || []).length, 2);
-  assert.equal((foods.match(/data-field="servings"/g) || []).length, 2);
+  const multiAdd = foods.match(/<Sheet bind:open=\{showMultiPortionSheet\}[\s\S]*?<\/Sheet>/)[0];
+  assert.match(multiAdd, /data-field="portion"/);
+  assert.match(multiAdd, /data-field="servings"/);
+  assert.match(foods, /bind:this=\{_qtyPromptPortionEl\} data-field="portion"/);
+  assert.match(foods, /bind:this=\{_qtyPromptServingsEl\} data-field="servings"/);
   assert.equal((diary.match(/data-field="portion"/g) || []).length, 1);
   assert.equal((diary.match(/data-field="servings"/g) || []).length, 1);
   assert.match(foods, /\$diaryDefaultField === 'portion' \? _qtyPromptPortionEl : \(_qtyPromptServingsEl \|\| _qtyPromptPortionEl\)/);

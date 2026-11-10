@@ -8,11 +8,9 @@
  */
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { readFileSync, readdirSync, statSync } from 'node:fs';
 import { join } from 'node:path';
+import { listFiles, readSource, sourcePath, SRC } from './fixtures/source-text.js';
 
-const SRC = new URL('../src/', import.meta.url).pathname;
-const walk = (d) => readdirSync(d).flatMap((n) => { const p = join(d, n); return statSync(p).isDirectory() ? walk(p) : [p]; });
 const esc = (c) => c.replace(/-/g, '\\-');
 // The base rule for a class in a component's <style> (the first one, before any media query).
 const baseRule = (css, cls) => (css.match(new RegExp(`(?:^|[\\s,}])\\.${esc(cls)}(?![\\w-])[^{}]*\\{([^}]*)\\}`)) || [])[1] || '';
@@ -21,8 +19,8 @@ const tagEnd = (s, i) => { let d = 0; for (let j = i; j < s.length; j++) { if (s
 
 function overlayPanels() {
   const found = [];
-  for (const f of walk(SRC).filter((x) => x.endsWith('.svelte'))) {
-    const s = readFileSync(f, 'utf8');
+  for (const f of listFiles(SRC).filter((x) => x.endsWith('.svelte'))) {
+    const s = readSource(f);
     const st = s.lastIndexOf('<style'); if (st < 0) continue;
     const css = s.slice(st); const markup = s.slice(0, st); const from = markup.lastIndexOf('</script>');
     for (const m of markup.slice(from).matchAll(/<(div|aside)\b/g)) {
@@ -34,7 +32,7 @@ function overlayPanels() {
       if (!child) continue;
       const panel = child[1].split(/\s+/)[0];
       const cap = (baseRule(css, panel).match(/max-height:\s*([^;]+);/) || [])[1];
-      found.push({ where: `${f.split('/src/')[1]} .${panel}`, cap });
+      found.push({ where: `${sourcePath(f)} .${panel}`, cap });
     }
   }
   return found;
@@ -48,6 +46,6 @@ test('every capped sheet or dialog keeps clear of the status bar', () => {
 });
 
 test('the shared Sheet stays below the status bar', () => {
-  const css = readFileSync(join(SRC, 'components/ui/Sheet.svelte'), 'utf8');
+  const css = readSource(join(SRC, 'components/ui/Sheet.svelte'));
   assert.match(baseRule(css.slice(css.lastIndexOf('<style')), 'sheet-panel'), /max-height: min\(90dvh, calc\(100dvh - var\(--safe-top\) - 8px\)\);/);
 });

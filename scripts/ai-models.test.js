@@ -16,14 +16,18 @@ import test from 'node:test';
 
 const client = await import('../src/lib/aiChat.js');
 
-let server = null, dir = null;
+let server = null, dir = null, db = null;
 try {
   createRequire(new URL('../server/package.json', import.meta.url))('better-sqlite3');
   dir = mkdtempSync(join(tmpdir(), 'nt-ai-models-'));
   process.env.DB_PATH = join(dir, 'test.db');
+  db = (await import('../server/db.js')).default;
   server = (await import('../server/routes/ai.js'))._models;
 } catch { /* better-sqlite3 not built for this Node: the server half skips */ }
-test.after(() => { if (dir) rmSync(dir, { recursive: true, force: true }); });
+test.after(() => {
+  db?.close();
+  if (dir) rmSync(dir, { recursive: true, force: true });
+});
 
 const ids = provider => client.AI_MODELS[provider].map(m => m.value).filter(v => v !== '__custom__');
 

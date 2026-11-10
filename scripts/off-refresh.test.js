@@ -11,12 +11,12 @@
  */
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { readFileSync } from 'node:fs';
+import { readSource } from './fixtures/source-text.js';
 import { applyOffRefresh } from '../src/lib/off-refresh.js';
 import { NUTRIMENTS, Nutrition } from '../src/lib/nutrition.js';
 import { offProductName } from '../src/lib/off-name.js';
 
-const read = (p) => readFileSync(new URL(p, import.meta.url), 'utf8');
+const read = (p) => readSource(new URL(p, import.meta.url));
 const IDS = NUTRIMENTS.map(n => n.id);
 
 // An OFF lookup result as api.js returns it: per 100 g, _offPresent non-enumerable.

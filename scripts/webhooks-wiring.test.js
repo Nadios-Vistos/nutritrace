@@ -10,15 +10,15 @@
  * server with WEBHOOKS_ENABLED=1 and a test receiver.
  */
 import assert from 'node:assert/strict';
-import { readFileSync } from 'node:fs';
+import { readSource } from './fixtures/source-text.js';
 import test from 'node:test';
 
-const indexJs    = readFileSync(new URL('../server/index.js', import.meta.url), 'utf8');
-const routeJs    = readFileSync(new URL('../server/routes/webhooks.js', import.meta.url), 'utf8');
-const libJs      = readFileSync(new URL('../server/lib/webhooks.js', import.meta.url), 'utf8');
-const deliveryJs = readFileSync(new URL('../server/lib/webhook-delivery.js', import.meta.url), 'utf8');
-const diaryJs    = readFileSync(new URL('../server/routes/diary.js', import.meta.url), 'utf8');
-const dbJs       = readFileSync(new URL('../server/db.js', import.meta.url), 'utf8');
+const indexJs    = readSource(new URL('../server/index.js', import.meta.url));
+const routeJs    = readSource(new URL('../server/routes/webhooks.js', import.meta.url));
+const libJs      = readSource(new URL('../server/lib/webhooks.js', import.meta.url));
+const deliveryJs = readSource(new URL('../server/lib/webhook-delivery.js', import.meta.url));
+const diaryJs    = readSource(new URL('../server/routes/diary.js', import.meta.url));
+const dbJs       = readSource(new URL('../server/db.js', import.meta.url));
 
 test('webhooks route is mounted at /api/admin/webhooks on the main router', () => {
   assert.match(indexJs, /import webhooksRoutes[\s\S]*from '\.\/routes\/webhooks\.js'/);
@@ -107,16 +107,16 @@ test('diary.js dispatch/goal-check calls are each guarded by a never-block-the-s
 });
 
 test('goal-webhook.js rounds before/after totals the same way dailyTotalsCore does, so a value at a rounding boundary does not refire on every save', () => {
-  const goalWebhookJs = readFileSync(new URL('../server/lib/goal-webhook.js', import.meta.url), 'utf8');
+  const goalWebhookJs = readSource(new URL('../server/lib/goal-webhook.js', import.meta.url));
   assert.match(goalWebhookJs, /_round1\(before/);
   assert.match(goalWebhookJs, /_round1\(after/);
 });
 
 test('the MCP/REST write cores (log-food, log-water, log-meal, log-body-stat) also dispatch webhooks, not just the UI diary.js save path', () => {
-  const logFoodJs = readFileSync(new URL('../server/lib/mcp/tools/log-food.js', import.meta.url), 'utf8');
-  const logWaterJs = readFileSync(new URL('../server/lib/mcp/tools/log-water.js', import.meta.url), 'utf8');
-  const logMealJs = readFileSync(new URL('../server/lib/mcp/tools/log-meal.js', import.meta.url), 'utf8');
-  const logBodyStatJs = readFileSync(new URL('../server/lib/mcp/tools/log-body-stat.js', import.meta.url), 'utf8');
+  const logFoodJs = readSource(new URL('../server/lib/mcp/tools/log-food.js', import.meta.url));
+  const logWaterJs = readSource(new URL('../server/lib/mcp/tools/log-water.js', import.meta.url));
+  const logMealJs = readSource(new URL('../server/lib/mcp/tools/log-meal.js', import.meta.url));
+  const logBodyStatJs = readSource(new URL('../server/lib/mcp/tools/log-body-stat.js', import.meta.url));
 
   assert.match(logFoodJs, /dispatchWebhookEvent\(userId, 'meal\.logged'/);
   assert.match(logFoodJs, /checkNutritionGoalCrossing\(/);

@@ -14,11 +14,11 @@
  */
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { readFileSync } from 'node:fs';
+import { readSource } from './fixtures/source-text.js';
 import { percentGoalToGrams, gramsGoalToPercent } from '../src/lib/goal-resolver.js';
 import { parseDecimal } from '../src/lib/decimal-input.js';
 
-const src = readFileSync(new URL('../src/routes/Goals.svelte', import.meta.url), 'utf8');
+const src = readSource(new URL('../src/routes/Goals.svelte', import.meta.url));
 const script = src.slice(0, src.indexOf('</script>'));
 
 const MACRO_DENSITY = new Function(

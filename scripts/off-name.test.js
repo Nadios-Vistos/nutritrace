@@ -10,7 +10,7 @@
  */
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { readFileSync } from 'node:fs';
+import { readSource } from './fixtures/source-text.js';
 import { offProductName } from '../src/lib/off-name.js';
 
 // The name fields of barcode 7623186629037 as OFF v3 returned them.
@@ -77,7 +77,7 @@ test('fields that only look like language names are ignored', () => {
 });
 
 test('the OFF mapper uses it for both the check and the name it stores', () => {
-  const api = readFileSync(new URL('../src/lib/api.js', import.meta.url), 'utf8');
+  const api = readSource(new URL('../src/lib/api.js', import.meta.url));
   const fn = api.slice(api.indexOf('  _mapOFFProduct(p'));
   assert.match(fn, /const name = offProductName\(p, _getOffSearchLanguage\(\)\);\s*if \(!p \|\| !name\) return null;/);
   assert.match(fn, /\n      name,\n/);

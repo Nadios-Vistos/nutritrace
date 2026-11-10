@@ -5,11 +5,10 @@
  */
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { readFileSync, readdirSync, statSync } from 'node:fs';
-import { join } from 'node:path';
+import { listFiles, readSource, sourcePath, SRC } from './fixtures/source-text.js';
 import { onBack, handleBack, backStackDepth, closeOnBack } from '../src/lib/back-stack.js';
 
-const read = (p) => readFileSync(new URL(p, import.meta.url), 'utf8');
+const read = (p) => readSource(new URL(p, import.meta.url));
 
 test('with nothing open, back is not taken (the page goes back as before)', () => {
   assert.equal(backStackDepth(), 0);
@@ -73,10 +72,6 @@ test('the Android back button checks the stack, then the sidebar, then goes back
   assert.ok(stackAt > 0 && sideAt > stackAt && pageAt > sideAt);
 });
 
-function walk(dir) {
-  return readdirSync(dir).flatMap((n) => { const p = join(dir, n); return statSync(p).isDirectory() ? walk(p) : [p]; });
-}
-
 // A tag ends at the first '>' outside {...}, so arrow functions in
 // attributes (on:click={() => ...}) don't cut it short.
 function tagAt(s, start) {
@@ -95,13 +90,13 @@ test('every modal overlay in the app is registered', () => {
   // backdrop, whose panel carries the role.
   // Inner panels of an already-registered backdrop carry the role too.
   const innerPanels = [['components/ui/Sheet.svelte', 'sheet-panel'], ['components/ui/Dialog.svelte', 'dialog-box']];
-  const files = walk(new URL('../src/', import.meta.url).pathname).filter((f) => f.endsWith('.svelte'));
+  const files = listFiles(SRC).filter((f) => f.endsWith('.svelte'));
   const missing = [];
   let checked = 0;
   for (const f of files) {
-    const s = readFileSync(f, 'utf8');
-    const rel = f.split('/src/')[1];
-    for (let at = s.indexOf('aria-modal="true"'); at >= 0; at = s.indexOf('aria-modal="true"', at + 1)) {
+    const s = readSource(f);
+    const rel = sourcePath(f);
+    for (const { index: at } of s.matchAll(/\baria-modal=(?:"true"|\{[^{}]+\})/g)) {
       const tag = tagAt(s, s.lastIndexOf('<', at));
       if (innerPanels.some(([file, cls]) => rel === file && tag.includes(cls))) continue;
       checked++;
@@ -121,12 +116,12 @@ test('every hand-built backdrop and overlay is registered too', () => {
     ['routes/Foods.svelte', 'scan-lookup-overlay'],                  // a "looking up" note that takes no taps
     ['components/foods/BarcodeScanner.svelte', 'scanner-backdrop'],  // the browser scanner, never on Android
   ]);
-  const files = walk(new URL('../src/', import.meta.url).pathname).filter((f) => f.endsWith('.svelte'));
+  const files = listFiles(SRC).filter((f) => f.endsWith('.svelte'));
   const missing = [];
   let checked = 0;
   for (const f of files) {
-    const s = readFileSync(f, 'utf8');
-    const rel = f.split('/src/')[1];
+    const s = readSource(f);
+    const rel = sourcePath(f);
     const markup = s.lastIndexOf('</script>');
     for (const m of s.slice(markup).matchAll(/<(div|aside|section)\b/g)) {
       const tag = tagAt(s, markup + m.index);

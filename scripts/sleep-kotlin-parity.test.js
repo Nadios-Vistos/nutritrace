@@ -11,21 +11,21 @@
  */
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { readFileSync } from 'node:fs';
+import { readSource } from './fixtures/source-text.js';
 import { render, OUT } from './gen-sleep-kotlin-test.mjs';
 
-const read = (p) => readFileSync(new URL(p, import.meta.url), 'utf8');
+const read = (p) => readSource(new URL(p, import.meta.url));
 const worker = read('../android/app/src/main/java/com/nutritrace/app/HealthConnectSyncWorker.kt');
 const port = read('../android/app/src/main/java/com/nutritrace/app/SleepDerivation.kt');
 
 test('the Kotlin fixture test is generated from the current fixtures', () => {
-  assert.equal(readFileSync(OUT, 'utf8'), render(),
+  assert.equal(readSource(OUT), render(),
     'fixtures changed: run `node scripts/gen-sleep-kotlin-test.mjs` and commit the result');
 });
 
 test('every fixture case reaches the Kotlin test', () => {
   const { cases } = JSON.parse(read('./fixtures/sleep-sessions.json'));
-  const kt = readFileSync(OUT, 'utf8');
+  const kt = readSource(OUT);
   for (const c of cases) assert.ok(kt.includes(JSON.stringify(c.name).replace(/\$/g, '\\$')), c.name);
 });
 

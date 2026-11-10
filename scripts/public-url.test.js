@@ -10,14 +10,15 @@
  * the links pointed at the forged host; after, at the admin's address.
  */
 import assert from 'node:assert/strict';
-import { readFileSync, mkdtempSync } from 'node:fs';
+import { mkdtempSync } from 'node:fs';
+import { readSource } from './fixtures/source-text.js';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import test from 'node:test';
 
 process.env.DB_PATH = join(mkdtempSync(join(tmpdir(), 'public-url-')), 'test.db');
 const { createPublicUrl, requestOrigin } = await import('../server/lib/public-url.js');
-const read = (p) => readFileSync(new URL(p, import.meta.url), 'utf8');
+const read = (p) => readSource(new URL(p, import.meta.url));
 
 const mem = () => { const m = new Map(); return { get: (k) => m.get(k) ?? null, set: (k, v) => m.set(k, v), m }; };
 const req = (host, { proto = 'http', browser = true, admin = false, xfh = true } = {}) => ({

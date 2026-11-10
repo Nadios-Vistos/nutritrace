@@ -9,10 +9,10 @@
  * before and after; ordinary names render byte for byte as before.
  */
 import assert from 'node:assert/strict';
-import { readFileSync } from 'node:fs';
+import { readSource } from './fixtures/source-text.js';
 import test from 'node:test';
 
-const src = readFileSync(new URL('../server/email.js', import.meta.url), 'utf8');
+const src = readSource(new URL('../server/email.js', import.meta.url));
 const H = 'Eve & <img src=x onerror=alert(1)><a href="https://evil.test">click</a>';
 
 // The helpers are private to the module (which opens the database when

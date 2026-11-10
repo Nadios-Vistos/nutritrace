@@ -10,7 +10,8 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
-import { execSync } from 'node:child_process';
+import { join } from 'node:path';
+import { listFiles, SRC } from './fixtures/source-text.js';
 
 const css = readFileSync(new URL('../src/styles/fold.css', import.meta.url), 'utf8');
 
@@ -32,11 +33,12 @@ test('the rules name classes this app actually has', () => {
   const used = [...css.matchAll(/html\.fold-(?:book|tabletop) ([^{]+)\{/g)]
     .flatMap(m => m[1].split(',').map(x => x.trim()))
     .flatMap(sel => sel.match(/\.[a-z-]+/g) || []);
-  const src = ['src/components', 'src/routes', 'src/styles']
-    .map(d => new URL(`../${d}/`, import.meta.url).pathname);
+  const source = ['components', 'routes', 'styles']
+    .flatMap(dir => listFiles(join(SRC, dir)))
+    .map(file => readFileSync(file, 'utf8'))
+    .join('\n');
   for (const sel of new Set(used)) {
-    const hits = execSync(`grep -rl "${sel.slice(1)}" ${src.join(' ')} || true`, { encoding: 'utf8' }).trim();
-    assert.ok(hits, `${sel} is not used anywhere in this app`);
+    assert.ok(source.includes(sel.slice(1)), `${sel} is not used anywhere in this app`);
   }
 });
 
