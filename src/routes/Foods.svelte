@@ -26,7 +26,7 @@
   import { API, USDA, NtApi } from '../lib/api.js';
   import { Nutrition } from '../lib/nutrition.js';
   import { loadBasics, loadCiqual, searchCiqual } from '../lib/ciqual.js';
-  import { isAtlasReference, loadPortionAtlas } from '../lib/portion-atlas.js';
+  import { isAtlasReference, loadPortionAtlas, localizePortionAtlas } from '../lib/portion-atlas.js';
   import { Mealie } from '../lib/mealieApi.js';
   import { mealieMirrorImage } from '../lib/mealie-mirror-image.js';
   import MealieRecipeSheet from '../components/foods/MealieRecipeSheet.svelte';
@@ -160,7 +160,8 @@
   let basicsCatalogue = null;
   let ciqualLoading = false;
   let ciqualError = false;
-  let atlasCatalogue = null;
+  let atlasData = null;
+  $: atlasCatalogue = localizePortionAtlas(atlasData, $locale);
   let atlasLoading = false;
   let atlasError = false;
   let ciqualCategory = '';
@@ -200,7 +201,7 @@
   async function refreshAtlas() {
     atlasLoading = true;
     atlasError = false;
-    try { atlasCatalogue = await loadPortionAtlas(); }
+    try { atlasData = await loadPortionAtlas(); }
     catch { atlasError = true; }
     finally { atlasLoading = false; }
   }

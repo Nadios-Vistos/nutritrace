@@ -2,13 +2,13 @@
   import { closeOnBack } from '../lib/back-stack.js';
   import { onDestroy, onMount, tick } from 'svelte';
   import { pop } from 'svelte-spa-router';
-  import { _, number } from 'svelte-i18n';
+  import { _, locale, number } from 'svelte-i18n';
   import { NtApi, API, USDA } from '../lib/api.js';
   import { offNutritionStatus, needsFullLookup } from '../lib/off-nutrition.js';
   import { Mealie } from '../lib/mealieApi.js';
   import { CookTrace } from '../lib/cooktraceApi.js';
   import { loadBasics, loadCiqual, searchCiqual } from '../lib/ciqual.js';
-  import { isAtlasReference, loadPortionAtlas } from '../lib/portion-atlas.js';
+  import { isAtlasReference, loadPortionAtlas, localizePortionAtlas } from '../lib/portion-atlas.js';
   import BarcodeScanner from '../components/foods/BarcodeScanner.svelte';
   import { DB } from '../lib/db.js';
   import { takePhoto } from '../lib/camera.js';
@@ -113,7 +113,8 @@
   const _pickerCookTraceEnabled = DB.getSetting('cooktraceEnabled', false);
   let basicsCatalogue = null;
   let ciqualCatalogue = null;
-  let atlasCatalogue = null;
+  let atlasData = null;
+  $: atlasCatalogue = localizePortionAtlas(atlasData, $locale);
   let atlasLoading = false;
   let atlasError = false;
   let basicsLoading = false;
@@ -146,7 +147,7 @@
   async function refreshAtlas() {
     atlasLoading = true;
     atlasError = false;
-    try { atlasCatalogue = await loadPortionAtlas(); }
+    try { atlasData = await loadPortionAtlas(); }
     catch { atlasError = true; }
     finally { atlasLoading = false; }
   }

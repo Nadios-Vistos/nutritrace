@@ -26,9 +26,10 @@ New ASA24 images go into `public/portions/atlas/`. The web app downloads them on
 
 The complete import keeps the FNDDS foods under their original USDA IDs and
 uses each food's own nutrition and household measures. It appears as
-**Portion atlas** in Foods and the recipe ingredient picker. French search
-aliases are generated for common foods and preparations. The original USDA
-titles remain visible.
+**Portion atlas** in Foods and the recipe ingredient picker. In French the
+atlas uses `fndds-atlas-fr.json` for food names, categories and household
+measures. Search still accepts the original USDA names. IDs, nutrient
+values and weights come from the original atlas.
 
 ```sh
 python3 scripts/import-portions.py --full-atlas --download-dir ../portion-sources --with-photos --report atlas.csv --apply
@@ -38,6 +39,13 @@ Omit `--apply` to preview the import. Use `--fndds` and `--asa24` to point
 to archives already on disk. The download option reuses verified ZIPs on
 subsequent runs. The original ASA24 archive is about 670 MB. Only the
 selected PNGs and the compact catalogue are included in the application.
+
+After updating the USDA catalogue, fill any missing French labels with
+`python3 scripts/translate-portion-atlas.py --model /path/to/translate-en_fr-1_9`.
+The optional maintenance script uses `ctranslate2`, `sentencepiece` and the
+extracted [Argos English-to-French package](https://github.com/argosopentech/argospm-index).
+Review new translations in the JSON file. Rerunning the script preserves
+existing labels and removes entries no longer present in the source.
 
 The full import requires a food code and a measured serving. A photo is
 included only if ASA24 links it to the food and if its unit and quantity

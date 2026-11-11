@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import { changeLabelReference, foodForServing, labelInputFood, labelServingFactor } from '../src/lib/food-label-nutrition.js';
 import { Nutrition } from '../src/lib/nutrition.js';
+import { applyScannedFoodLabel } from '../src/lib/food-label-photo.js';
 import { applyOffRefresh } from '../src/lib/off-refresh.js';
 import { scaleFactor } from '../src/lib/units.js';
 
@@ -64,4 +65,35 @@ test('a refresh uses the label column and leaves conversion to the serving for s
   assert.equal(updated.calories, 400);
   const item = foodForServing({ ...updated, portion: form.portion, unit: form.unit }, nutrientIds);
   assert.equal(item.nutrition.calories, 120);
+});
+
+test('the label scan keeps the per-100 column separate from the printed serving', () => {
+  const food = { labelReference: 'g', portion: 100, unit: 'g', calories: '' };
+  const scanned = applyScannedFoodLabel(food, {
+    name: 'Biscuit', reference: '100g', portion: 30, unit: 'g', calories: 450,
+  });
+  assert.equal(scanned.portion, 30);
+  assert.equal(scanned.labelReference, 'g');
+  assert.equal(scanned.calories, 450);
+  assert.equal(foodForServing(scanned, nutrientIds).nutrition.calories, 135);
+});
+
+test('a label printed per serving is rescaled to the chosen usual serving', () => {
+  const food = { id: 12, labelReference: 'g', portion: 45, unit: 'g' };
+  const scanned = applyScannedFoodLabel(food, { reference: 'portion', portion: 30, unit: 'g', calories: 135 });
+  assert.equal(scanned.portion, 45);
+  assert.equal(scanned.labelReference, 'portion');
+  assert.equal(foodForServing(scanned, nutrientIds).nutrition.calories, 202.5);
+  assert.equal(applyScannedFoodLabel(food, { reference: 'portion', portion: 1, unit: 'piece', calories: 135 }), null);
+  assert.equal(applyScannedFoodLabel(food, { reference: 'portion', calories: 135 }), null);
+  assert.equal(applyScannedFoodLabel(food, { calories: 135 }), null);
+});
+
+test('a drink label without a serving defaults to the readable column and can use kJ', () => {
+  const food = { labelReference: 'g', portion: 100, unit: 'g' };
+  const scanned = applyScannedFoodLabel(food, { reference: '100ml', kilojoules: 200 });
+  assert.equal(scanned.labelReference, 'ml');
+  assert.equal(scanned.unit, 'ml');
+  assert.equal(scanned.portion, 100);
+  assert.equal(scanned.calories, 200 / 4.184);
 });

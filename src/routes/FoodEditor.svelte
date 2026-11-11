@@ -21,7 +21,9 @@
   import { isNative } from '../lib/platform.js';
   import BarcodeScanner from '../components/foods/BarcodeScanner.svelte';
   import { foodsShowCategories, foodsShowLabels, foodsShowNotes, foodCategories, visibleNutriments, nutrimentsOrder, customNutriments, cropPhotos, offUsername, offPassword, offUploadCountry, aiEffectivelyEnabled, envLocks, aiProvider, aiApiKey, aiModel, aiBaseUrl, energyUnit, showUnitMetadata, warnUnitMismatch, catName as _catName, catDisplay as _catDisplay, disableAnimations } from '../stores/settings.js';
-  import { callAI, callAIProxy } from '../lib/aiChat.js';
+  import { applyScannedFoodLabel, readFoodLabel } from '../lib/food-label-photo.js';
+  import { prepareVisionPhoto } from '../lib/photo-vision.js';
+  import { FAMILY_AI_QUOTA_CODE } from '../lib/family-ai.js';
   import { fitImageDataUrl } from '../lib/image-fit.js';
   import { draftKey as _mkDraftKey, loadDraft, loadDraftImg, clearDraft, makeDebouncedPersist, sweepDrafts } from '../lib/editor-draft.js';
   import { acquireScreenWakeLock } from '../lib/wake-lock.js';
@@ -481,136 +483,51 @@
           quality: 80, resultType: CameraResultType.Base64,
           source: CameraSource.Camera, width: 1600,
         });
-        return { base64: photo.base64String, mimeType: `image/${photo.format || 'jpeg'}` };
+        return photo.base64String ? `data:image/${photo.format || 'jpeg'};base64,${photo.base64String}` : null;
       } catch {
         return null;
       }
     }
     // Web: trigger the hidden file input + camera capture attribute and resolve
     // on change. The element lives in the template below.
-    return new Promise((resolve) => {
-      const handler = (e) => {
-        scanLabelFileInput.removeEventListener('change', handler);
-        const file = e.target.files?.[0];
-        if (!file) { resolve(null); return; }
-        const reader = new FileReader();
-        reader.onload = () => {
-          const dataUrl = reader.result;
-          // dataUrl: data:image/jpeg;base64,XXXX → split into mime + base64
-          const m = /^data:([^;]+);base64,(.+)$/.exec(dataUrl);
-          if (!m) { resolve(null); return; }
-          resolve({ mimeType: m[1], base64: m[2] });
-        };
-        reader.readAsDataURL(file);
+    return new Promise(resolve => {
+      const input = scanLabelFileInput;
+      const finish = async event => {
+        input.removeEventListener('change', finish);
+        input.removeEventListener('cancel', finish);
+        const file = event.type === 'change' ? input.files?.[0] : null;
+        resolve(file ? await prepareVisionPhoto(file).catch(() => null) : null);
       };
-      scanLabelFileInput.addEventListener('change', handler);
-      scanLabelFileInput.value = '';
-      scanLabelFileInput.click();
+      input.addEventListener('change', finish);
+      input.addEventListener('cancel', finish);
+      input.value = '';
+      input.click();
     });
-  }
-
-  function _buildLabelMessages(provider, image) {
-    // Build the prompt + image payload. Each provider has its own multimodal
-    // format. Same shape pattern used by Trace.svelte#_buildImageMessage.
-    const prompt = [
-      'Extract nutrition facts from this label image.',
-      'Return ONLY a JSON object with these keys (omit keys you cannot read):',
-      '  name (string, product name), brand (string),',
-      '  reference ("100g", "100ml", or "portion", the column used for ALL nutrients below; prefer 100g or 100ml if available),',
-      '  portion (number), unit (one of g/ml/oz/fl oz/cup/tsp/tbsp/lb/kg/l/each): the actual serving printed on the package, separate from the nutrient column. Omit both if no actual serving is stated.',
-      '  calories (kcal), kilojoules (kJ),',
-      '  fat (g), saturated-fat (g), trans-fat (g), polyunsaturated-fat (g), monounsaturated-fat (g),',
-      '  carbohydrates (g), sugars (g), added-sugars (g), fiber (g),',
-      '  proteins (g),',
-      '  sodium (mg), salt (g), potassium (mg), cholesterol (mg),',
-      '  calcium (mg), iron (mg), magnesium (mg), zinc (mg), phosphorus (mg),',
-      '  vitamin-d (µg), vitamin-a (µg), vitamin-c (mg), vitamin-e (mg), vitamin-k (µg),',
-      '  b1 (mg), b2 (mg), b3 (mg), b6 (mg), b9 (µg), b12 (µg),',
-      '  caffeine (mg), alcohol (g)',
-      'Use numbers, not strings. Use the units specified, not the label\'s.',
-      'No commentary, no markdown — JSON only.',
-    ].join('\n');
-    if (provider === 'claude') {
-      return [{ role: 'user', content: [
-        { type: 'image', source: { type: 'base64', media_type: image.mimeType, data: image.base64 } },
-        { type: 'text', text: prompt },
-      ]}];
-    }
-    if (provider === 'openai' || provider === 'oai-compat') {
-      return [{ role: 'user', content: [
-        { type: 'image_url', image_url: { url: `data:${image.mimeType};base64,${image.base64}` } },
-        { type: 'text', text: prompt },
-      ]}];
-    }
-    if (provider === 'gemini') {
-      return [{ role: 'user', content: prompt, _image: image }];
-    }
-    return [{ role: 'user', content: prompt }];
-  }
-
-  function _parseJsonFromReply(text) {
-    if (!text) return null;
-    // Strip ```json fences if the model added them despite the prompt.
-    const cleaned = text.replace(/^\s*```(?:json)?\s*/i, '').replace(/\s*```\s*$/, '').trim();
-    try { return JSON.parse(cleaned); } catch {}
-    // Fallback: extract the first {...} block.
-    const m = cleaned.match(/\{[\s\S]*\}/);
-    if (m) { try { return JSON.parse(m[0]); } catch {} }
-    return null;
   }
 
   async function scanLabel() {
     if (scanningLabel) return;
     const image = await _captureLabelPhoto();
-    if (!image || !image.base64) return;
+    if (!image) return;
     scanningLabel = true;
     // #158: hold a screen wake lock while the model reads the label.
     // Slow self-hosted models can take a minute+; without this the
     // screen times out and the WebView suspends, killing the fetch.
     const _releaseWakeLock = await acquireScreenWakeLock();
     try {
-      const provider = $aiProvider || 'claude';
-      const messages = _buildLabelMessages(provider, image);
-      const systemPrompt = 'You are a nutrition label parser. Return JSON only.';
-      const reply = $envLocks.ai
-        ? await callAIProxy({ messages, systemPrompt })
-        : await callAI({
-            provider, apiKey: $aiApiKey, model: $aiModel, baseUrl: $aiBaseUrl,
-            messages, systemPrompt,
-          });
-      const parsed = _parseJsonFromReply(reply);
-      if (!parsed || typeof parsed !== 'object') {
-        showError($_('food_editor.toast.label_read_failed'));
-        return;
-      }
-      // Overwrite (NOT smart-fill) — the label is the source of truth this moment.
-      // Mirrors the user's preference: refresh-from-off smart-fills (OFF can be
-      // stale), scan-label overwrites (label is what the user is holding now).
-      if (typeof parsed.name === 'string' && parsed.name.trim()) food.name = parsed.name.trim();
-      if (typeof parsed.brand === 'string' && parsed.brand.trim()) food.brand = parsed.brand.trim();
-      const reference = ['100g', '100ml'].includes(parsed.reference) ? parsed.reference.slice(3)
-        : parsed.reference === 'portion' ? 'portion' : null;
-      if (reference) setLabelReference(reference);
-      const portion = parseDecimal(parsed.portion);
-      const currentPortion = parseDecimal(food.portion);
-      if (!(currentPortion > 0) || (!food.id && currentPortion === 100 && food.unit === 'g')) {
-        if (Number.isFinite(portion) && portion > 0 && typeof parsed.unit === 'string' && parsed.unit.trim()) {
-          food.portion = portion;
-          food.unit = parsed.unit.trim();
-        } else if (reference === 'g' || reference === 'ml') {
-          food.portion = 100;
-          food.unit = reference;
-        }
-      }
-      for (const n of NUTRIMENTS) {
-        const v = parsed[n.id];
-        if (v != null && !isNaN(parseFloat(v))) food[n.id] = parseFloat(v);
-      }
-      food = { ...food };
+      const label = await readFoodLabel(image, {
+        proxy: !!$envLocks.ai, provider: $aiProvider || 'claude', apiKey: $aiApiKey,
+        model: $aiModel, baseUrl: $aiBaseUrl,
+      });
+      const next = applyScannedFoodLabel(food, label, nutrientIds());
+      if (!next) { showError($_('food_editor.toast.label_read_failed')); return; }
+      clearTimeout(_scaleTimer);
+      food = next;
       if (linked && food.labelReference === 'portion') takeSnapshot();
       showSuccess($_('food_editor.toast.nutrition_extracted'));
     } catch (e) {
-      showError($_('food_editor.toast.scan_failed', { values: { error: e?.message || $_('food_editor.toast.unknown_error') } }));
+      showError($_(e?.code === FAMILY_AI_QUOTA_CODE
+        ? 'settings_trace.family.quota_exceeded' : 'food_editor.toast.label_read_failed'));
     } finally {
       scanningLabel = false;
       try { await _releaseWakeLock(); } catch { /* noop */ }
