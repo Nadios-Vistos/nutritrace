@@ -26,6 +26,7 @@
   }
 
   let adminSharingEnabled = false;
+  let savingAdminSharing = false;
 
   async function loadSharingConfig() {
     try {
@@ -73,12 +74,15 @@
   }
 
   async function saveAdminSharingEnabled(val) {
-    adminSharingEnabled = val;
-    await fetch(apiUrl('/api/app-config'), {
-      method: 'PUT',
-      ..._fetchOpts({ 'Content-Type': 'application/json' }),
-      body: JSON.stringify({ key: 'sharing_enabled', value: val ? 'true' : 'false' }),
-    }).catch(() => {});
+    savingAdminSharing = true;
+    try {
+      await NtApi.put('/api/app-config', { key: 'sharing_enabled', value: String(val) });
+    } catch {
+      adminSharingEnabled = !val;
+      showError($_('settings_integrations.sharing_failed'));
+    } finally {
+      savingAdminSharing = false;
+    }
   }
 
   // Per-category bulk-share state. Each category has its own visibility +
@@ -152,7 +156,7 @@
             <span class="setting-label">{$_('settings_integrations.enable_sharing')}</span>
             <span class="setting-desc">{$_('settings_integrations.sharing_enable_desc')}</span>
           </div>
-          <Toggle checked={adminSharingEnabled} on:change={e => saveAdminSharingEnabled(e.detail)} />
+          <Toggle bind:checked={adminSharingEnabled} disabled={savingAdminSharing} on:change={e => saveAdminSharingEnabled(e.detail)} />
         </div>
       </div>
     {/if}

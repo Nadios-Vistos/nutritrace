@@ -43,16 +43,14 @@ function _trustedOriginsForSource(userId, sourceApp) {
 // ── GET / — own foods + shared foods from others ──────────────────────────
 router.get('/', wrap((req, res) => {
   const u = uid(req);
+  const group = req.query.group === '1';
+  if (group && (u == null || !sharingEnabled())) return res.json([]);
   if (u == null) {
     // Single-user mode — no sharing concept
     return res.json(db.prepare('SELECT * FROM foods WHERE deleted_at IS NULL ORDER BY name ASC').all().map(parse));
   }
 
-  const sharing = sharingEnabled();
-  // Always return own foods
-  let rows = db.prepare('SELECT * FROM foods WHERE user_id = ? AND deleted_at IS NULL ORDER BY name ASC').all(u);
-
-  if (sharing && req.query.group === '1') {
+  if (group) {
     // Group catalogue: other users' foods visible to this user
     const others = db.prepare('SELECT * FROM foods WHERE user_id != ? AND deleted_at IS NULL ORDER BY name ASC').all(u);
     const shared = others.filter(f => canRead(f, u));
@@ -68,6 +66,7 @@ router.get('/', wrap((req, res) => {
     return res.json(shared.map(parse));
   }
 
+  const rows = db.prepare('SELECT * FROM foods WHERE user_id = ? AND deleted_at IS NULL ORDER BY name ASC').all(u);
   res.json(rows.map(parse));
 }));
 

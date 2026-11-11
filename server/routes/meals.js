@@ -22,12 +22,14 @@ const canRead = (meal, u) => _canRead(meal, u, 'meal_shares', 'meal_id');
 router.get('/', wrap((req, res) => {
   const isRecipe = req.query.recipes === '1' ? 1 : 0;
   const u = uid(req);
+  const group = req.query.group === '1';
+  if (group && (u == null || !sharingEnabled())) return res.json([]);
 
   if (u == null) {
     return res.json(db.prepare('SELECT * FROM meals WHERE is_recipe = ? AND deleted_at IS NULL ORDER BY name ASC').all(isRecipe).map(parse));
   }
 
-  if (req.query.group === '1' && sharingEnabled()) {
+  if (group) {
     // Group catalogue: other users' meals/recipes visible to this user
     const others = db.prepare('SELECT * FROM meals WHERE is_recipe = ? AND user_id != ? AND deleted_at IS NULL ORDER BY name ASC').all(isRecipe, u);
     const shared = others.filter(m => canRead(m, u));

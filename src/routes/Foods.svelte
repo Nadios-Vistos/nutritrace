@@ -67,15 +67,13 @@
     _prevTab = activeTab;
     activeCategoryFilter = '';
     pinnedSources = new Set();
-    // Re-poll sharing counts so the From Others filter appears for the new
-    // tab's category if a peer just shared something.
+    // A member may have shared or withdrawn an item since the last visit.
     refreshSharingStatus();
     // Non-foods tabs only support local + shared — silently reset if the
     // current source isn't valid here (toast removed; common-sense reset).
     if (activeTab === 0) searchSource = foodsDefaultSource.get() || 'all';
     else if (searchSource !== 'local' && searchSource !== 'shared'
         && !(activeTab === 2 && ['cooktrace', 'mealieLibrary'].includes(searchSource))) searchSource = 'local';
-    if (searchSource === 'shared' && !_tabHasShared) searchSource = 'local';
   }
 
   // Reset scroll so the new tab starts from the top.
@@ -131,7 +129,7 @@
     ...(activeTab === 0 && _cooktraceEnabled ? [{ value: 'ctpantry', label: 'CookTrace' }] : []),
     ...(activeTab === 2 && _cooktraceEnabled ? [{ value: 'cooktrace', label: 'CookTrace' }] : []),
     ...(activeTab === 2 && $userMgmtActive ? [{ value: 'mealieLibrary', label: 'Mealie' }] : []),
-    ...(_tabHasShared  ? [{ value: 'shared', label: $_('foods.sources.from_others') }] : []),
+    ...(sharingEnabled ? [{ value: 'shared', label: $_('foods.sources.from_others') }] : []),
   ];
   $: availableSources = _perSourceOptions.length >= 2
     ? [{ value: 'all', label: $_('foods.sources.all') }, ..._perSourceOptions]
@@ -348,6 +346,7 @@
     if (_lpChipJustFired) return;
     pinnedSources = new Set();
     searchSource = sourceValue;
+    if (sourceValue === 'all' || sourceValue === 'shared') refreshSharingStatus();
   }
   // Small helper for _allModeItems below.
   function _isSourceActive(name) {
@@ -436,32 +435,37 @@
     if (offDropdownOpen || usdaDropdownOpen) _closeTierDropdowns();
   }
 
-  // Sharing — "From Others" source filter (per-category)
+  // Refresh shared items even when a previous request already populated the list.
   let sharingEnabled = false;
-  let sharedCounts = { foods: 0, meals: 0, recipes: 0 };
-  $: _tabHasShared = activeTab === 0 ? sharedCounts.foods > 0 : activeTab === 1 ? sharedCounts.meals > 0 : sharedCounts.recipes > 0;
-  function refreshSharingStatus() {
-    NtApi.getSharingStatus().then(s => {
-      sharingEnabled = s.sharing_enabled === true;
-      sharedCounts = { foods: s.foods || 0, meals: s.meals || 0, recipes: s.recipes || 0 };
-    }).catch(() => {});
-  }
-  let groupFoods = [];
-  let groupMeals = [];
-  let groupRecipes = [];
+  let groupCatalogue = [[], [], []];
   let loadingGroup = false;
+  let sharingRequest = 0;
 
-  async function loadGroupCatalogue() {
-    if (!sharingEnabled) return;
+  async function refreshSharingStatus() {
+    const request = ++sharingRequest;
     loadingGroup = true;
     try {
-      [groupFoods, groupMeals, groupRecipes] = await Promise.all([
+      const status = await NtApi.getSharingStatus();
+      if (request !== sharingRequest) return;
+      sharingEnabled = status.sharing_enabled === true;
+      if (!sharingEnabled) {
+        groupCatalogue = [[], [], []];
+        if (searchSource === 'shared') searchSource = 'local';
+        return;
+      }
+      const catalogue = await Promise.all([
         NtApi.getGroupFoods(),
         NtApi.getGroupMeals(),
         NtApi.getGroupRecipes(),
       ]);
-    } catch(e) { console.error('[foods] group load error:', e); showError($_('foods.shared_load_failed')); }
-    finally { loadingGroup = false; }
+      if (request === sharingRequest) groupCatalogue = catalogue;
+    } catch (error) {
+      if (request !== sharingRequest) return;
+      groupCatalogue = [[], [], []];
+      if (sharingEnabled && ['all', 'shared'].includes(searchSource)) showError($_('foods.shared_load_failed'));
+    } finally {
+      if (request === sharingRequest) loadingGroup = false;
+    }
   }
 
   async function copyAndUse(food) {
@@ -714,12 +718,12 @@
 
   $: currentStore = TABS[activeTab].value;
   $: _ownList = activeTab === 0 ? localFoods : activeTab === 1 ? localMeals : localRecipes;
-  $: _groupList = activeTab === 0 ? groupFoods : activeTab === 1 ? groupMeals : groupRecipes;
+  $: _groupList = groupCatalogue[activeTab];
   $: displayList = searchSource === 'shared' ? _groupList : _ownList;
-  $: { if (searchSource === 'shared' && _tabHasShared && !groupFoods.length && !groupMeals.length && !groupRecipes.length) loadGroupCatalogue(); }
-  // 'all' mode (#96) needs the shared catalogue loaded too so shared items can
-  // participate in the merged results without the user having to first flip
-  // to the 'shared' chip.
+  $: _sharedMatches = _groupList.filter(item => _fuzzyMatch(item, search));
+  $: _sharedAllItems = (!pinnedSources.size || pinnedSources.has('shared'))
+    ? _sharedMatches.map(item => ({ source: 'shared', item }))
+    : [];
   $: { if (searchSource === 'all' && _tabHasShared && !groupFoods.length && !groupMeals.length && !groupRecipes.length) loadGroupCatalogue(); }
 
   // Merged results for 'all' mode. Each entry is { source, item } so the row
@@ -741,11 +745,11 @@
   // (not just in dedicated OFF/USDA single-source mode) — filtering
   // happens at the item level so multi-source results still honour the
   // user's tier picks within each source.
-  $: _allModeItems = searchSource !== 'all' ? [] : [
+  $: _allModeItems = searchSource !== 'all' ? [] : !search.trim() ? _sharedAllItems : [
     ...(_isSourceActive('local')  ? (_ownList || []).filter(f => search.trim() ? _fuzzyMatch(f, search) : false).map(item => ({ source: 'local',  item })) : []),
     ...ciqualAllMatches.map(item => ({ source: 'ciqual', item })),
     ...atlasAllMatches.map(item => ({ source: 'atlas', item })),
-    ...(_isSourceActive('shared') && _tabHasShared ? (_groupList || []).filter(f => search.trim() ? _fuzzyMatch(f, search) : false).map(item => ({ source: 'shared', item })) : []),
+    ..._sharedAllItems,
     ...(_isSourceActive('mealie') ? (mealieResults || []).map(item => ({ source: 'mealie', item })) : []),
     ...(activeTab === 2 && (!pinnedSources.size || pinnedSources.has('mealieLibrary')) ? mealieMatches.map(item => ({ source: 'mealieLibrary', item })) : []),
     ...(_isSourceActive('cooktrace') ? (cooktraceResults || []).map(item => ({ source: 'cooktrace', item })) : []),
@@ -1276,7 +1280,7 @@
     }
 
     // If item is from another user's catalogue, copy it into ours first
-    if (searchSource === 'shared' && food._shared_by != null) {
+    if (food._shared_by != null) {
       const mine = await copyAndUse(food);
       if (!mine) return;
       food = mine;
@@ -1901,6 +1905,7 @@
     if (leftPane !== _paneLeftPx) _paneLeftPx = leftPane;
   }
   onDestroy(() => {
+    sharingRequest++;
     if (_onVis) document.removeEventListener('visibilitychange', _onVis);
     if (_paneMq && _paneMqHandler) {
       _paneMq.removeEventListener
@@ -1983,15 +1988,13 @@
     }
     scannerOpen = pickMode && editorState.foodsOpenScanner;
     editorState.foodsOpenScanner = false;
-    // Load local data FIRST — don't block on server calls
-    await load();
-    await loadYesterdayMeals();
-    // Sharing status from server — non-blocking, updates UI when ready
     refreshSharingStatus();
     // Refresh whenever the page becomes visible again (covers "someone shared
     // with me while the app was backgrounded") and on tab switch within Foods.
     _onVis = () => { if (document.visibilityState === 'visible') refreshSharingStatus(); };
     document.addEventListener('visibilitychange', _onVis);
+    await load();
+    await loadYesterdayMeals();
     // Restore scroll position after Svelte has flushed the list to the DOM
     if (editorState.foodsScrollY != null) {
       const sy = editorState.foodsScrollY;
@@ -2287,12 +2290,12 @@
   <div class="page-content">
     {#if searchSource === 'all'}
       <!-- ── All: merged results from every enabled source ─────────────────── -->
-      {#if !search.trim()}
+      {#if !search.trim() && _allModeItems.length === 0}
         <div class="empty-state">
           <span class="material-symbols-rounded empty-icon">search</span>
           <p>{$_('foods.all_mode.search_hint')}</p>
         </div>
-      {:else if (loading || mealieLoading || cooktraceLoading || ctPantryLoading || ciqualLoading || atlasLoading) && _allModeItems.length === 0}
+      {:else if (loading || loadingGroup || mealieLoading || cooktraceLoading || ctPantryLoading || ciqualLoading || atlasLoading) && _allModeItems.length === 0}
         <div class="loading-row">
           <span class="material-symbols-rounded spin">refresh</span>
           <span class="text-2 text-sm">{$_('foods.all_mode.searching')}</span>
@@ -2407,13 +2410,12 @@
              turn silent 0s into visible signals (e.g. "OFF · 0" tells the
              user OFF didn't return anything, not that ALL is broken).
              Sentinel fires loadMoreAll() when it scrolls into view. #96. -->
-        {#if _sourcesOffline || _allModeItems.length > 0 || _allOffTotal > 0 || _allUsdaTotal > 0 || _allMealieTotal > 0 || _allCooktraceTotal > 0 || _allCtPantryTotal > 0}
+        {#if search.trim()}
           {@const _localCount = (_ownList || []).filter(f => search.trim() ? _fuzzyMatch(f, search) : false).length}
-          {@const _sharedCount = _tabHasShared ? (_groupList || []).filter(f => search.trim() ? _fuzzyMatch(f, search) : false).length : 0}
           <div class="all-source-counts">
-            <span class="asc-chip"><span class="asc-dot asc-local"></span>Local · {_localCount}</span>
-            {#if _tabHasShared}
-              <span class="asc-chip"><span class="asc-dot asc-shared"></span>{$_('foods.sources.shared')} · {_sharedCount}</span>
+            <span class="asc-chip"><span class="asc-dot asc-local"></span>{$_('foods.sources.local')} · {_localCount}</span>
+            {#if sharingEnabled}
+              <span class="asc-chip"><span class="asc-dot asc-shared"></span>{$_('foods.sources.shared')} · {_sharedMatches.length}</span>
             {/if}
             {#if _mealieEnabled && activeTab === 0}
               <span class="asc-chip"><span class="asc-dot asc-mealie"></span>Mealie · {#if _sourcesOffline}{$_('foods.offline.source')}{:else}{mealieResults.length}{#if _allMealieTotal > mealieResults.length} of {_allMealieTotal.toLocaleString()}{/if}{/if}</span>
@@ -2521,13 +2523,18 @@
 
     {:else if searchSource === 'local' || searchSource === 'shared' || (activeTab !== 0 && searchSource !== 'cooktrace')}
       <!-- ── Local list ─────────────────────────────────────────────────────── -->
-      {#if _initialLoading && filteredList.length === 0 && !loadError}
+      {#if (searchSource === 'shared' ? loadingGroup : _initialLoading && !loadError) && filteredList.length === 0}
         <!-- #178 — hold the empty state while the initial fetch is in
              flight. A slow /api/foods response would otherwise render
              "No foods yet" over the user's actual (server-side) library. -->
         <div class="loading-row">
           <span class="material-symbols-rounded spin">refresh</span>
           <span class="text-2 text-sm">{$_('foods.loading_library')}</span>
+        </div>
+      {:else if searchSource === 'shared' && filteredList.length === 0 && !search.trim()}
+        <div class="empty-state">
+          <span class="material-symbols-rounded empty-icon">group</span>
+          <p>{$_('foods.shared_empty')}</p>
         </div>
       {:else if filteredList.length === 0 && !search && !loadError}
         <div class="empty-state">

@@ -108,9 +108,9 @@ router.get('/sharing', requireAuth, wrap((req, res) => {
 
   // Count items from OTHER users visible to this user
   const countVisible = (table, shareTable, shareCol, extraWhere = '') => {
-    const groupCount = db.prepare(`SELECT COUNT(*) as c FROM ${table} t WHERE t.user_id != ? AND t.visibility = 'group' ${extraWhere}`).get(u).c;
+    const groupCount = db.prepare(`SELECT COUNT(*) as c FROM ${table} t WHERE t.user_id != ? AND t.deleted_at IS NULL AND t.visibility = 'group' ${extraWhere}`).get(u).c;
     const specificCount = db.prepare(
-      `SELECT COUNT(*) as c FROM ${table} t JOIN ${shareTable} s ON s.${shareCol} = t.id WHERE t.user_id != ? AND t.visibility = 'specific' AND s.user_id = ? ${extraWhere}`
+      `SELECT COUNT(*) as c FROM ${table} t JOIN ${shareTable} s ON s.${shareCol} = t.id WHERE t.user_id != ? AND t.deleted_at IS NULL AND t.visibility = 'specific' AND s.user_id = ? ${extraWhere}`
     ).get(u, u).c;
     return groupCount + specificCount;
   };
