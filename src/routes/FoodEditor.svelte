@@ -2,12 +2,14 @@
   import { closeOnBack } from '../lib/back-stack.js';
   import { onMount, tick } from 'svelte';
   import { slide } from 'svelte/transition';
-  import { _ } from 'svelte-i18n';
+  import { _, locale } from 'svelte-i18n';
 
   import { portal } from '../lib/portal.js';
   import { pop, push } from 'svelte-spa-router';
   import { NtApi } from '../lib/api.js';
-  import { NUTRIMENTS } from '../lib/nutrition.js';
+  import { NUTRIMENTS, Nutrition } from '../lib/nutrition.js';
+  import { displayUnit } from '../lib/units.js';
+  import { changeLabelReference, foodForServing, labelInputFood, labelServingFactor } from '../lib/food-label-nutrition.js';
   import { showSuccess, showError, showInfo } from '../stores/toast.js';
   import { offlineState } from '../lib/offline-api.js';
   import { offNutritionStatus, needsFullLookup, applyOffPrepared } from '../lib/off-nutrition.js';
@@ -116,6 +118,7 @@
   let food = {
     name:'', brand:'', barcode:'', imgUrl:'',
     portion: 100, unit: 'g', categories: [], notes: '',
+    labelReference: 'g',
     // Issues #69 + #70: OFF unit metadata. nutrition_basis null = "unknown,
     // treat as today's behavior"; alt_units empty = no per-food unit
     // overrides; density null = no cross-system bridge available.
@@ -282,30 +285,26 @@
         await _openOffPage();
         return;
       }
-      await _doUploadToOFF(API);
-      offProductExists = true; // we just contributed it, mark as present
+      const item = servingItem();
+      if (item) {
+        await _doUploadToOFF(API, item);
+        offProductExists = true;
+      }
     } catch(e) {
       showError($_('food_editor.toast.off_upload_failed', { values: { error: e.message } }));
+    } finally {
       contributing = false;
     }
   }
 
-  async function _doUploadToOFF(API) {
-    const { NUTRIMENTS: NUT } = await import('../lib/nutrition.js');
-    const nutrition = {};
-    for (const n of NUT) {
-      const v = food[n.id];
-      if (v !== undefined && v !== '' && v !== null && !isNaN(parseFloat(v)))
-        nutrition[n.id] = parseFloat(v);
-    }
+  async function _doUploadToOFF(API, item) {
+    const { name, barcode, brand, portion, unit, nutrition } = item;
     await API.contributeToOFF(
-      { name: food.name, barcode: food.barcode, brand: food.brand,
-        portion: food.portion, unit: food.unit, nutrition },
+      { name, barcode, brand, portion, unit, nutrition },
       { offUsername: $offUsername, offPassword: $offPassword,
         offUploadCountry: $offUploadCountry }
     );
     offSuccess = true;
-    contributing = false;
     // Give OFF a few seconds to index, then verify the product is live
     setTimeout(async () => {
       try {
@@ -324,7 +323,7 @@
   let _scaleTimer = null;
 
   function applyProportional(changedId, newVal) {
-    if (!linked || !_snapshot) return;
+    if (food.labelReference !== 'portion' || !linked || !_snapshot) return;
     const origVal = changedId === '__portion__' ? _snapshot.portion : _snapshot[changedId];
     if (!origVal || origVal <= 0 || newVal <= 0) return;
     const ratio = newVal / origVal;
@@ -345,7 +344,25 @@
     _scaleTimer = setTimeout(() => { applyProportional(changedId, getVal()); }, 400);
   }
 
-  function onPortionInput() { scheduleScale('__portion__', () => parseDecimal(food.portion) || 0); }
+  function nutrientIds() {
+    return [...NUTRIMENTS, ...($customNutriments || [])].map(n => n.id);
+  }
+
+  function setLabelReference(reference, warn = false) {
+    clearTimeout(_scaleTimer);
+    const ids = nutrientIds();
+    if (warn && reference !== food.labelReference
+        && (labelServingFactor(food) == null || labelServingFactor(food, reference) == null)
+        && ids.some(id => Number.isFinite(parseDecimal(food[id])))) {
+      showInfo($_('food_editor.label_recheck_values'));
+    }
+    food = changeLabelReference(food, reference, ids);
+    if (linked && reference === 'portion') takeSnapshot();
+  }
+
+  function onPortionInput() {
+    if (food.labelReference === 'portion') scheduleScale('__portion__', () => parseDecimal(food.portion) || 0);
+  }
   function onNutInput(id)   {
     // Per-nutrient typing does NOT trigger proportional scaling. The
     // link toggle is for "scale all nutrients to a new serving size",
@@ -399,8 +416,10 @@
   }
   function usePreparedValues() {
     if (!_offNotice?.info) return;
-    const { food: next, changed } = applyOffPrepared(food, _offNotice.info, NUTRIMENTS.map(n => n.id), $_('food_editor.off_prepared.note'));
-    food = next;
+    const input = labelInputFood(food);
+    const { food: next, changed } = applyOffPrepared(input, _offNotice.info, NUTRIMENTS.map(n => n.id), $_('food_editor.off_prepared.note'));
+    food = input === food ? next : { ...next, portion: food.portion, unit: food.unit };
+    if (linked && food.labelReference === 'portion') takeSnapshot();
     _offNotice = null;
     showSuccess(changed
       ? $_('food_editor.toast.off_prepared_used', { values: { count: changed } })
@@ -422,8 +441,10 @@
       // food's portion. It used to fill empty fields only, so a refresh
       // never changed a number. See off-refresh.js.
       const { applyOffRefresh } = await import('../lib/off-refresh.js');
-      const { food: next, changed, reason } = applyOffRefresh(food, result, NUTRIMENTS.map(n => n.id));
-      food = next;
+      const input = labelInputFood(food);
+      const { food: next, changed, reason } = applyOffRefresh(input, result, NUTRIMENTS.map(n => n.id));
+      food = input === food ? next : { ...next, portion: food.portion, unit: food.unit };
+      if (linked && food.labelReference === 'portion') takeSnapshot();
       if (reason === 'updated' || reason === 'up_to_date') _offNotice = null;
       if (reason === 'updated') {
         downloadSuccess = true;
@@ -494,8 +515,9 @@
     const prompt = [
       'Extract nutrition facts from this label image.',
       'Return ONLY a JSON object with these keys (omit keys you cannot read):',
-      '  name (string, product name), brand (string), portion (number), unit (string, one of g/ml/oz/fl oz/cup/tsp/tbsp/lb/kg/l/each),',
-      '  per_serving (boolean, true if the listed values are per serving, false if per 100g),',
+      '  name (string, product name), brand (string),',
+      '  reference ("100g", "100ml", or "portion", the column used for ALL nutrients below; prefer 100g or 100ml if available),',
+      '  portion (number), unit (one of g/ml/oz/fl oz/cup/tsp/tbsp/lb/kg/l/each): the actual serving printed on the package, separate from the nutrient column. Omit both if no actual serving is stated.',
       '  calories (kcal), kilojoules (kJ),',
       '  fat (g), saturated-fat (g), trans-fat (g), polyunsaturated-fat (g), monounsaturated-fat (g),',
       '  carbohydrates (g), sugars (g), added-sugars (g), fiber (g),',
@@ -566,13 +588,26 @@
       // stale), scan-label overwrites (label is what the user is holding now).
       if (typeof parsed.name === 'string' && parsed.name.trim()) food.name = parsed.name.trim();
       if (typeof parsed.brand === 'string' && parsed.brand.trim()) food.brand = parsed.brand.trim();
-      if (parsed.portion != null && !isNaN(parseFloat(parsed.portion))) food.portion = parseFloat(parsed.portion);
-      if (typeof parsed.unit === 'string' && parsed.unit.trim()) food.unit = parsed.unit.trim();
+      const reference = ['100g', '100ml'].includes(parsed.reference) ? parsed.reference.slice(3)
+        : parsed.reference === 'portion' ? 'portion' : null;
+      if (reference) setLabelReference(reference);
+      const portion = parseDecimal(parsed.portion);
+      const currentPortion = parseDecimal(food.portion);
+      if (!(currentPortion > 0) || (!food.id && currentPortion === 100 && food.unit === 'g')) {
+        if (Number.isFinite(portion) && portion > 0 && typeof parsed.unit === 'string' && parsed.unit.trim()) {
+          food.portion = portion;
+          food.unit = parsed.unit.trim();
+        } else if (reference === 'g' || reference === 'ml') {
+          food.portion = 100;
+          food.unit = reference;
+        }
+      }
       for (const n of NUTRIMENTS) {
         const v = parsed[n.id];
         if (v != null && !isNaN(parseFloat(v))) food[n.id] = parseFloat(v);
       }
       food = { ...food };
+      if (linked && food.labelReference === 'portion') takeSnapshot();
       showSuccess($_('food_editor.toast.nutrition_extracted'));
     } catch (e) {
       showError($_('food_editor.toast.scan_failed', { values: { error: e?.message || $_('food_editor.toast.unknown_error') } }));
@@ -593,7 +628,8 @@
       const prefill = editorState.foodPrefill;
       // Flatten nested nutrition into top-level fields for editing
       const flatNutrition = (prefill.nutrition && typeof prefill.nutrition === 'object') ? { ...prefill.nutrition } : {};
-      food = { ...food, ...prefill, ...flatNutrition };
+      const hasValues = NUTRIMENTS.some(n => (flatNutrition[n.id] ?? prefill[n.id]) != null);
+      food = { ...food, ...prefill, ...flatNutrition, labelReference: hasValues ? 'portion' : 'g' };
       if (!(params && params.id) && typeof prefill.id !== 'number' && prefill.barcode) {
         const { API } = await import('../lib/api.js');
         let info = API.offNutritionInfo(prefill.barcode);
@@ -613,7 +649,7 @@
       const existing = await NtApi.getFood(params.id).catch(() => null);
       if (existing) {
         const flatNutrition = (existing.nutrition && typeof existing.nutrition === 'object') ? { ...existing.nutrition } : {};
-        food = { ...food, ...existing, ...flatNutrition };
+        food = { ...food, ...existing, ...flatNutrition, labelReference: 'portion' };
       }
     }
     // ── Restore any in-progress draft (#157) ──────────────────────────
@@ -627,6 +663,9 @@
     // Capture the pre-overlay state so the banner's Discard button can
     // reset the form to what actually came from the server (or empty,
     // for the "add new" path).
+    if (['g', 'ml'].includes(food.nutrition_basis) && labelServingFactor(food, food.nutrition_basis) != null) {
+      setLabelReference(food.nutrition_basis);
+    }
     _serverBaseline = { ...food };
     try {
       const _draft = loadDraft(_draftKey);
@@ -636,7 +675,7 @@
       const _otherScan = editorState.foodPrefill?.barcode && _draft?.barcode
         && String(_draft.barcode) !== String(editorState.foodPrefill.barcode);
       if (_draft && typeof _draft === 'object' && Object.keys(_draft).length > 0 && !_otherScan) {
-        food = { ...food, ..._draft };
+        food = { ...food, ..._draft, labelReference: _draft.labelReference ?? 'portion' };
         _draftRestored = true;
       }
     } catch { /* draft parse issues fall through to server-loaded state */ }
@@ -688,25 +727,53 @@
     || (Array.isArray(food.alt_units) && food.alt_units.length > 0)
     || (food.density_g_ml != null && food.density_g_ml !== '');
 
+  $: servingFactor = labelServingFactor(food);
+  $: servingEnergy = servingFactor != null && Number.isFinite(parseDecimal(food.calories))
+    ? Nutrition.displayEnergy(parseDecimal(food.calories) * servingFactor, $energyUnit)
+    : null;
+
+  function servingItem() {
+    const portion = parseDecimal(food.portion);
+    if (!Number.isFinite(portion) || portion <= 0) {
+      showError($_('food_editor.portion_invalid'));
+      return null;
+    }
+    const item = foodForServing(food, nutrientIds());
+    if (!item) {
+      showError($_('food_editor.label_unit_mismatch'));
+      return null;
+    }
+    if (food.beverage_ml != null) {
+      const volume = item.nutrition.beverage_ml;
+      if (!Number.isFinite(volume) || volume <= 0) {
+        showError($_('water_tracking.invalid_amount'));
+        return null;
+      }
+    }
+    return item;
+  }
+
   async function saveAsCopy() {
     saving = true;
     try {
       // Strip the upstream id so it inserts as a new row owned by the current user.
-      const copy = { ...food };
       const sourceId = food.id;
-      delete copy.id;
-      delete copy._shared_by;
-      delete copy.user_id;
-      delete copy.visibility;
-      delete copy.favorite;
-      const created = sourceId
-        ? await NtApi.copyFood(sourceId)
-        : await NtApi.createFood(copy);
+      if (sourceId) await NtApi.copyFood(sourceId);
+      else {
+        const copy = servingItem();
+        if (!copy) return;
+        delete copy.id;
+        delete copy._shared_by;
+        delete copy.user_id;
+        delete copy.visibility;
+        delete copy.favorite;
+        await NtApi.createFood(copy);
+      }
       showSuccess($_('food_editor.toast.saved_copy'));
       clearFoodEditorState();
       pop();
     } catch (e) { showError($_('food_editor.toast.save_copy_failed', { values: { error: e.message } })); }
-    saving = false;
+    finally { saving = false; }
   }
 
   async function save() {
@@ -716,36 +783,8 @@
     }
     saving = true;
     try {
-      // Build nested nutrition object from flat fields for Nutrition.calculate() compatibility.
-      // #201: iterate custom nutriments too so user-defined nutrients
-      // survive the save. Nutrition.calculate iterates
-      // Object.entries(item.nutrition) on the nested path so any key
-      // written here flows through calculations without further changes.
-      const _nutrition = {};
-      if (food.beverage_ml != null) {
-        const volume = Number(String(food.beverage_ml).trim().replace(',', '.'));
-        if (!Number.isFinite(volume) || volume <= 0) {
-          showError($_('water_tracking.invalid_amount'));
-          return;
-        }
-        _nutrition.beverage_ml = volume;
-      }
-      for (const _n of [...NUTRIMENTS, ...($customNutriments || [])]) {
-        const _v = food[_n.id];
-        if (_v !== undefined && _v !== '' && _v !== null && !isNaN(parseDecimal(_v))) {
-          _nutrition[_n.id] = parseDecimal(_v) || 0;
-        }
-      }
-      // Persist the derived-flag map so the calculator icon survives reloads.
-      // Strip falsy entries so empty maps don't bloat the JSON payload.
-      if (food._derived) {
-        const flags = {};
-        for (const k of Object.keys(food._derived)) {
-          if (food._derived[k]) flags[k] = true;
-        }
-        if (Object.keys(flags).length) _nutrition._derived = flags;
-      }
-      const item = { ...food, nutrition: _nutrition };
+      const item = servingItem();
+      if (!item) return;
       const saved = food.id
         ? await NtApi.updateFood(food.id, item)
         : await NtApi.createFood(item);
@@ -995,18 +1034,20 @@
       </div>
       <div class="form-row" style="align-items:flex-end">
         <div class="form-group" style="flex:1">
-          <label class="form-label">{$_('food_editor.field_serving_size')}</label>
-          <input class="input" type="text" inputmode="decimal" use:decimalInput bind:value={food.portion}
+          <label class="form-label" for="food-serving-size">{$_('food_editor.field_serving_size')}</label>
+          <input id="food-serving-size" class="input" type="text" inputmode="decimal" use:decimalInput bind:value={food.portion}
             on:input={onPortionInput} />
         </div>
         <div class="form-group" style="width:100px">
           <label class="form-label">{$_('food_editor.field_unit')}</label>
           <UnitPicker bind:value={food.unit} />
         </div>
-        <button class="btn-icon link-btn" class:linked title={linked ? 'All fields scale proportionally' : 'Fields are independent'}
-          on:click={() => { linked = !linked; if (linked) takeSnapshot(); }}>
-          <span class="material-symbols-rounded" style="font-size:20px">{linked ? 'link' : 'link_off'}</span>
-        </button>
+        {#if food.labelReference === 'portion'}
+          <button class="btn-icon link-btn" class:linked aria-pressed={linked} title={$_('food_editor.link_serving')}
+            on:click={() => { linked = !linked; if (linked) takeSnapshot(); }}>
+            <span class="material-symbols-rounded" style="font-size:20px">{linked ? 'link' : 'link_off'}</span>
+          </button>
+        {/if}
       </div>
 
       <div class="form-group">
@@ -1028,22 +1069,24 @@
            on the underlying row regardless of UI visibility — the data
            always flows in, just the editor is hidden by default. -->
       {#if _showUnitMetadataUI}
+      {#if food.labelReference === 'portion'}
       <div class="form-group">
         <label class="form-label">{$_('food_editor.field_nutrition_basis')}</label>
         <div class="basis-toggle">
           <button type="button" class="basis-opt" class:active={food.nutrition_basis === 'g'}
             on:click={() => food.nutrition_basis = food.nutrition_basis === 'g' ? null : 'g'}>
-            Per 100 g
+            {$_('food_editor.label_per_100g')}
           </button>
           <button type="button" class="basis-opt" class:active={food.nutrition_basis === 'ml'}
             on:click={() => food.nutrition_basis = food.nutrition_basis === 'ml' ? null : 'ml'}>
-            Per 100 ml
+            {$_('food_editor.label_per_100ml')}
           </button>
         </div>
         <div class="form-hint">
-          Defaults the unit picker when logging to the diary. Leave both off if unknown; math behaves like today's default.
+          {$_('food_editor.nutrition_basis_diary_hint')}
         </div>
       </div>
+      {/if}
 
       <!-- Per-food serving units (e.g. "1 slice = 35 g"). OFF imports add
            the first row from serving_size + serving_quantity; users can
@@ -1213,17 +1256,38 @@
         {#if $aiEffectivelyEnabled}
           <button class="scan-label-btn" on:click={scanLabel} disabled={scanningLabel}
             title={$_('food_editor.scan_label_title')}
-            aria-label="Scan nutrition label">
+            aria-label={$_('food_editor.scan_label')}>
             <span class="material-symbols-rounded scan-icon" class:spin={scanningLabel}>
               {scanningLabel ? 'progress_activity' : 'document_scanner'}
             </span>
-            <span>{scanningLabel ? 'Scanning…' : 'Scan Label'}</span>
+            <span>{$_(scanningLabel ? 'food_editor.scanning_label' : 'food_editor.scan_label')}</span>
           </button>
         {/if}
       </div>
       <!-- Hidden file input for the web Scan Label flow. On native we go
            through @capacitor/camera directly. -->
       <input bind:this={scanLabelFileInput} type="file" accept="image/*" capture="environment" style="display:none" />
+      <div class="form-group">
+        <label class="form-label" for="food-label-reference">{$_('food_editor.label_reference')}</label>
+        <select id="food-label-reference" class="input" value={food.labelReference}
+          aria-describedby="food-label-hint"
+          on:change={event => setLabelReference(event.currentTarget.value, true)}>
+          <option value="g">{$_('food_editor.label_per_100g')}</option>
+          <option value="ml">{$_('food_editor.label_per_100ml')}</option>
+          <option value="portion">{$_('food_editor.label_per_serving')}</option>
+        </select>
+        <div id="food-label-hint" class="form-hint">{$_('food_editor.label_reference_hint')}</div>
+        {#if servingFactor == null && parseDecimal(food.portion) > 0}
+          <div class="form-hint reference-warning" role="status">{$_('food_editor.label_unit_mismatch')}</div>
+        {:else if servingEnergy && food.labelReference !== 'portion'}
+          <div class="form-hint" role="status">{$_('food_editor.label_serving_energy', { values: {
+            amount: new Intl.NumberFormat($locale || undefined).format(parseDecimal(food.portion)),
+            portionUnit: displayUnit(food.unit || 'g', $_),
+            energy: new Intl.NumberFormat($locale || undefined).format(servingEnergy.value),
+            energyUnit: servingEnergy.unit,
+          } })}</div>
+        {/if}
+      </div>
       <!-- Nutrition fields grid. Single column on mobile / narrow
            so labels + inputs stack full-width. At ≥1024px (desktop
            editor pane) it becomes a 2-column grid so pairs like
@@ -1315,6 +1379,7 @@
 
   .link-btn { color: var(--text-3); margin-bottom: 2px; }
   .link-btn.linked { color: var(--accent); }
+  .reference-warning { color: var(--warning); }
   .editor-page {
     padding-top: 0;
     position: fixed;

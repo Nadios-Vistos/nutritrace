@@ -274,8 +274,9 @@ function toCanonicalAmount(portion, unit, food) {
  *      convert (cup/piece/custom free-text without per-food data).
  *
  * `food` is optional — callers can omit it and get the original behavior.
+ * Set allowApproximate to false when the result must be a known conversion.
  */
-export function scaleFactor(origPortion, origUnit, newPortion, newUnit, food = null) {
+export function scaleFactor(origPortion, origUnit, newPortion, newUnit, food = null, { allowApproximate = true } = {}) {
   const op = parseFloat(origPortion);
   const np = parseFloat(newPortion);
   const origP = (Number.isFinite(op) && op > 0) ? op : 100;
@@ -312,5 +313,5 @@ export function scaleFactor(origPortion, origUnit, newPortion, newUnit, food = n
   // Tier 3: fall back to pure numeric ratio (preserves existing behavior
   // for opaque units like "cup"/"piece" without per-food data, and for
   // cross-system picks on foods without density).
-  return newP / origP;
+  return allowApproximate ? newP / origP : null;
 }

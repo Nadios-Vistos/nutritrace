@@ -139,7 +139,8 @@ test('Refresh from OFF asks OFF itself, past a local mirror, and uses the new ru
   const fn = editor.slice(editor.indexOf('async function downloadFromOFF'));
   const body = fn.slice(0, fn.indexOf('\n  }\n'));
   assert.match(body, /API\.lookupBarcode\(food\.barcode, \{ live: true \}\)/);
-  assert.match(body, /applyOffRefresh\(food, result, NUTRIMENTS\.map\(n => n\.id\)\)/);
+  assert.match(body, /const input = labelInputFood\(food\);/);
+  assert.match(body, /applyOffRefresh\(input, result, NUTRIMENTS\.map\(n => n\.id\)\)/);
   assert.doesNotMatch(body, /smart mode/, 'the fill-empty-only loop is gone');
 });
 
