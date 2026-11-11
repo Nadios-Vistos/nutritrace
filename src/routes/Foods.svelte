@@ -725,7 +725,6 @@
   $: _sharedAllItems = (!pinnedSources.size || pinnedSources.has('shared'))
     ? _sharedMatches.map(item => ({ source: 'shared', item }))
     : [];
-  $: { if (searchSource === 'all' && _tabHasShared && !groupFoods.length && !groupMeals.length && !groupRecipes.length) loadGroupCatalogue(); }
 
   // Merged results for 'all' mode. Each entry is { source, item } so the row
   // renderer can dispatch the right pick action and stamp the right badge.
