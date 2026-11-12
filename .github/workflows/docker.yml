@@ -2,6 +2,11 @@ name: Fabriquer l’image du fork
 
 on:
   workflow_dispatch:
+  workflow_call:
+    inputs:
+      publish_family_channel:
+        type: boolean
+        default: false
 
 permissions:
   contents: read
@@ -38,6 +43,20 @@ jobs:
           labels: |
             org.opencontainers.image.source=${{ github.server_url }}/${{ github.repository }}
             org.opencontainers.image.revision=${{ github.sha }}
+
+      - name: Publier la version validée pour TrueNAS
+        if: inputs.publish_family_channel
+        shell: bash
+        env:
+          DIGEST: ${{ steps.build.outputs.digest }}
+        run: |
+          head_sha=$(git ls-remote origin refs/heads/mode-familial | cut -f1)
+          if [ "$head_sha" != "$GITHUB_SHA" ]; then
+            echo 'La branche a avancé. Cette image conserve uniquement son tag de commit.'
+            exit 0
+          fi
+          docker buildx imagetools create --prefer-index=false \
+            --tag "$IMAGE:mode-familial" "$IMAGE@$DIGEST"
 
       - name: Afficher la ligne à copier dans TrueNAS
         env:
