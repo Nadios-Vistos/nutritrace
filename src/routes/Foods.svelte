@@ -61,10 +61,12 @@
     { label: $_('foods.tabs.recipes'), value: 'recipes', empty: $_('foods.empty_recipes'), add: $_('foods.add_recipe') },
   ];
   let activeTab = 0;
+  let sourceFilterEl;
   // Reset source + category filter when switching tabs (not when searchSource itself changes)
   let _prevTab = activeTab;
   $: if (activeTab !== _prevTab) {
     _prevTab = activeTab;
+    if (sourceFilterEl) sourceFilterEl.open = false;
     activeCategoryFilter = '';
     pinnedSources = new Set();
     // A member may have shared or withdrawn an item since the last visit.
@@ -272,12 +274,7 @@
       _toggleChipInMulti(sourceValue);
     }, 500);
   }
-  // Movement-thresholded cancel — only kill the timer when the finger has
-  // actually moved more than ~10px. Without the threshold the chip row's
-  // horizontal-scroll overflow causes the browser to fire touchmove events
-  // proactively (to test for pan intent), which cancels the long-press
-  // timer before it ever fires. Foods list rows don't have this issue
-  // because they don't sit inside an overflow-scroll container.
+  // Small touch movements should not cancel a long press.
   function _maybeCancelChipLongPress(e) {
     if (!_lpChipTimer) return;
     const t = e?.touches?.[0];
@@ -352,6 +349,10 @@
     if (_lpChipJustFired) return;
     pinnedSources = new Set();
     searchSource = sourceValue;
+    if (sourceFilterEl?.open) {
+      sourceFilterEl.open = false;
+      sourceFilterEl.querySelector('summary')?.focus({ preventScroll: true });
+    }
     if (sourceValue === 'all' || sourceValue === 'shared') refreshSharingStatus();
   }
   // Small helper for _allModeItems below.
@@ -630,7 +631,7 @@
   // Desktop detail-pane state (Phase B). When the viewport is wide
   // enough (≥1440px) AND force-mobile-layout is off, tapping a food
   // populates this pane instead of opening the modal FoodDetailSheet.
-  // The pane is sticky-positioned in the third column of .foods-body.
+  // The pane is positioned in the right column of .foods-body.
   let _paneFood = null;
   let _foodsViewportPane = false;
   $: _foodsPaneMode = _foodsViewportPane && !$forceMobileLayout;
@@ -1875,45 +1876,21 @@
   let _onVis = null;
   let _paneMq = null;
   let _paneMqHandler = null;
-  let _railMq = null;
-  let _railMqHandler = null;
-  let _foodsViewportRail = false; // ≥1280px, gates the Sources/Categories rail portal
-  $: _foodsRailMode = _foodsViewportRail && !$forceMobileLayout;
   let _onKeyGlobal = null;
   let _foodsBodyEl = null;
-  // Same pattern as NT Diary's rail (see feedback_traceapps_fixed_positioning_in_scroll_wrapper):
-  // .page-transition scopes position:fixed via will-change:transform, so
-  // both asides are portaled to document.body and their geometry is fed
-  // via inline CSS custom properties (which don't cross a portal).
-  let _railTopPx  = 130, _railLeftPx  = 0,   _railWidthPx = 240;
-  let _paneTopPx  = 130, _paneLeftPx  = 0,   _paneWidthPx = 420;
-  let _foodsRailResizeObs = null;
-  function _measureFoodsRails() {
+  // The detail pane is portaled to document.body, so it needs viewport coordinates.
+  let _paneTopPx = 130, _paneLeftPx = 0, _paneWidthPx = 420;
+  let _foodsPaneResizeObs = null;
+  function _measureFoodsPane() {
     if (!_foodsBodyEl) return;
     const rect = _foodsBodyEl.getBoundingClientRect();
-    // The page scrolls inside .page-transition, not the window (#217).
-    const scrollY = pageScrollTop(_foodsBodyEl);
     const cs = getComputedStyle(_foodsBodyEl);
-    const padTop  = parseFloat(cs.paddingTop  || '0') || 0;
-    const padLeft = parseFloat(cs.paddingLeft || '0') || 0;
-    // Grid + padding gives the actual position of the rail cell inside
-    // .foods-body. Including the top padding is what puts the small
-    // breathing gap between the sticky search bar and the rail (same
-    // "diary rail sits below week-strip with .diary-content padding"
-    // pattern from Diary.svelte).
     const rootCS = getComputedStyle(document.documentElement);
     const pageTop = parseFloat(rootCS.getPropertyValue('--page-top') || rootCS.getPropertyValue('--safe-top') || '0') || 0;
-    const hamRow  = parseFloat(rootCS.getPropertyValue('--hamburger-row') || '0') || 0;
-    const anchorDocTop = rect.top + scrollY + padTop;
-    const topPx = Math.max(0, Math.round(anchorDocTop - pageTop - hamRow));
-    if (topPx !== _railTopPx) _railTopPx = topPx;
-    if (topPx !== _paneTopPx) _paneTopPx = topPx;
-    // Left offsets track the grid cell edges, honoring horizontal padding.
-    const leftRail = Math.max(0, Math.round(rect.left + padLeft));
-    const paneRightPad = parseFloat(cs.paddingRight || '0') || 0;
-    const leftPane = Math.max(0, Math.round(rect.right - paneRightPad - _paneWidthPx));
-    if (leftRail !== _railLeftPx) _railLeftPx = leftRail;
-    if (leftPane !== _paneLeftPx) _paneLeftPx = leftPane;
+    const hamburgerRow = parseFloat(rootCS.getPropertyValue('--hamburger-row') || '0') || 0;
+    const bodyTop = rect.top + pageScrollTop(_foodsBodyEl) + (parseFloat(cs.paddingTop) || 0);
+    _paneTopPx = Math.max(0, Math.round(bodyTop - pageTop - hamburgerRow));
+    _paneLeftPx = Math.max(0, Math.round(rect.right - (parseFloat(cs.paddingRight) || 0) - _paneWidthPx));
   }
   onDestroy(() => {
     sharingRequest++;
@@ -1923,14 +1900,9 @@
         ? _paneMq.removeEventListener('change', _paneMqHandler)
         : _paneMq.removeListener(_paneMqHandler);
     }
-    if (_railMq && _railMqHandler) {
-      _railMq.removeEventListener
-        ? _railMq.removeEventListener('change', _railMqHandler)
-        : _railMq.removeListener(_railMqHandler);
-    }
     if (_onKeyGlobal) document.removeEventListener('keydown', _onKeyGlobal);
-    try { _foodsRailResizeObs?.disconnect(); } catch {}
-    if (typeof window !== 'undefined') window.removeEventListener('resize', _measureFoodsRails);
+    try { _foodsPaneResizeObs?.disconnect(); } catch {}
+    if (typeof window !== 'undefined') window.removeEventListener('resize', _measureFoodsPane);
   });
 
   onMount(async () => {
@@ -1945,22 +1917,13 @@
       _paneMq.addEventListener
         ? _paneMq.addEventListener('change', _paneMqHandler)
         : _paneMq.addListener(_paneMqHandler);
-      // Second breakpoint gate: the Sources/Categories rail activates
-      // at ≥1280 (one step below the detail pane). Portal + measurement
-      // only run inside this window.
-      _railMq = window.matchMedia('(min-width: 1280px)');
-      _railMqHandler = () => { _foodsViewportRail = _railMq.matches; requestAnimationFrame(_measureFoodsRails); };
-      _foodsViewportRail = _railMq.matches;
-      _railMq.addEventListener
-        ? _railMq.addEventListener('change', _railMqHandler)
-        : _railMq.addListener(_railMqHandler);
     }
-    requestAnimationFrame(() => requestAnimationFrame(_measureFoodsRails));
+    requestAnimationFrame(() => requestAnimationFrame(_measureFoodsPane));
     try {
-      _foodsRailResizeObs = new ResizeObserver(_measureFoodsRails);
-      if (_foodsBodyEl) _foodsRailResizeObs.observe(_foodsBodyEl);
+      _foodsPaneResizeObs = new ResizeObserver(_measureFoodsPane);
+      if (_foodsBodyEl) _foodsPaneResizeObs.observe(_foodsBodyEl);
     } catch { /* ResizeObserver unavailable — one-shot stands */ }
-    if (typeof window !== 'undefined') window.addEventListener('resize', _measureFoodsRails);
+    if (typeof window !== 'undefined') window.addEventListener('resize', _measureFoodsPane);
     // Global keyboard shortcut: '/' or ⌘K / Ctrl-K focuses the
     // search input from anywhere on the page, matching the muscle
     // memory of most desktop search UIs. Skipped when the user is
@@ -2027,11 +1990,6 @@
   on:resize={_closeTierDropdowns}
 />
 
-<!-- Source + category chip snippets. Rendered inline in the mobile
-     sticky bar (horizontal scroll) AND inside the desktop
-     .foods-filter-rail (vertical list). Same event handlers +
-     state either way — snippet-driven so behavior stays in one
-     place while the layout adapts. -->
 {#snippet sourceChips()}
   {#if availableSources.length > 1}
     {#each availableSources as src}
@@ -2039,6 +1997,7 @@
         <div class="source-chip-wrap">
           <button class="source-chip source-chip-split"
                   class:active={activeChips.off}
+                  aria-pressed={activeChips.off}
                   on:click={() => _onChipTap('off')}
                   on:contextmenu|preventDefault={() => _toggleChipInMulti('off')}
                   on:touchstart|passive={(e) => _startChipLongPress('off', e)}
@@ -2062,6 +2021,7 @@
         <div class="source-chip-wrap">
           <button class="source-chip source-chip-split"
                   class:active={activeChips.usda}
+                  aria-pressed={activeChips.usda}
                   on:click={() => _onChipTap('usda')}
                   on:contextmenu|preventDefault={() => _toggleChipInMulti('usda')}
                   on:touchstart|passive={(e) => _startChipLongPress('usda', e)}
@@ -2084,6 +2044,7 @@
       {:else}
         <button class="source-chip"
                 class:active={activeChips[src.value]}
+                aria-pressed={activeChips[src.value]}
                 on:click={() => _onChipTap(src.value)}
                 on:contextmenu|preventDefault={() => _toggleChipInMulti(src.value)}
                 on:touchstart|passive={(e) => _startChipLongPress(src.value, e)}
@@ -2187,59 +2148,35 @@
     </div>
   </div>
 
-  <!-- Mobile chip rows — horizontal scroll inside the sticky bar
-       (sources) + below the sticky bar (categories). Both are
-       CSS-hidden on desktop (≥1280px) since the .foods-filter-rail
-       shows the same chips vertically. -->
-  <div class="foods-mobile-chips">
-    <div class="source-chip-row">
-      {@render sourceChips()}
-    </div>
-  </div>
+  {#if availableSources.length > 1}
+    <details class="foods-source-filter" bind:this={sourceFilterEl}
+      on:toggle={() => {
+        if (!sourceFilterEl?.open) _closeTierDropdowns();
+        _measureFoodsPane();
+      }}>
+      <summary class="foods-source-trigger">
+        <span class="material-symbols-rounded" aria-hidden="true">filter_list</span>
+        {#if pinnedSources.size > 1}
+          {$_('foods.sources_heading')} · {pinnedSources.size}
+        {:else}
+          {_sourceLabel}
+        {/if}
+        <span class="material-symbols-rounded foods-source-chevron" aria-hidden="true">expand_more</span>
+      </summary>
+      <div class="source-chip-row">
+        {@render sourceChips()}
+      </div>
+    </details>
+  {/if}
   </div>
 
-  <div class="foods-mobile-chips">
+  {#if activeTab === 0 && searchSource === 'local' && $foodsShowCategories && $foodCategories?.length}
     <div class="cat-filter-row">
       {@render catChips()}
     </div>
-  </div>
+  {/if}
 
-  <!-- Foods body: two-pane split at ≥1280px. Left rail holds the
-       filter chips vertically; main pane holds the food list. Below
-       1280px (or when force-mobile-layout is on) this collapses to
-       a single main column and the .foods-mobile-chips above take
-       over the filter surface. -->
   <div class="foods-body" bind:this={_foodsBodyEl}>
-    {#if _foodsRailMode}
-    <aside
-      use:portal
-      class="foods-filter-rail"
-      style="--foods-rail-top:{_railTopPx}px; --foods-rail-left:{_railLeftPx}px; --foods-rail-width:{_railWidthPx}px"
-    >
-      {#if availableSources.length > 1}
-        <!-- Sources heading + chips only make sense when there's
-             more than one source to pick from. Meals/Recipes with
-             just Local (no shared users) hide the section entirely
-             — no dead heading with a single chip beneath. -->
-        <p class="foods-filter-heading">{$_('foods.sources_heading')}</p>
-        <div class="foods-rail-chips foods-rail-sources">
-          {@render sourceChips()}
-        </div>
-      {/if}
-      {#if activeTab === 0 && searchSource === 'local' && $foodsShowCategories && $foodCategories && $foodCategories.length > 0}
-        <p class="foods-filter-heading">{$_('foods.categories_heading')}</p>
-        <div class="foods-rail-chips foods-rail-cats">
-          {@render catChips()}
-        </div>
-      {/if}
-      {#if availableSources.length <= 1 && !(activeTab === 0 && searchSource === 'local' && $foodsShowCategories && $foodCategories && $foodCategories.length > 0)}
-        <!-- Rail would be empty otherwise — leave a low-key hint so
-             the column doesn't render as a mysteriously-empty box. -->
-        <p class="foods-filter-empty">{$_('foods.filters_empty')}</p>
-      {/if}
-    </aside>
-    {/if}
-
     <div class="foods-main">
 
   <!-- Yesterday's meals (pick mode only) -->
@@ -3672,13 +3609,39 @@
   }
   .cat-chip.active { background: var(--accent-dim); border-color: var(--accent); color: var(--accent); font-weight: 600; }
 
+  .foods-source-filter {
+    margin: 0 var(--page-px) 8px;
+  }
+  .foods-source-trigger {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    min-height: 36px;
+    padding: 5px 10px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    background: var(--surface-1);
+    color: var(--text-2);
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    list-style: none;
+  }
+  .foods-source-trigger:hover { background: var(--surface-2); }
+  .foods-source-trigger:focus-visible,
+  .source-chip:focus-visible,
+  .source-chip-caret:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: -2px;
+  }
+  .foods-source-trigger::-webkit-details-marker { display: none; }
+  .foods-source-trigger .material-symbols-rounded { font-size: 18px; }
+  .foods-source-filter[open] .foods-source-chevron { transform: rotate(180deg); }
   .source-chip-row {
     display: flex;
+    flex-wrap: wrap;
     gap: 6px;
-    padding: 0 var(--page-px) 10px;
-    overflow-x: auto;
-    scrollbar-width: none;
-    -webkit-overflow-scrolling: touch;
+    padding-top: 8px;
   }
   /* ── Multi-select ─────────────────────────────────────────────────────── */
   .food-item { display: flex; align-items: stretch; }
@@ -3707,7 +3670,6 @@
     height: 36px; padding: 0 14px; font-size: 13px; font-weight: 600;
   }
 
-  .source-chip-row::-webkit-scrollbar { display: none; }
   .source-chip {
     flex-shrink: 0;
     padding: 5px 16px;
@@ -3955,183 +3917,28 @@
   }
   .select-mode-title { color: var(--accent); }
 
-  /* ───────────────────────────────────────────────────────────────
-     Foods desktop Phase A — left filter rail (≥1280px).
+  .foods-detail-pane { display: none; }
 
-     Mobile / narrow (default): chip rows sit inline in the sticky
-     bar (sources) and just below it (categories), scrolling
-     horizontally. That behavior is unchanged.
-
-     Desktop (≥1280px, unless force-mobile-layout is on): the same
-     chip-render snippets flow vertically into a 240px sticky rail
-     on the left of the foods body; the mobile inline chip rows
-     are hidden. Same handlers, same state — one code path, two
-     layouts, mirroring the Diary right-rail + Settings two-pane
-     pattern. */
-  .foods-body {
-    display: block;
-  }
-  .foods-filter-rail,
-  .foods-detail-pane {
-    display: none;
-  }
-
-  @media (min-width: 1280px) {
+  /* Desktop keeps a detail pane next to the catalogue. */
+  @media (min-width: 1440px) {
     :global(html:not(.force-mobile-layout)) .foods-body {
       display: grid;
-      grid-template-columns: 240px minmax(0, 1fr);
+      grid-template-columns: minmax(0, 1fr) 420px;
       gap: 20px;
       align-items: start;
-      /* Match page-content's 12px top padding so the rail top border
-         aligns with the first card's top edge in the middle column
-         (page-content has padding: 12px var(--page-px) 0). */
       padding: 12px var(--page-px) 0;
     }
-    /* Middle column has its own .page-content padding — zero out
-       here to avoid doubling with the new .foods-body padding. */
     :global(html:not(.force-mobile-layout)) .foods-main :global(.page-content) {
-      padding-top: 0;
-    }
-    /* Explicit column placement so .foods-main stays in the middle
-       track even when the rail + pane are portaled out (their asides
-       leave the grid, and without this, .foods-main falls into column
-       1 and the list gets squished into the 240px rail column). */
-    :global(html:not(.force-mobile-layout)) .foods-main {
-      grid-column: 2 / 3;
-    }
-    /* Rail — position:fixed + portaled to document.body, same
-       pattern as NT Diary's right rail (see
-       feedback_traceapps_fixed_positioning_in_scroll_wrapper).
-       .page-transition's will-change:transform breaks the naive
-       position:fixed containing block, so JS drives left/top from
-       the .foods-body grid via inline CSS custom properties. */
-    :global(html:not(.force-mobile-layout)) .foods-filter-rail {
-      display: flex;
-      flex-direction: column;
-      gap: 4px;
-      position: fixed;
-      top: calc(var(--page-top, var(--safe-top)) + var(--foods-rail-top, 130px) + var(--hamburger-row, 0px));
-      left: var(--foods-rail-left, auto);
-      width: var(--foods-rail-width, 240px);
-      z-index: 5;
-      max-height: calc(100vh
-        - var(--page-top, var(--safe-top))
-        - var(--foods-rail-top, 130px)
-        - 20px
-        - var(--hamburger-row, 0px)
-        - var(--nav-h, 0px)
-        - var(--safe-bottom, 0px));
-      overflow-y: auto;
-      padding: 12px 10px;
-      background: var(--surface-1);
-      border: 1px solid var(--border);
-      border-radius: var(--radius-lg);
-      scrollbar-width: thin;
-      scrollbar-color: var(--border) transparent;
-    }
-    :global(html:not(.force-mobile-layout)) .foods-filter-heading {
-      font-size: 11px;
-      font-weight: 700;
-      letter-spacing: 0.1em;
-      text-transform: uppercase;
-      color: var(--text-3);
-      margin: 8px 4px 6px;
-    }
-    :global(html:not(.force-mobile-layout)) .foods-filter-heading:first-child {
-      margin-top: 0;
-    }
-    :global(html:not(.force-mobile-layout)) .foods-filter-empty {
-      margin: 4px;
-      padding: 12px 8px;
-      color: var(--text-3);
-      font-size: 12px;
-      line-height: 1.4;
-      text-align: center;
-    }
-    /* Rail chip containers — flip from horizontal scroll to
-       vertical flow. Every chip inside becomes a full-width row. */
-    :global(html:not(.force-mobile-layout)) .foods-rail-chips {
-      display: flex;
-      flex-direction: column;
-      gap: 4px;
-      overflow: visible;
       padding: 0;
     }
-    /* Chip restyle inside the rail: full-width, left-aligned pills
-       instead of round mobile chips. Uses :global() because the
-       chip markup lives inside the snippet (rendered inside the
-       rail via {@render sourceChips()}), so Diary's scoping hash
-       won't be on them without opting out. */
-    :global(html:not(.force-mobile-layout)) .foods-rail-chips :global(.source-chip),
-    :global(html:not(.force-mobile-layout)) .foods-rail-chips :global(.source-chip-split),
-    :global(html:not(.force-mobile-layout)) .foods-rail-chips :global(.cat-chip) {
-      width: 100%;
-      justify-content: flex-start;
-      text-align: left;
-      padding: 8px 12px;
-      border-radius: var(--radius-md);
-      border-width: 1px;
-      font-weight: 500;
-    }
-    :global(html:not(.force-mobile-layout)) .foods-rail-chips :global(.source-chip.active),
-    :global(html:not(.force-mobile-layout)) .foods-rail-chips :global(.cat-chip.active) {
-      background: var(--accent-dim);
-      color: var(--accent);
-      border-color: color-mix(in srgb, var(--accent) 50%, transparent);
-    }
-    /* Focus-visible ring for keyboard nav — matches the Settings
-       rail so tab-through has a consistent look across surfaces. */
-    :global(html:not(.force-mobile-layout)) .foods-rail-chips :global(.source-chip:focus-visible),
-    :global(html:not(.force-mobile-layout)) .foods-rail-chips :global(.source-chip-caret:focus-visible),
-    :global(html:not(.force-mobile-layout)) .foods-rail-chips :global(.cat-chip:focus-visible) {
-      outline: 2px solid var(--accent);
-      outline-offset: -2px;
-    }
-    /* Selected food card gets an accent border + subtle tint so the
-       list-vs-pane relationship is obvious. Only fires when the
-       detail pane is showing a food from the current list. */
     :global(html:not(.force-mobile-layout)) :global(.food-item.food-pane-active) {
       border-color: var(--accent);
       background: color-mix(in srgb, var(--accent) 6%, var(--surface-1));
       box-shadow: 0 0 0 1px var(--accent);
     }
-    /* Split source chips (OFF, USDA) — keep the caret snug on the
-       right of the pill. */
-    :global(html:not(.force-mobile-layout)) .foods-rail-chips :global(.source-chip-wrap) {
-      display: flex;
-      width: 100%;
-    }
-    :global(html:not(.force-mobile-layout)) .foods-rail-chips :global(.source-chip-wrap .source-chip) {
-      flex: 1 1 auto;
-      border-top-right-radius: 0;
-      border-bottom-right-radius: 0;
-    }
-    :global(html:not(.force-mobile-layout)) .foods-rail-chips :global(.source-chip-caret) {
-      border-top-left-radius: 0;
-      border-bottom-left-radius: 0;
-    }
-    /* Hide mobile chip scrollers on desktop — same chips now live
-       in the rail. */
-    :global(html:not(.force-mobile-layout)) .foods-mobile-chips {
-      display: none;
-    }
-  }
-
-  /* Foods Phase B — right detail-preview pane at ≥1440px. Below
-     1440 the pane would squeeze the main list too tight; the
-     modal FoodDetailSheet keeps working on tap there. At ≥1440 the
-     pane replaces the sheet: tap a food and its identity /
-     nutrition / actions render inline in the third column instead
-     of sliding up as a modal. */
-  @media (min-width: 1440px) {
-    :global(html:not(.force-mobile-layout)) .foods-body {
-      grid-template-columns: 240px minmax(0, 1fr) 420px;
-    }
     :global(html:not(.force-mobile-layout)) .foods-detail-pane {
       display: block;
-      /* Same portaled + position:fixed pattern as the filter rail
-         above. --foods-pane-* vars come from Foods.svelte's
-         _measureFoodsRails, updated on mount + resize. */
+      /* The portaled pane is positioned by _measureFoodsPane. */
       position: fixed;
       top: calc(var(--page-top, var(--safe-top)) + var(--foods-pane-top, 130px) + var(--hamburger-row, 0px));
       left: var(--foods-pane-left, auto);
@@ -4190,8 +3997,7 @@
      of wide screens on the user's report. */
 
   /* A foldable open flat is about 852px: wide enough for two food cards
-     side by side, but not for the rail and preview pane the 1280/1440 tiers
-     add. Widening the list is a pure gain because it does not change what a
+     side by side, but not for the desktop detail pane. Widening the list is a pure gain because it does not change what a
      tap does, the food sheet still opens exactly as it does on a phone. */
   @media (max-width: 1279px) {
     :global(html.wide-content) :global(.food-list) {
