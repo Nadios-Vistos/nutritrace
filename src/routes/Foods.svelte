@@ -1888,7 +1888,8 @@
     const rootCS = getComputedStyle(document.documentElement);
     const pageTop = parseFloat(rootCS.getPropertyValue('--page-top') || rootCS.getPropertyValue('--safe-top') || '0') || 0;
     const hamburgerRow = parseFloat(rootCS.getPropertyValue('--hamburger-row') || '0') || 0;
-    const bodyTop = rect.top + pageScrollTop(_foodsBodyEl) + (parseFloat(cs.paddingTop) || 0);
+    const scrollY = pageScrollTop(_foodsBodyEl);
+    const bodyTop = rect.top + scrollY + (parseFloat(cs.paddingTop) || 0);
     _paneTopPx = Math.max(0, Math.round(bodyTop - pageTop - hamburgerRow));
     _paneLeftPx = Math.max(0, Math.round(rect.right - (parseFloat(cs.paddingRight) || 0) - _paneWidthPx));
   }
