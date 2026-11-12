@@ -167,27 +167,32 @@
   let ciqualCategory = '';
   const CIQUAL_PAGE_SIZE = 40;
   let ciqualLimit = CIQUAL_PAGE_SIZE;
+  const ALL_CATALOGUE_PAGE_SIZE = 10;
+  let allCatalogueLimit = ALL_CATALOGUE_PAGE_SIZE;
   $: { search; ciqualCategory; ciqualLimit = CIQUAL_PAGE_SIZE; }
+  $: { search; searchSource; activeTab; pinnedSources; allCatalogueLimit = ALL_CATALOGUE_PAGE_SIZE; }
   $: searchSource, ciqualCategory = '';
   $: referenceCatalogue = searchSource === 'atlas' ? atlasCatalogue
     : searchSource === 'basics' ? basicsCatalogue : ciqualCatalogue;
   $: ciqualMatches = searchCiqual(referenceCatalogue, search, ciqualCategory);
-  $: ciqualAllMatches = searchSource === 'all' && activeTab === 0 && search.trim()
+  $: referenceAllGroups = searchSource === 'all' && activeTab === 0
     ? searchReferenceCatalogues(ciqualCatalogue, basicsCatalogue, pinnedSources, search)
     : [];
   $: if (activeTab === 0 && (searchSource === 'basics' || searchSource === 'ciqual' || searchSource === 'all')
     && !ciqualCatalogue && !ciqualLoading && !ciqualError) refreshCiqual();
-  $: atlasAllMatches = searchSource === 'all' && activeTab === 0 && search.trim()
-    && (!pinnedSources.size || pinnedSources.has('atlas'))
-    ? searchCiqual(atlasCatalogue, search).slice(0, 8) : [];
-  $: if (activeTab === 0 && (searchSource === 'atlas' || (searchSource === 'all' && search.trim()))
+  $: atlasInAll = searchSource === 'all' && (!pinnedSources.size || pinnedSources.has('atlas'));
+  $: atlasAllMatches = activeTab === 0 && atlasInAll ? searchCiqual(atlasCatalogue, search) : [];
+  $: if (activeTab === 0 && (searchSource === 'atlas' || atlasInAll)
     && !atlasCatalogue && !atlasLoading && !atlasError) refreshAtlas();
 
   function searchReferenceCatalogues(full, basics, sources, query) {
     const common = !sources.size || sources.has('basics') ? searchCiqual(basics, query) : [];
     const codes = new Set(common.map(food => food.source_external_id));
     const rest = !sources.size || sources.has('ciqual') ? searchCiqual(full, query) : [];
-    return [...common, ...rest.filter(food => !codes.has(food.source_external_id) && food.nutrition.calories != null)].slice(0, 12);
+    return [
+      { source: 'basics', foods: common },
+      { source: 'ciqual', foods: rest.filter(food => !codes.has(food.source_external_id) && food.nutrition.calories != null) },
+    ];
   }
 
   async function refreshCiqual() {
@@ -722,34 +727,40 @@
   $: _groupList = groupCatalogue[activeTab];
   $: displayList = searchSource === 'shared' ? _groupList : _ownList;
   $: _sharedMatches = _groupList.filter(item => _fuzzyMatch(item, search));
-  $: _sharedAllItems = (!pinnedSources.size || pinnedSources.has('shared'))
-    ? _sharedMatches.map(item => ({ source: 'shared', item }))
-    : [];
+  $: _localAllFoods = searchSource === 'all' && (!pinnedSources.size || pinnedSources.has('local'))
+    ? _ownList.filter(food => _fuzzyMatch(food, search)) : [];
+  $: _sharedAllFoods = searchSource === 'all' && (!pinnedSources.size || pinnedSources.has('shared'))
+    ? _sharedMatches : [];
+  $: _allSharedResults = _sharedAllFoods.map(item => ({ source: 'shared', item }));
+  $: _allReferenceGroups = [...referenceAllGroups, { source: 'atlas', foods: atlasAllMatches }];
+  $: _allBrowseGroups = [
+    { source: 'local', foods: _localAllFoods },
+    { source: 'shared', foods: _sharedAllFoods },
+    ..._allReferenceGroups,
+  ];
+  $: _allCatalogueHasMore = activeTab === 0 && (search.trim() ? _allReferenceGroups : _allBrowseGroups)
+    .some(({ foods }) => foods.length > allCatalogueLimit);
 
-  // Merged results for 'all' mode. Each entry is { source, item } so the row
-  // renderer can dispatch the right pick action and stamp the right badge.
-  // Ordering: Local first (user's own data), then Shared, then Mealie
-  // (self-hosted curated), then OFF (community brand-name catalogue), then
-  // USDA (verified generic reference). OFF-before-USDA matches how users
-  // actually search — familiar brand-name products usually come from OFF
-  // (Nutella, Cheerios); USDA is stronger on generic/verified nutrition
-  // reference entries and reads naturally as the "fallback / dig deeper"
-  // tier below the brand-name results.
-  // _allModeItems runs in 'all' mode (either the user tapped 'All' OR they
-  // entered multi mode via long-press, which flips searchSource to 'all').
-  // The _isSourceActive() gate short-circuits any sources the user has
-  // filtered out via multi-select — pinned set empty = show everything
-  // (regular all mode), pinned set populated = show only those sources.
-  //
-  // The OFF completeness + USDA data-type tier filters ALSO apply here
-  // (not just in dedicated OFF/USDA single-source mode) — filtering
-  // happens at the item level so multi-source results still honour the
-  // user's tier picks within each source.
-  $: _allModeItems = searchSource !== 'all' ? [] : !search.trim() ? _sharedAllItems : [
-    ...(_isSourceActive('local')  ? (_ownList || []).filter(f => search.trim() ? _fuzzyMatch(f, search) : false).map(item => ({ source: 'local',  item })) : []),
-    ...ciqualAllMatches.map(item => ({ source: 'ciqual', item })),
-    ...atlasAllMatches.map(item => ({ source: 'atlas', item })),
-    ..._sharedAllItems,
+  // Interleave the available catalogues so each source is visible near the top.
+  // Increasing the limit appends another set of rows in the same order.
+  function browseCatalogue(groups, limit) {
+    const rows = [];
+    for (let index = 0; index < limit; index++) {
+      for (const { source, foods } of groups) {
+        if (index < foods.length) rows.push({ source, item: foods[index] });
+      }
+    }
+    return rows;
+  }
+
+  $: _allBrowseItems = activeTab === 0 ? browseCatalogue(_allBrowseGroups, allCatalogueLimit)
+    : _allSharedResults;
+  // Text searches also include results from the enabled online sources.
+  $: _allModeItems = searchSource !== 'all' ? [] : !search.trim() ? _allBrowseItems : [
+    ..._localAllFoods.map(item => ({ source: 'local', item })),
+    ..._allSharedResults,
+    ..._allReferenceGroups.flatMap(({ source, foods }) =>
+      foods.slice(0, allCatalogueLimit).map(item => ({ source, item }))),
     ...(_isSourceActive('mealie') ? (mealieResults || []).map(item => ({ source: 'mealie', item })) : []),
     ...(activeTab === 2 && (!pinnedSources.size || pinnedSources.has('mealieLibrary')) ? mealieMatches.map(item => ({ source: 'mealieLibrary', item })) : []),
     ...(_isSourceActive('cooktrace') ? (cooktraceResults || []).map(item => ({ source: 'cooktrace', item })) : []),
@@ -2290,15 +2301,15 @@
   <div class="page-content">
     {#if searchSource === 'all'}
       <!-- ── All: merged results from every enabled source ─────────────────── -->
-      {#if !search.trim() && _allModeItems.length === 0}
+      {#if (loading || loadingGroup || mealieLoading || cooktraceLoading || ctPantryLoading || ciqualLoading || atlasLoading || _initialLoading) && _allModeItems.length === 0}
+        <div class="loading-row">
+          <span class="material-symbols-rounded spin">refresh</span>
+          <span class="text-2 text-sm">{$_(search.trim() ? 'foods.all_mode.searching' : 'foods.loading_library')}</span>
+        </div>
+      {:else if !search.trim() && _allModeItems.length === 0}
         <div class="empty-state">
           <span class="material-symbols-rounded empty-icon">search</span>
           <p>{$_('foods.all_mode.search_hint')}</p>
-        </div>
-      {:else if (loading || loadingGroup || mealieLoading || cooktraceLoading || ctPantryLoading || ciqualLoading || atlasLoading) && _allModeItems.length === 0}
-        <div class="loading-row">
-          <span class="material-symbols-rounded spin">refresh</span>
-          <span class="text-2 text-sm">{$_('foods.all_mode.searching')}</span>
         </div>
       {:else if _allModeItems.length === 0}
         <div class="empty-state">
@@ -2314,7 +2325,7 @@
             {@const isMealie = source === 'mealie'}
             {@const isCookTrace = source === 'cooktrace'}
             {@const isCtPantry = source === 'ctpantry'}
-            {@const isExternal = source === 'off' || source === 'usda' || source === 'ciqual' || source === 'atlas' || source === 'mealieLibrary'}
+            {@const isExternal = ['off', 'usda', 'basics', 'ciqual', 'atlas', 'mealieLibrary'].includes(source)}
             {@const _foodEnergy = isMealie
               ? null
               : Nutrition.displayEnergy(item.nutrition?.calories || item.calories || 0, $energyUnit)}
@@ -2398,6 +2409,7 @@
                   {:else if source === 'mealie' || source === 'mealieLibrary'}{$_('foods.sources.mealie')}
                   {:else if source === 'cooktrace' || source === 'ctpantry'}CookTrace
                   {:else if source === 'usda'}USDA
+                  {:else if source === 'basics'}{$_('ciqual.basics')}
                   {:else if source === 'ciqual'}Ciqual
                   {:else if source === 'atlas'}{$_('portions.atlas')}
                   {:else}OFF{/if}
@@ -2406,6 +2418,11 @@
             </li>
           {/each}
         </ul>
+        {#if _allCatalogueHasMore}
+          <button class="btn btn-secondary" type="button" on:click={() => allCatalogueLimit += ALL_CATALOGUE_PAGE_SIZE}>
+            {$_('ciqual.show_more')}
+          </button>
+        {/if}
         <!-- ALL-mode per-source counts + infinite-scroll sentinel. Counts
              turn silent 0s into visible signals (e.g. "OFF · 0" tells the
              user OFF didn't return anything, not that ALL is broken).
