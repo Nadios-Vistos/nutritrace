@@ -113,8 +113,8 @@ export default defineConfig({
         ]
       },
       manifest: {
-        name: 'NutriTrace',
-        short_name: 'NutriTrace',
+        name: 'SosoBlue Nutri',
+        short_name: 'SosoBlue Nutri',
         description: 'Trace Every Bite — Personal Nutrition Tracker',
         theme_color: '#681b38',
         background_color: '#0A0B0F',
@@ -126,10 +126,10 @@ export default defineConfig({
         start_url: './',
         scope: './',
         icons: [
-          { src: 'icons/icon-192.png', sizes: '192x192', type: 'image/png', purpose: 'any' },
-          { src: 'icons/icon-512.png', sizes: '512x512', type: 'image/png', purpose: 'any' },
-          { src: 'icons/icon-192.png', sizes: '192x192', type: 'image/png', purpose: 'maskable' },
-          { src: 'icons/icon-512.png', sizes: '512x512', type: 'image/png', purpose: 'maskable' }
+          { src: 'icons/sosoblue-nutri-192.png', sizes: '192x192', type: 'image/png', purpose: 'any' },
+          { src: 'icons/sosoblue-nutri-512.png', sizes: '512x512', type: 'image/png', purpose: 'any' },
+          { src: 'icons/sosoblue-nutri-192.png', sizes: '192x192', type: 'image/png', purpose: 'maskable' },
+          { src: 'icons/sosoblue-nutri-512.png', sizes: '512x512', type: 'image/png', purpose: 'maskable' }
         ]
       }
     })
